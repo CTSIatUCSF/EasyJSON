@@ -12,7 +12,6 @@ use JSON;
 use LWP::UserAgent;
 use String::Util qw( trim );
 use URI::Escape qw( uri_escape );
-use 5.12.0;
 binmode STDOUT, ':utf8';
 use parent qw( Exporter );
 use strict;
@@ -20,7 +19,8 @@ use warnings;
 
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
-our $ua;
+
+my ( $i2c_cache, $c2j_cache, $json_obj, $ua );
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
@@ -43,7 +43,7 @@ sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
 
-    state $cache = CHI->new(
+    $i2c_cache ||= CHI->new(
                  driver    => 'File',
                  namespace => 'Profiles JSON API identifier_to_canonical_url',
                  expires_variance => 0.25,
@@ -53,7 +53,7 @@ sub identifier_to_canonical_url {
         ( $identifier // '' );
 
     unless ( $options->{cache} and $options->{cache} eq 'never' ) {
-        my $canonical_url = $cache->get($cache_key);
+        my $canonical_url = $i2c_cache->get($cache_key);
         if ($canonical_url) {
             return $canonical_url;
         }
@@ -104,6 +104,10 @@ sub identifier_to_canonical_url {
             }
         }
 
+        Data::Dump::ddx { identifier      => $identifier,
+                          identifier_type => $identifier_type
+        };
+
         my $url
             = "http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?"
             . uri_escape($identifier_type) . '='
@@ -113,8 +117,9 @@ sub identifier_to_canonical_url {
         my $response = $ua->get($url);
         if ( !$response->is_success ) {
 
-            if ( $cache->exists_and_is_expired($url) ) {
-                my $potential_expired_cache_object = $cache->get_object($url);
+            if ( $i2c_cache->exists_and_is_expired($url) ) {
+                my $potential_expired_cache_object
+                    = $i2c_cache->get_object($url);
                 if ($potential_expired_cache_object) {
                     $node_uri = $potential_expired_cache_object->value();
                     if ($node_uri) {
@@ -135,7 +140,7 @@ sub identifier_to_canonical_url {
         my $raw = $response->decoded_content;
         if ( $raw =~ m{rdf:about="(http.*?)"} ) {
             $node_uri = $1;
-            eval { $cache->set( $cache_key, $node_uri, '2 months' ) };
+            eval { $i2c_cache->set( $cache_key, $node_uri, '2 months' ) };
             return $node_uri;
         } else {
             warn
@@ -167,7 +172,7 @@ sub canonical_url_to_json {
         return;
     }
 
-    state $cache = CHI->new(
+    $c2j_cache ||= CHI->new(
              driver    => 'File',
              namespace => 'Profiles JSON API canonical_url_to_json URL cache',
              expires_variance => 0.25,
@@ -184,26 +189,26 @@ sub canonical_url_to_json {
     my $raw_json;
 
     if ( $options->{cache} eq 'always' ) {
-        my $cache_object = $cache->get_object($expanded_jsonld_url);
+        my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
         if ($cache_object) {
             $raw_json = $cache_object->value;
         }
     } elsif ( $options->{cache} eq 'fallback' ) {
-        $raw_json = $cache->get($expanded_jsonld_url);
+        $raw_json = $c2j_cache->get($expanded_jsonld_url);
     }
     unless ($raw_json) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
         if ( $response->is_success ) {
             $raw_json = $response->decoded_content;
-            $cache->set( $expanded_jsonld_url, $raw_json, '23.5 hours' );
+            $c2j_cache->set( $expanded_jsonld_url, $raw_json, '23.5 hours' );
         } else {
             warn "Could not load URL ", dump($expanded_jsonld_url),
                 " to look up JSON-LD (",
                 $response->status_line, ")\n";
-            if ( $cache->exists_and_is_expired($expanded_jsonld_url) ) {
+            if ( $c2j_cache->exists_and_is_expired($expanded_jsonld_url) ) {
                 my $potential_expired_cache_object
-                    = $cache->get_object($expanded_jsonld_url);
+                    = $c2j_cache->get_object($expanded_jsonld_url);
                 if ($potential_expired_cache_object) {
                     $raw_json = $potential_expired_cache_object->value()
                         || undef;
@@ -215,7 +220,7 @@ sub canonical_url_to_json {
         return;
     }
 
-    state $json_obj = JSON->new->pretty(1);
+    $json_obj ||= JSON->new->pretty(1);
     my $data = $json_obj->decode($raw_json);
 
     my $person;
