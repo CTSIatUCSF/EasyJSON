@@ -54,7 +54,7 @@ my $app = sub {
     if ( $identifier_type and $identifier ) {
 
         my $options = {};
-        if ( $params->{mobile} and $params->{mobile} =~ m/^1|on$/i ) {
+        if ( $params->{mobile} and $params->{mobile} =~ m/^(1|on)$/i ) {
             $options->{mobile} = 1;
         }
 
