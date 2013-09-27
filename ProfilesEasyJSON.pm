@@ -9,7 +9,7 @@ use CHI;
 use Data::Dump qw( dump );
 use Encode qw( encode );
 use JSON;
-use LWP::UserAgent;
+use LWP::UserAgent 6.0;
 use String::Util qw( trim );
 use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
