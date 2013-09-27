@@ -5,7 +5,7 @@ use CGI::PSGI;
 use Data::Dump qw( dump );
 use JSON qw( encode_json );
 use ProfilesEasyJSON qw( identifier_to_json );
-use 5.10.0;
+use 5.8.8;
 use utf8;
 use strict;
 use warnings;
