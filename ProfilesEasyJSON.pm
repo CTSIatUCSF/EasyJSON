@@ -49,8 +49,8 @@ sub identifier_to_canonical_url {
                  expires_variance => 0.25,
     );
 
-    my $cache_key = join "\t", ( $identifier_type // '' ),
-        ( $identifier // '' );
+    my $cache_key = join "\t", ( $identifier_type || '' ),
+        ( $identifier || '' );
 
     unless ( $options->{cache} and $options->{cache} eq 'never' ) {
         my $canonical_url = $i2c_cache->get($cache_key);
@@ -103,10 +103,6 @@ sub identifier_to_canonical_url {
                 return;
             }
         }
-
-        Data::Dump::ddx { identifier      => $identifier,
-                          identifier_type => $identifier_type
-        };
 
         my $url
             = "http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?"
