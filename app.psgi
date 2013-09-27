@@ -84,9 +84,10 @@ my $app = sub {
 
     # prepare output
 
-    my %header_options = ( -type    => 'application/json',
-                           -charset => 'utf-8',
-                           -status  => $http_status
+    my %header_options = ( -type                        => 'application/json',
+                           -charset                     => 'utf-8',
+                           -status                      => $http_status,
+                           -access_control_allow_origin => '*',
     );
 
     my $output;
