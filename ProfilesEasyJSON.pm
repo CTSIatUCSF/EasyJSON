@@ -43,6 +43,11 @@ sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
 
+    unless ( defined $identifier and $identifier =~ m/\w/ ) {
+        warn 'Unknown identifier: ' . dump($identifier), "\n";
+        return;
+    }
+
     $i2c_cache ||= CHI->new(
                  driver    => 'File',
                  namespace => 'Profiles JSON API identifier_to_canonical_url',
@@ -52,16 +57,20 @@ sub identifier_to_canonical_url {
     my $cache_key = join "\t", ( $identifier_type || '' ),
         ( $identifier || '' );
 
+    # cache_key should usually work, but in case the identifier is
+    # something like "John.Smith" we actually want to check to see if
+    # we can match that against "john.smith"
+    my $cache_key_alt = join "\t", ( $identifier_type || '' ),
+        lc( $identifier || '' );
+
     unless ( $options->{cache} and $options->{cache} eq 'never' ) {
         my $canonical_url = $i2c_cache->get($cache_key);
+        if ( !$canonical_url and $cache_key_alt ne $cache_key ) {
+            $canonical_url = $i2c_cache->get($cache_key_alt);
+        }
         if ($canonical_url) {
             return $canonical_url;
         }
-    }
-
-    unless ( defined $identifier and $identifier =~ m/\w/ ) {
-        warn 'Unknown identifier: ' . dump($identifier), "\n";
-        return;
     }
 
     my $node_uri;
