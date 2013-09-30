@@ -165,6 +165,7 @@ sub canonical_url_to_json {
 
     my $canonical_url = shift;
     my $options = shift || {};
+    my @api_notes;
 
     unless (     $options->{cache}
              and $options->{cache} =~ m/^(fallback|always|never)$/ ) {
@@ -197,14 +198,32 @@ sub canonical_url_to_json {
         my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
         if ($cache_object) {
             $raw_json = $cache_object->value;
+            if ($raw_json) {
+                push @api_notes,
+                      'You requested cached data. This data was cached on '
+                    . scalar( localtime( $cache_object->created_at() ) )
+                    . '.';
+            }
         }
     } elsif ( $options->{cache} eq 'fallback' ) {
         $raw_json = $c2j_cache->get($expanded_jsonld_url);
+        if ($raw_json) {
+            my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
+            if ($cache_object) {
+                push @api_notes,
+                    'To maximize performance, we are giving you recently-cached data for you. This data was cached on '
+                    . scalar( localtime( $cache_object->created_at() ) )
+                    . '.';
+            }
+        }
     }
     if ( !$raw_json ) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
         if ( $response->is_success ) {
+            push @api_notes,
+                'This data was retrieved live from our database at '
+                . scalar(localtime);
             $raw_json = $response->decoded_content;
             eval {
                 $c2j_cache->set( $expanded_jsonld_url, $raw_json,
@@ -214,12 +233,20 @@ sub canonical_url_to_json {
             warn "Could not load URL ", dump($expanded_jsonld_url),
                 " to look up JSON-LD (",
                 $response->status_line, ")\n";
-            if ( $c2j_cache->exists_and_is_expired($expanded_jsonld_url) ) {
-                my $potential_expired_cache_object
+            if (     $options->{cache} ne 'never'
+                 and $c2j_cache->exists_and_is_expired($expanded_jsonld_url) )
+            {
+                my $cache_object
                     = $c2j_cache->get_object($expanded_jsonld_url);
-                if ($potential_expired_cache_object) {
-                    $raw_json = $potential_expired_cache_object->value()
-                        || undef;
+                if ($cache_object) {
+                    $raw_json = $cache_object->value() || undef;
+                    if ($raw_json) {
+                        push @api_notes,
+                            'We could not connect to our database right now, so we are providing cached data. This data was cached on '
+                            . scalar(
+                                    localtime( $cache_object->created_at() ) )
+                            . '.';
+                    }
                 }
             }
         }
@@ -446,8 +473,8 @@ sub canonical_url_to_json {
         ]
     };
 
-    if ( $options->{no_publications} ) {
-        delete $final_data->{Publications};
+    if (@api_notes) {
+        $final_data->{api_notes} = join ' ', @api_notes;
     }
 
     my $out = encode( 'utf8', $json_obj->encode($final_data) );
