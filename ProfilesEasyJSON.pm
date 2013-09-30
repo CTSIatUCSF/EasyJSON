@@ -145,7 +145,7 @@ sub identifier_to_canonical_url {
         my $raw = $response->decoded_content;
         if ( $raw =~ m{rdf:about="(http.*?)"} ) {
             $node_uri = $1;
-            eval { $i2c_cache->set( $cache_key, $node_uri, '2 months' ) };
+            eval { $i2c_cache->set( $cache_key, $node_uri, '3 months' ) };
             return $node_uri;
         } else {
             warn
@@ -201,12 +201,15 @@ sub canonical_url_to_json {
     } elsif ( $options->{cache} eq 'fallback' ) {
         $raw_json = $c2j_cache->get($expanded_jsonld_url);
     }
-    unless ($raw_json) {
+    if ( !$raw_json ) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
         if ( $response->is_success ) {
             $raw_json = $response->decoded_content;
-            $c2j_cache->set( $expanded_jsonld_url, $raw_json, '23.5 hours' );
+            eval {
+                $c2j_cache->set( $expanded_jsonld_url, $raw_json,
+                                 '23.5 hours' );
+            };
         } else {
             warn "Could not load URL ", dump($expanded_jsonld_url),
                 " to look up JSON-LD (",
@@ -221,7 +224,7 @@ sub canonical_url_to_json {
             }
         }
     }
-    unless ($raw_json) {
+    if ( !$raw_json ) {
         return;
     }
 
