@@ -211,7 +211,7 @@ sub canonical_url_to_json {
             my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
             if ($cache_object) {
                 push @api_notes,
-                    'To maximize performance, we are giving you recently-cached data for you. This data was cached on '
+                    'To maximize performance, we are providing recently-cached data. This data was cached on '
                     . scalar( localtime( $cache_object->created_at() ) )
                     . '.';
             }
