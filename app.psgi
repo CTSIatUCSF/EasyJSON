@@ -27,6 +27,16 @@ my $app = sub {
     my ( $identifier_type, $identifier, $error, $json );
     my $http_status = 200;
 
+    # Did the user access /url_endpoint/something_random_and_unwanted ?
+    unless ( $q->path_info() =~ m{^/?$} ) {
+        my $suggested_api_url = $q->url() . '/';
+        $error
+            = { error =>
+            "This is an invalid API endpoint. Did you want to access $suggested_api_url ?"
+            };
+        $http_status = "404 Not found";
+    }
+
     foreach my $key ( sort keys %valid_types ) {
         if ( exists $params->{$key} ) {
             $identifier_type = $valid_types{$key};
@@ -35,7 +45,7 @@ my $app = sub {
             } else {
                 my $identifier_printable = dump($identifier);
                 $error
-                    = { error =>
+                    ||= { error =>
                     "Invalid argument '$identifier_printable' for identifier type $key"
                     };
                 $http_status = "400 Invalid argument sent";
@@ -45,7 +55,7 @@ my $app = sub {
     }
     unless ($identifier_type) {
         $error
-            = { error =>
+            ||= { error =>
             "You didn't specify an identifier type to look up! We were expecting to see one of the following: "
             . join( ' / ', map {"?$_=..."} sort keys %valid_types ) };
         $http_status = "400 Invalid argument sent";
@@ -53,13 +63,13 @@ my $app = sub {
 
     unless ( $params->{source} and $params->{source} =~ m/\w\w\w/ ) {
         $error
-            = { error =>
+            ||= { error =>
             q{Missing source! Please send a source= parameter to let us know who's sending the request. For example, ?source=example.ucsf.edu if the data's being used on that website, or ?source=Foobar+University+XYZ+Tool for a script -- doesn't have to be fancy, just some way to help us understand usage, and so we can get a hold of you in case of an emergency.}
             };
         $http_status = "400 Invalid argument sent";
     }
 
-    if ( $identifier_type and $identifier ) {
+    if ( $identifier_type and $identifier and !$error ) {
 
         my $options = {};
         if ( $params->{mobile} and $params->{mobile} =~ m/^(1|on)$/i ) {
