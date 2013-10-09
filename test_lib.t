@@ -11,7 +11,7 @@ binmode STDOUT, ':utf8';
 use strict;
 use warnings;
 
-plan tests => 38;
+plan tests => 43;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -120,6 +120,24 @@ SKIP: {
                   ->[0]->{PublicationSourceURL},
               qr{/m/pubmed/}, "$test_name: mobile URL"
         );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
+                '>=', 50, "$test_name: got 50+ publications" );
+
+        my @publication_years
+            = map { $_->{Year} } @{ $data->{Profiles}->[0]->{Publications} };
+        is_deeply( \@publication_years,
+                   [ sort { $b cmp $a } @publication_years ],
+                   "$test_name: publications are sorted" );
+
+        isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
+                'ARRAY', "$test_name: got back list of awards" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{AwardOrHonors} } ),
+                '>=', 5, "$test_name: got 5+ awards" );
+        my @award_start_years = map { $_->{AwardStartDate} }
+            @{ $data->{Profiles}->[0]->{AwardOrHonors} };
+        is_deeply( \@award_start_years,
+                   [ sort { $b <=> $a } @award_start_years ],
+                   "$test_name: awards are sorted" );
     }
 }
 
