@@ -405,7 +405,9 @@ sub canonical_url_to_json {
                ],
 
                AwardOrHonors => [
-                   eval {
+                   sort {
+                       $b->{AwardStartDate} cmp $a->{AwardStartDate}
+                       } eval {
                        map {
                            {  Summary =>
                                   join(
@@ -439,10 +441,31 @@ sub canonical_url_to_json {
 
                               # PublicationAddedBy => '?',
                               PublicationID => $_,
-                              _title_to_title_parts(
-                                          $items_by_url_id{$_}
-                                              ->{informationResourceReference}
+
+#                              _title_to_title_parts(
+#                                          $items_by_url_id{$_}
+#                                              ->{informationResourceReference}
+#                              ),
+
+                              AuthorList => (
+                                         $items_by_url_id{$_}->{hasAuthorList}
+                                             || undef
                               ),
+                              Publication => (
+                                   $items_by_url_id{$_}->{hasPublicationVenue}
+                                       || undef
+                              ),
+                              PublicationMedlineTA => (
+                                    $items_by_url_id{$_}->{medlineTA} || undef
+                              ),
+                              Title =>
+                                  ( $items_by_url_id{$_}->{label} || undef ),
+                              Date => ($items_by_url_id{$_}->{publicationDate}
+                                           || undef
+                              ),
+                              Year =>
+                                  ( $items_by_url_id{$_}->{year} || undef ),
+
                               PublicationTitle => $items_by_url_id{$_}
                                   ->{informationResourceReference},
                               PublicationSource => [
@@ -459,6 +482,9 @@ sub canonical_url_to_json {
                                              )
                                          : undef
                                      ),
+                                     PMID => (
+                                         $items_by_url_id{$_}->{pmid} || undef
+                                     ),
                                   }
                               ],
 
@@ -472,6 +498,11 @@ sub canonical_url_to_json {
             }
         ]
     };
+
+    foreach my $person_data ( @{ $final_data->{Profiles} } ) {
+        @{ $person_data->{Publications} } = sort { $b->{Date} cmp $a->{Date} }
+            @{ $person_data->{Publications} };
+    }
 
     if (@api_notes) {
         $final_data->{api_notes} = join ' ', @api_notes;
@@ -490,35 +521,6 @@ sub _init_ua {
         $ua->agent(
             'UCSF Profiles EasyJSON Interface/1.0 (anirvan.chatterjee@ucsf.edu)'
         );
-    }
-}
-
-sub _title_to_title_parts {
-    my $text = shift;
-    if ( $text
-        =~ m/^(\w.*?)\. (\S.*[[:punct:]]) ([A-Za-z].+?)\. ((?:19\d\d|2[01]\d\d).*?)(?:; (.*?))?\.$/
-        ) {
-        my ( $authors, $title, $journal, $date, $issue )
-            = ( $1, $2, $3, $4, $5 || undef );
-
-        # if there's a period only  at end of title, then remove
-        $title =~ s/^([^\.]+)\.$/$1/;
-
-        return ( ArticleTitle_beta    => $title,
-                 AuthorList_beta      => $authors,
-                 Publication_beta     => $journal,
-                 Date_beta            => $date,
-                 IssueVolumePage_beta => $issue,
-                 PublicationTitle     => $text,
-        );
-    } else {
-        my @years = ( $text =~ m/\b(19\d\d|20[01]\d)\b/g );
-        my $year;
-        if ( @years and @years == 1 ) {
-            return ( PublicationTitle => $text, Date_beta => $years[0] );
-        } else {
-            return ( PublicationTitle => $text );
-        }
     }
 }
 
