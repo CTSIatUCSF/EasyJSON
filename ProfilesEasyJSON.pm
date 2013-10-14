@@ -296,7 +296,7 @@ sub canonical_url_to_json {
 
     # ensure there's only one of the following...
     foreach my $field (
-        qw( email fullName mailingAddress phoneNumber faxNumber latitude longitude mainImage preferredTitle personInPrimaryPosition )
+        qw( email fullName firstName lastName mailingAddress phoneNumber faxNumber latitude longitude mainImage preferredTitle personInPrimaryPosition )
         ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = $person->{$field}->[0];
@@ -325,6 +325,8 @@ sub canonical_url_to_json {
     my $final_data = {
         Profiles => [
             {  Name        => $person->{fullName},
+               FirstName   => $person->{firstName},
+               LastName    => $person->{lastName},
                ProfilesURL => $person->{'@id'},
 
                Email   => $person->{email},
@@ -367,7 +369,7 @@ sub canonical_url_to_json {
                    return
                        $items_by_url_id{ $items_by_url_id{ $person
                                ->{personInPosition}->[0] }
-                           ->{positionInDepartment} }->{label};
+                           ->{positionInOrganization} }->{label};
                },
 
                # can handle multiple titles

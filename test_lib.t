@@ -11,7 +11,7 @@ binmode STDOUT, ':utf8';
 use strict;
 use warnings;
 
-plan tests => 43;
+plan tests => 46;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -115,6 +115,13 @@ SKIP: {
         like( $data->{Profiles}->[0]->{Name}, qr/Johnston/, 'Clay name' );
         like( $data->{Profiles}->[0]->{Department},
               qr/neurology/i, "$test_name: department" );
+        like( $data->{Profiles}->[0]->{School},
+              qr/school of medicine/i,
+              "$test_name: school" );
+        like( $data->{Profiles}->[0]->{FirstName},
+              qr/^Clay$/i, "$test_name: first name" );
+        like( $data->{Profiles}->[0]->{LastName},
+              qr/^Johnston$/i, "$test_name: last name" );
 
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationSource}
                   ->[0]->{PublicationSourceURL},
