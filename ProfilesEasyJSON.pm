@@ -8,6 +8,7 @@ package ProfilesEasyJSON;
 use CHI;
 use Data::Dump qw( dump );
 use Encode qw( encode );
+use HTTP::Message 6.06;
 use JSON;
 use LWP::UserAgent 6.0;
 use String::Util qw( trim );
@@ -15,12 +16,13 @@ use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
 use parent qw( Exporter );
 use strict;
+use utf8;
 use warnings;
 
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
-my ( $i2c_cache, $c2j_cache, $json_obj, $ua );
+my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $json_obj, $ua );
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
@@ -48,6 +50,7 @@ sub identifier_to_canonical_url {
         return;
     }
 
+    # Identifier to Canonical URL cache
     $i2c_cache ||= CHI->new(
                  driver    => 'File',
                  namespace => 'Profiles JSON API identifier_to_canonical_url',
@@ -178,6 +181,7 @@ sub canonical_url_to_json {
         return;
     }
 
+    # Canonical URL to JSON cache
     $c2j_cache ||= CHI->new(
              driver    => 'File',
              namespace => 'Profiles JSON API canonical_url_to_json URL cache',
@@ -190,9 +194,10 @@ sub canonical_url_to_json {
         . uri_escape($node_id)
         . '&ShowDetails=True&Expand=True';
     my $expanded_jsonld_url
-        = 'http://stage-profiles.ucsf.edu/shindigorng/rest/rdf?userId='
-        . uri_escape($expanded_rdf_url);
+        = profiles_rdf_url_to_jsonld_url($expanded_rdf_url);
     my $raw_json;
+
+    # print STDERR ">> $expanded_jsonld_url\n";
 
     if ( $options->{cache} eq 'always' ) {
         my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
@@ -220,11 +225,13 @@ sub canonical_url_to_json {
     if ( !$raw_json ) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
+
         if ( $response->is_success ) {
             push @api_notes,
                 'This data was retrieved live from our database at '
                 . scalar(localtime);
             $raw_json = $response->decoded_content;
+
             eval {
                 $c2j_cache->set( $expanded_jsonld_url, $raw_json,
                                  '23.5 hours' );
@@ -257,6 +264,8 @@ sub canonical_url_to_json {
 
     $json_obj ||= JSON->new->pretty(1);
     my $data = $json_obj->decode($raw_json);
+
+    # print STDERR dump($data);
 
     my $person;
     my %items_by_url_id;
@@ -320,7 +329,85 @@ sub canonical_url_to_json {
         }
     }
 
-    # warn $json_obj->encode($person);
+    my %orng_data;
+    $url_cache ||= CHI->new(
+              driver    => 'File',
+              namespace => 'Profiles JSON API cache of raw Profiles API URLs',
+              expires_variance => 0.25,
+    );
+
+    # load ORNG data
+    foreach my $field (
+        qw( hasMediaLinks hasTwitter hasucsfprofile hasGlobalHealth hasFeaturedPublications hasLinks hasMentor hasNIHGrantList )
+        ) {
+        if ( exists $person->{$field}
+             and $person->{$field} =~ m{/profile/(\d+)$} ) {
+            my $field_jsonld_url
+                = 'http://profiles.ucsf.edu/ORNG/JSONLD/Default.aspx?expand=true&subject='
+                . $1;
+
+            # grab from cache, if available
+            my $raw_json_for_field = $url_cache->get($field_jsonld_url);
+
+            # ...or get from server, and cache if found
+            unless ($raw_json_for_field) {
+                _init_ua() unless $ua;
+                my $field_jsonld_response = $ua->get($field_jsonld_url);
+                if ( $field_jsonld_response->is_success ) {
+                    $raw_json_for_field
+                        = $field_jsonld_response->decoded_content;
+                    utf8::decode($raw_json_for_field);
+                    eval {
+                        $url_cache->set( $field_jsonld_url,
+                                         $raw_json_for_field, '23.5 hours' );
+                    };
+                }
+            }
+
+            # ...or try to get from expired cache
+            unless ($raw_json_for_field) {
+                if ( $url_cache->exists_and_is_expired($field_jsonld_url) ) {
+                    my $potential_expired_cache_object
+                        = $url_cache->get_object($field_jsonld_url);
+                    if ($potential_expired_cache_object) {
+                        if ( $potential_expired_cache_object->value() ) {
+                            $raw_json_for_field
+                                = $potential_expired_cache_object->value();
+                        }
+                    }
+                }
+            }
+
+            # got some raw JSON? start using it
+            if ($raw_json_for_field) {
+                my $field_data
+                    = eval { $json_obj->decode($raw_json_for_field) };
+                if (     $field_data
+                     and ref $field_data
+                     and eval { $field_data->{entry}->{jsonld}->{'@graph'} } )
+                {
+                    foreach my $item (
+                           @{ $field_data->{entry}->{jsonld}->{'@graph'} } ) {
+                        if (     defined $item->{applicationInstanceDataValue}
+                             and defined $item->{label} ) {
+                            my $item_label = $item->{label};
+                            my $item_data
+                                = $item->{applicationInstanceDataValue};
+                            if ( length $item_data ) {
+                                my $decoded
+                                    = eval { $json_obj->decode($item_data) };
+                                if ( !$@ and $decoded ) {
+                                    $item_data = $decoded;
+                                }
+                            }
+                            $orng_data{$field}->{$item_label} = $item_data;
+                        }
+                    }
+                }
+            }
+
+        }
+    }
 
     my $final_data = {
         Profiles => [
@@ -497,6 +584,67 @@ sub canonical_url_to_json {
                    )
                ],
 
+               # ORNG data
+
+               WebLinks_beta => [
+                   eval {
+                       if (     $orng_data{hasLinks}->{VISIBLE}
+                            and $orng_data{hasLinks}->{links} ) {
+                           return @{ $orng_data{hasLinks}->{links} };
+                       }
+                   },
+               ],
+
+               MediaLinks_beta => [
+                   eval {
+                       if ( @{ $orng_data{hasMediaLinks}->{links} } ) {
+                           return @{ $orng_data{hasMediaLinks}->{links} };
+                       } else {
+                           return;
+                       }
+                   }
+               ],
+
+               Twitter_beta =>
+                   (eval { $orng_data{hasTwitter}->{twitter_username} }
+               ? [ $orng_data{hasTwitter}->{twitter_username} ]
+               : []),
+
+               GlobalHealth_beta => {
+                   eval {
+                       if (     $orng_data{hasGlobalHealth}
+                            and $orng_data{hasGlobalHealth}->{countries} ) {
+                           return ( 'countries' => [
+                                               split(
+                                                   /;\s*/,
+                                                   $orng_data{hasGlobalHealth}
+                                                       ->{countries}
+                                               )
+                                    ]
+                           );
+                       } else {
+			   return;
+		       }
+                   }
+               },
+
+               NIHGrants_beta => [
+                   eval {
+                       my @results;
+                       for my $i ( 0 .. 99 ) {
+                           if ( my $grant
+                                = $orng_data{hasNIHGrantList}->{"nih_$i"} ) {
+                               push @results,
+                                   { Title         => $grant->{t},
+                                     FiscalYear    => $grant->{fy},
+                                     ProjectNumber => $grant->{fpn}
+                                   };
+                           }
+                       }
+                       return @results;
+                   }
+               ],
+
             }
         ]
     };
@@ -524,6 +672,14 @@ sub _init_ua {
             'UCSF Profiles EasyJSON Interface/1.0 (anirvan.chatterjee@ucsf.edu)'
         );
     }
+}
+
+sub profiles_rdf_url_to_jsonld_url {
+    my $profiles_rdf_url = shift;
+    my $expanded_jsonld_url
+        = 'http://stage-profiles.ucsf.edu/shindigorng/rest/rdf?userId='
+        . uri_escape($profiles_rdf_url);
+    return $expanded_jsonld_url;
 }
 
 1;
