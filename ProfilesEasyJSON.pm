@@ -666,18 +666,28 @@ sub canonical_url_to_json {
 
                NIHGrants_beta => [
                    eval {
-                       my @results;
-                       for my $i ( 0 .. 99 ) {
+                       my @grants;
+                       my %seen_project_number;
+                       for my $i ( 0 .. 199 ) {
                            if ( my $grant
                                 = $orng_data{hasNIHGrantList}->{"nih_$i"} ) {
-                               push @results,
-                                   { Title         => $grant->{t},
-                                     FiscalYear    => $grant->{fy},
-                                     ProjectNumber => $grant->{fpn}
+
+                               # remove dupes
+                               next
+                                   if $seen_project_number{ $grant->{fpn} }++;
+                               push @grants,
+                                   { Title            => $grant->{t},
+                                     NIHFiscalYear    => $grant->{fy},
+                                     NIHProjectNumber => $grant->{fpn}
                                    };
                            }
                        }
-                       return @results;
+
+                       # sort grants by date
+                       @grants = sort {
+                           $b->{NIHFiscalYear} <=> $a->{NIHFiscalYear}
+                       } @grants;
+                       return @grants;
                    }
                ],
 
