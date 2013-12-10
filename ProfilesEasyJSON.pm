@@ -596,19 +596,44 @@ sub canonical_url_to_json {
 
                WebLinks_beta => [
                    eval {
+                       my @links;
+
                        if (     $orng_data{hasLinks}->{VISIBLE}
-                            and $orng_data{hasLinks}->{links} ) {
-                           return @{ $orng_data{hasLinks}->{links} };
+                            and $orng_data{hasLinks}->{links}
+                            and @{ $orng_data{hasLinks}->{links} } ) {
+
+                           foreach
+                               my $link ( @{ $orng_data{hasLinks}->{links} } )
+                           {
+                               push @links,
+                                   { Label => $link->{link_name},
+                                     URL   => $link->{link_url}
+                                   };
+                           }
                        }
-                   },
+                       return @links;
+                   }
                ],
 
                MediaLinks_beta => [
                    eval {
+                       my @links;
                        if ( @{ $orng_data{hasMediaLinks}->{links} } ) {
-                           return @{ $orng_data{hasMediaLinks}->{links} };
-                       } else {
-                           return;
+                           foreach my $link (
+                                   @{ $orng_data{hasMediaLinks}->{links} } ) {
+
+                               my $date = $link->{link_date};
+                               if ( $date
+                                   =~ s{^(\d+)/(\d+)/((?:19|20)\d\d)$}{$3-$1-$2}
+                                   ) {
+                                   push @links,
+                                       { Label => $link->{link_name},
+                                         URL   => $link->{link_url},
+                                         Date  => $date
+                                       };
+                               }
+                           }
+                           return @links;
                        }
                    }
                ],
@@ -625,7 +650,7 @@ sub canonical_url_to_json {
                    eval {
                        if (     $orng_data{hasGlobalHealth}
                             and $orng_data{hasGlobalHealth}->{countries} ) {
-                           return ( 'countries' => [
+                           return ( 'Countries' => [
                                                split(
                                                    /;\s*/,
                                                    $orng_data{hasGlobalHealth}
@@ -661,8 +686,12 @@ sub canonical_url_to_json {
     };
 
     foreach my $person_data ( @{ $final_data->{Profiles} } ) {
-        @{ $person_data->{Publications} } = sort { $b->{Date} cmp $a->{Date} }
-            @{ $person_data->{Publications} };
+        foreach my $key (qw( Publications MediaLinks MediaLinks_beta )) {
+            if ( eval { $person_data->{$key}->[0]->{Date} } ) {
+                @{ $person_data->{$key} } = sort { $b->{Date} cmp $a->{Date} }
+                    @{ $person_data->{$key} };
+            }
+        }
     }
 
     if (@api_notes) {
