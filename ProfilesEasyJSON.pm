@@ -409,6 +409,18 @@ sub canonical_url_to_json {
         }
     }
 
+    # if person has multiple job role and titles, sort them appropriately
+    my @sorted_positions;
+    if ( $person->{personInPosition} and @{ $person->{personInPosition} } ) {
+        @sorted_positions = @{ $person->{personInPosition} };
+    } elsif ( $person->{personInPrimaryPosition} ) {
+        @sorted_positions = $person->{personInPrimaryPosition};
+    }
+    @sorted_positions
+        = grep {defined} map { $items_by_url_id{$_} } @sorted_positions;
+    @sorted_positions
+        = sort { $a->{'sortOrder'} <=> $b->{'sortOrder'} } @sorted_positions;
+
     my $final_data = {
         Profiles => [
             {  Name        => $person->{fullName},
@@ -442,27 +454,28 @@ sub canonical_url_to_json {
 
                # only handling primary department at this time
                Department => eval {
-                   $items_by_url_id{
-                       $items_by_url_id{
-                                  $person->{personInPrimaryPosition}
-                               || $person->{personInPosition}->[0]
-                           }->{positionInDepartment}
-                       }->{label};
+                   $items_by_url_id{ $sorted_positions[0]
+                           ->{positionInDepartment} }->{label};
                },
 
                # only handling primary school at this time
                School => eval {
                    no warnings;
-                   return
-                       $items_by_url_id{ $items_by_url_id{ $person
-                               ->{personInPosition}->[0] }
+                   $items_by_url_id{ $sorted_positions[0]
                            ->{positionInOrganization} }->{label};
                },
 
                # can handle multiple titles
                # but we're only listing first title at this time
                Title  => $person->{preferredTitle},
-               Titles => [ $person->{preferredTitle} ],
+               Titles => [
+                   eval {
+                       my @titles = map { $_->{label} } @sorted_positions;
+                       @titles = map  { split /; / } @titles;
+                       @titles = grep {m/\w/} @titles;
+                       return @titles;
+                   }
+               ],
 
                Narrative => $person->{overview},
 
@@ -530,11 +543,6 @@ sub canonical_url_to_json {
 
                               # PublicationAddedBy => '?',
                               PublicationID => $_,
-
-#                              _title_to_title_parts(
-#                                          $items_by_url_id{$_}
-#                                              ->{informationResourceReference}
-#                              ),
 
                               AuthorList => (
                                          $items_by_url_id{$_}->{hasAuthorList}
@@ -605,10 +613,13 @@ sub canonical_url_to_json {
                    }
                ],
 
-               Twitter_beta =>
-                   (eval { $orng_data{hasTwitter}->{twitter_username} }
-               ? [ $orng_data{hasTwitter}->{twitter_username} ]
-               : []),
+               Twitter_beta => (
+                   eval {
+                       $orng_data{hasTwitter}->{twitter_username};
+                       }
+                   ? [ $orng_data{hasTwitter}->{twitter_username} ]
+                   : []
+               ),
 
                GlobalHealth_beta => {
                    eval {
@@ -623,8 +634,8 @@ sub canonical_url_to_json {
                                     ]
                            );
                        } else {
-			   return;
-		       }
+                           return;
+                       }
                    }
                },
 
