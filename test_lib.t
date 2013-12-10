@@ -207,7 +207,7 @@ SKIP: {
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
-              qr/Bibbins.*\. \w.*?\. .*2\d\d\d/,
+              qr/(Bibbins|Moyer VA).*\. \w.*?\. .*2\d\d\d/,
               "$test_name: Valid publication title"
         );
     }
