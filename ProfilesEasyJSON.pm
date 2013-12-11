@@ -712,7 +712,7 @@ sub canonical_url_to_json {
     }
 
     my $out = $json_obj->encode($final_data);
-    utf8::decode($out);
+    utf8::upgrade($out);
     return $out;
 }
 
