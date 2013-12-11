@@ -8,6 +8,7 @@ use ProfilesEasyJSON
 use Test::More;
 use Test::NoWarnings;
 binmode STDOUT, ':utf8';
+use utf8;
 use strict;
 use warnings;
 
