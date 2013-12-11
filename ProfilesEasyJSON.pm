@@ -22,7 +22,8 @@ use warnings;
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
-my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $json_obj, $ua );
+my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $ua );
+my $json_obj = JSON->new->utf8->pretty(1);
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
@@ -222,6 +223,7 @@ sub canonical_url_to_json {
             }
         }
     }
+
     if ( !$raw_json ) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
@@ -262,7 +264,6 @@ sub canonical_url_to_json {
         return;
     }
 
-    $json_obj ||= JSON->new->pretty(1);
     my $data = $json_obj->decode($raw_json);
 
     # print STDERR dump($data);
@@ -356,7 +357,6 @@ sub canonical_url_to_json {
                 if ( $field_jsonld_response->is_success ) {
                     $raw_json_for_field
                         = $field_jsonld_response->decoded_content;
-                    utf8::decode($raw_json_for_field);
                     eval {
                         $url_cache->set( $field_jsonld_url,
                                          $raw_json_for_field, '23.5 hours' );
@@ -697,7 +697,10 @@ sub canonical_url_to_json {
 
     foreach my $person_data ( @{ $final_data->{Profiles} } ) {
         foreach my $key (qw( Publications MediaLinks MediaLinks_beta )) {
-            if ( eval { $person_data->{$key}->[0]->{Date} } ) {
+            if (     $person_data->{$key}
+                 and @{ $person_data->{$key} }
+                 and $person_data->{$key}->[0]
+                 and $person_data->{$key}->[0]->{Date} ) {
                 @{ $person_data->{$key} } = sort { $b->{Date} cmp $a->{Date} }
                     @{ $person_data->{$key} };
             }
@@ -708,7 +711,8 @@ sub canonical_url_to_json {
         $final_data->{api_notes} = join ' ', @api_notes;
     }
 
-    my $out = encode( 'utf8', $json_obj->encode($final_data) );
+    my $out = $json_obj->encode($final_data);
+    utf8::decode($out);
     return $out;
 }
 
