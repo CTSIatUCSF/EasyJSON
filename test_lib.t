@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 46;
+plan tests => 47;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -136,6 +136,16 @@ SKIP: {
         is_deeply( \@publication_years,
                    [ sort { $b cmp $a } @publication_years ],
                    "$test_name: publications are sorted" );
+
+        my @featured_pubs = grep { $_->{Featured} }
+            @{ $data->{Profiles}->[0]->{Publications} };
+
+        cmp_ok( @featured_pubs,
+                '>=',
+                5,
+                "$test_name: Found at least 5 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
 
         isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
                 'ARRAY', "$test_name: got back list of awards" );

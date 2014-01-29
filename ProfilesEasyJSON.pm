@@ -409,6 +409,48 @@ sub canonical_url_to_json {
         }
     }
 
+    my %featured_publication_order_by_id;
+
+    for my $i ( 0 .. 199 ) {
+        my $featured_num = $i + 1;
+	my $pub = $orng_data{hasFeaturedPublications}->{"featured_pub_$i"};
+
+	# we double-check if $pub is a hash because we found at least
+	# one case (Kirsten Bibbins-Domingo) where the data was
+	# accidentally encoded as a JSON string, probably due to
+	# accidental double-JSON encoding.
+        if ($pub and ref $pub and ref $pub eq 'HASH' ) {
+
+            my $pmid = $pub->{pmid};
+            my $id   = $pub->{id};
+            my $PublicationID;
+
+            if ( defined $id and $id =~ m/^\d+$/ ) {
+
+                $featured_publication_order_by_id{
+                    "http://profiles.ucsf.edu/profile/$id"} = $featured_num;
+
+            } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
+
+                # If no ID is given but we have a PMID, go through
+                # every publication to see which one matches that
+                # PMID, and use the corresponding ID. This is
+                # inefficient, but not worth speeding up.
+
+                foreach my $candidate_pub_id (
+                          @{ $publications_by_author{ $person->{'@id'} } } ) {
+                    my $candidate_pmid
+                        = $items_by_url_id{$candidate_pub_id}->{pmid};
+                    if ( $candidate_pmid and $candidate_pmid == $pmid ) {
+                        $featured_publication_order_by_id{$candidate_pub_id}
+                            = $featured_num;
+                    }
+                }
+
+            }
+        }
+    }
+
     # if person has multiple job role and titles, sort them appropriately
     my @sorted_positions;
     if ( $person->{personInPosition} and @{ $person->{personInPosition} } ) {
@@ -585,8 +627,10 @@ sub canonical_url_to_json {
                                   }
                               ],
 
-                              # add other details?
-                              #		    src => $items_by_url_id{$_},
+                              Featured => (
+                                         $featured_publication_order_by_id{$_}
+                                             || JSON::null
+                              ),
                           }
                           } @{ $publications_by_author{ $person->{'@id'} } }
                    )
