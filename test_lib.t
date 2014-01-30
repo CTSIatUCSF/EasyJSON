@@ -143,7 +143,7 @@ SKIP: {
         cmp_ok( @featured_pubs,
                 '>=',
                 5,
-                "$test_name: Found at least 5 featured publications ("
+                "$test_name: found at least 5 featured publications ("
                     . scalar(@featured_pubs) . ')'
         );
 
