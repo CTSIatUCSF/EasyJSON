@@ -300,7 +300,7 @@ sub canonical_url_to_json {
 
     unless ($person) {
         warn
-            "Scanned the contents of URL $expanded_jsonld_url, but could not find a person\n";
+            "Scanned the contents of URL $expanded_jsonld_url, but could not find a person (we were looking for something with \@id '$canonical_url')\n";
         return;
     }
 
