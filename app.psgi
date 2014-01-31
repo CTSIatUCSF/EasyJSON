@@ -3,6 +3,7 @@
 use lib '.';
 use CGI::PSGI;
 use Data::Dump qw( dump );
+use Encode qw( decode_utf8 );
 use JSON qw( encode_json );
 use ProfilesEasyJSON qw( identifier_to_json );
 use 5.8.8;
@@ -120,6 +121,8 @@ my $app = sub {
         $output = "$params->{callback}($output)";
         $header_options{'-type'} = 'text/javascript';
     }
+
+    $output = decode_utf8($output);
 
     return [ $q->psgi_header(%header_options), [$output] ];
 
