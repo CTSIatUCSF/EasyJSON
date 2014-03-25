@@ -25,6 +25,9 @@ our @EXPORT_OK
 my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
 
+my $profiles_site_root_url    = 'http://profiles.ucsf.edu/';
+my $profiles_profile_root_url = 'http://profiles.ucsf.edu/profile/';
+
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
@@ -88,7 +91,7 @@ sub identifier_to_canonical_url {
 
         if ( $identifier_type eq 'ProfilesNodeID' ) {
             if ( $identifier =~ m/^(\d\d+)$/ ) {
-                return "http://profiles.ucsf.edu/profile/$1";
+                return "$profiles_profile_root_url$1";
             } else {
                 warn "Expected to see an all-numeric ProfilesNodeID";
                 return;
@@ -181,6 +184,7 @@ sub canonical_url_to_json {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
+    my $node_id = $1;
 
     # Canonical URL to JSON cache
     $c2j_cache ||= CHI->new(
@@ -189,7 +193,6 @@ sub canonical_url_to_json {
              expires_variance => 0.25,
     );
 
-    my $node_id = $1;
     my $expanded_rdf_url
         = 'http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Subject='
         . uri_escape($node_id)
@@ -282,7 +285,8 @@ sub canonical_url_to_json {
         }
 
         # handle main person
-        if ( $item->{'@id'} eq $canonical_url ) {
+        if ( $item->{'@id'} eq $node_id or $item->{'@id'} eq $canonical_url )
+        {
             $person = $item;
         }
 
@@ -342,7 +346,9 @@ sub canonical_url_to_json {
         qw( hasMediaLinks hasTwitter hasucsfprofile hasGlobalHealth hasFeaturedPublications hasLinks hasMentor hasNIHGrantList )
         ) {
         if ( exists $person->{$field}
-             and $person->{$field} =~ m{/profile/(\d+)$} ) {
+             and $person->{$field}
+             =~ m{^(?:\Q$profiles_profile_root_url\E)?(\d+)$} ) {
+
             my $field_jsonld_url
                 = 'http://profiles.ucsf.edu/ORNG/JSONLD/Default.aspx?expand=true&subject='
                 . $1;
@@ -413,13 +419,13 @@ sub canonical_url_to_json {
 
     for my $i ( 0 .. 199 ) {
         my $featured_num = $i + 1;
-	my $pub = $orng_data{hasFeaturedPublications}->{"featured_pub_$i"};
+        my $pub = $orng_data{hasFeaturedPublications}->{"featured_pub_$i"};
 
-	# we double-check if $pub is a hash because we found at least
-	# one case (Kirsten Bibbins-Domingo) where the data was
-	# accidentally encoded as a JSON string, probably due to
-	# accidental double-JSON encoding.
-        if ($pub and ref $pub and ref $pub eq 'HASH' ) {
+        # we double-check if $pub is a hash because we found at least
+        # one case (Kirsten Bibbins-Domingo) where the data was
+        # accidentally encoded as a JSON string, probably due to
+        # accidental double-JSON encoding.
+        if ( $pub and ref $pub and ref $pub eq 'HASH' ) {
 
             my $pmid = $pub->{pmid};
             my $id   = $pub->{id};
@@ -468,10 +474,9 @@ sub canonical_url_to_json {
             {  Name        => $person->{fullName},
                FirstName   => $person->{firstName},
                LastName    => $person->{lastName},
-               ProfilesURL => $person->{'@id'},
-
-               Email   => $person->{email},
-               Address => {
+               ProfilesURL => "$profiles_profile_root_url$node_id",
+               Email       => $person->{email},
+               Address     => {
                    Address1 => eval {
                        $items_by_url_id{ $person->{mailingAddress} }
                            ->{address1};
@@ -521,9 +526,21 @@ sub canonical_url_to_json {
 
                Narrative => $person->{overview},
 
-               PhotoURL => $person->{mainImage},
+               PhotoURL => eval {
+                   if ( $person->{mainImage} ) {
+                       if ( $person->{mainImage} =~ m/^http/ ) {
+                           return $person->{mainImage};
+                       } else {
+                           return
+                               "$profiles_site_root_url$person->{mainImage}";
+                       }
+                   } else {
+                       return undef;
+                   }
+               },
+
                PublicationCount =>
-                   eval { scalar @{ $person->{authorInAuthorship} } + 0 }
+                   eval { scalar @{ $person->{authorInAuthorship} } + 0; }
                    || 0,
 
                #CoAuthors     => ['???'], # need to handle <- name
@@ -584,7 +601,11 @@ sub canonical_url_to_json {
                           {
 
                               # PublicationAddedBy => '?',
-                              PublicationID => $_,
+                              PublicationID => (
+                                              m/^http/
+                                              ? $_
+                                              : "$profiles_profile_root_url$_"
+                              ),
 
                               AuthorList => (
                                          $items_by_url_id{$_}->{hasAuthorList}
@@ -775,7 +796,7 @@ sub _init_ua {
 sub profiles_rdf_url_to_jsonld_url {
     my $profiles_rdf_url = shift;
     my $expanded_jsonld_url
-        = 'http://stage-profiles.ucsf.edu/shindigorng/rest/rdf?userId='
+        = 'http://profiles.ucsf.edu/shindigorng/rest/rdf?userId='
         . uri_escape($profiles_rdf_url);
     return $expanded_jsonld_url;
 }
