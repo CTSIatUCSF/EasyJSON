@@ -25,7 +25,6 @@ our @EXPORT_OK
 my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
 
-my $profiles_site_root_url    = 'http://profiles.ucsf.edu/';
 my $profiles_profile_root_url = 'http://profiles.ucsf.edu/profile/';
 
 sub identifier_to_json {
@@ -532,7 +531,7 @@ sub canonical_url_to_json {
                            return $person->{mainImage};
                        } else {
                            return
-                               "$profiles_site_root_url$person->{mainImage}";
+                               "$profiles_profile_root_url$person->{mainImage}";
                        }
                    } else {
                        return undef;
