@@ -79,6 +79,9 @@ sub identifier_to_canonical_url {
         }
     }
 
+    # Canonical URL was not in cache
+    # Need to retrieve from server
+
     my $node_uri;
 
     if (    $identifier_type eq 'FNO'
@@ -128,9 +131,9 @@ sub identifier_to_canonical_url {
         my $response = $ua->get($url);
         if ( !$response->is_success ) {
 
-            if ( $i2c_cache->exists_and_is_expired($url) ) {
+            if ( $i2c_cache->exists_and_is_expired($cache_key) ) {
                 my $potential_expired_cache_object
-                    = $i2c_cache->get_object($url);
+                    = $i2c_cache->get_object($cache_key);
                 if ($potential_expired_cache_object) {
                     $node_uri = $potential_expired_cache_object->value();
                     if ($node_uri) {
@@ -154,8 +157,10 @@ sub identifier_to_canonical_url {
             eval { $i2c_cache->set( $cache_key, $node_uri, '3 months' ) };
             return $node_uri;
         } else {
+            my $http_code = $response->code my $excerpt
+                = substr( ( $raw || '[UNDEF]' ), 0, 20 );
             warn
-                "Scanned URL $url for the original rdf:about node URI, but couldn't find it\n";
+                "Scanned URL $url for the original rdf:about node URI, but couldn't find it (got HTTP $http_code, '$excerpt...')\n";
             return;
         }
 
