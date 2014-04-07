@@ -157,8 +157,8 @@ sub identifier_to_canonical_url {
             eval { $i2c_cache->set( $cache_key, $node_uri, '3 months' ) };
             return $node_uri;
         } else {
-            my $http_code = $response->code my $excerpt
-                = substr( ( $raw || '[UNDEF]' ), 0, 20 );
+            my $http_code = $response->code;
+            my $excerpt = substr( ( $raw || '[UNDEF]' ), 0, 20 );
             warn
                 "Scanned URL $url for the original rdf:about node URI, but couldn't find it (got HTTP $http_code, '$excerpt...')\n";
             return;
