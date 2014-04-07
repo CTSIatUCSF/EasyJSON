@@ -22,7 +22,7 @@ use warnings;
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
-my ( $i2c_cache, $c2j_cache, $url_cache, $api_call_cache, $ua );
+my ( $i2c_cache, $c2j_cache, $url_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
 
 my $profiles_profile_root_url = 'http://profiles.ucsf.edu/profile/';
