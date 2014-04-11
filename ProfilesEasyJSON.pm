@@ -653,8 +653,9 @@ sub canonical_url_to_json {
                               ],
 
                               Featured => (
-                                         $featured_publication_order_by_id{$_}
-                                             || JSON::null
+                                    $featured_publication_order_by_id{
+                                        "http://profiles.ucsf.edu/profile/$_"}
+                                        || JSON::null
                               ),
                           }
                           } @{ $publications_by_author{ $person->{'@id'} } }
