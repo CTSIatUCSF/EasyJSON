@@ -452,8 +452,9 @@ sub canonical_url_to_json {
                     my $candidate_pmid
                         = $items_by_url_id{$candidate_pub_id}->{pmid};
                     if ( $candidate_pmid and $candidate_pmid == $pmid ) {
-                        $featured_publication_order_by_id{$candidate_pub_id}
-                            = $featured_num;
+                        $featured_publication_order_by_id{
+                            "http://profiles.ucsf.edu/profile/$candidate_pub_id"
+                            } = $featured_num;
                     }
                 }
 
