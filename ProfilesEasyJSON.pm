@@ -354,13 +354,14 @@ sub canonical_url_to_json {
     );
 
     # load ORNG data
-    foreach my $field ( 'orng:hasMediaLinks',
-                        'orng:hasTwitter',
+    foreach my $field ( 'orng:hasFeaturedPublications',
                         'orng:hasGlobalHealth',
-                        'orng:hasFeaturedPublications',
                         'orng:hasLinks',
                         'orng:hasMentor',
-                        'orng:hasNIHGrantList'
+                        'orng:hasNIHGrantList',
+                        'orng:hasTwitter',
+                        'orng:hasSlideShare',
+                        'orng:hasMediaLinks',
         ) {
 
         if (     eval { ref $person->{$field} eq 'HASH' }
@@ -773,6 +774,14 @@ sub canonical_url_to_json {
                        $orng_data{'orng:hasTwitter'}->{twitter_username};
                        }
                    ? [ $orng_data{'orng:hasTwitter'}->{twitter_username} ]
+                   : []
+               ),
+
+               SlideShare_beta => (
+                   eval {
+                       $orng_data{'orng:hasSlideShare'}->{username};
+                       }
+                   ? [ $orng_data{'orng:hasSlideShare'}->{username} ]
                    : []
                ),
 
