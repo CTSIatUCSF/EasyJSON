@@ -552,7 +552,7 @@ sub canonical_url_to_json {
                            ->{'prns:positionInDepartment'}->{'@id'};
                        return $items_by_url_id{$dept_id}->{'rdfs:label'};
                    } else {
-                       return;
+                       return undef;
                    }
                },
 
@@ -564,7 +564,7 @@ sub canonical_url_to_json {
                            ->{'vivo:positionInOrganization'}->{'@id'};
                        return $items_by_url_id{$school_id}->{'rdfs:label'};
                    } else {
-                       return;
+                       return undef;
                    }
                },
 
@@ -592,7 +592,7 @@ sub canonical_url_to_json {
                            = $person->{'prns:mainImage'}->{'@id'};
                        return "$profiles_profile_root_url$img_url_segment";
                    } else {
-                       return;
+                       return undef;
                    }
                },
 
@@ -623,7 +623,7 @@ sub canonical_url_to_json {
                                split qr/\s*,\s*|\s*[\r\n]+\s*/,
                                $person->{'vivo:freetextKeyword'};
                        } else {
-                           return [];
+                           return ();
                        }
                    }
                ],
@@ -785,22 +785,19 @@ sub canonical_url_to_json {
                    : []
                ),
 
-               GlobalHealth_beta => {
-                   eval {
-                       if (    $orng_data{'orng:hasGlobalHealth'}
-                           and
-                           $orng_data{'orng:hasGlobalHealth'}->{countries} ) {
-                           return ( 'Countries' => [
+               GlobalHealth_beta => eval {
+                   if (    $orng_data{'orng:hasGlobalHealth'}
+                       and $orng_data{'orng:hasGlobalHealth'}->{countries} ) {
+                       return { 'Countries' => [
                                         split(
                                             /;\s*/,
                                             $orng_data{'orng:hasGlobalHealth'}
                                                 ->{countries}
                                         )
-                                    ]
-                           );
-                       } else {
-                           return;
-                       }
+                                ]
+                       };
+                   } else {
+                       return undef;
                    }
                },
 

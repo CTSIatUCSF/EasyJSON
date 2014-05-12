@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 47;
+plan tests => 57;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -239,6 +239,69 @@ SKIP: {
             'Disabling publications works' );
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 90, "$test_name: Got enough publications" );
+    }
+}
+{
+    my $test_name = 'Kirsten Bibbins-Domingo no publications';
+    my $json =
+        identifier_to_json( 'FNO',
+                            'Kirsten.Bibbins-Domingo@ucsf.edu',
+                            { no_publications => 1 } );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 2 unless $json;
+        my $data = decode_json($json);
+        ok( eval { !@{ $data->{Profiles}->[0]->{Publications} } },
+            'Disabling publications works' );
+        cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
+                '>=', 90, "$test_name: Got enough publications" );
+    }
+}
+
+# regression
+{
+    my $test_name = 'Steve Shiboski';
+    my $json = identifier_to_json( 'Person', '5329027' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
+                '>=', 100, "$test_name: Got enough publications" );
+
+        cmp_ok(
+            eval {
+                scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
+                                ->{Countries}
+                            }
+                );
+            },
+            '>=',
+            3,
+            "$test_name: got 3+ global health countries"
+        );
+
+        is( $data->{Profiles}->[0]->{PhotoURL},
+            undef, "$test_name: No photo, as expected" );
+    }
+}
+
+{
+    my $test_name = 'Leslie Yuan';
+    my $json
+        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/leslie.yuan' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
+                '>=', 5, "$test_name: Got enough publications" );
+
+        is( $data->{Profiles}->[0]->{GlobalHealth_beta},
+            undef, "$test_name: no global health experience" );
     }
 }
 
