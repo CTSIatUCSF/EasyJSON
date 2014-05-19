@@ -142,11 +142,19 @@ sub identifier_to_canonical_url {
                 }
             }
 
-            my $status_line = $response->status_line;
-            warn
-                "Sorry, we could not return results due to an internal UCSF Profiles error (couldn't load internal URL $url / $status_line)\n";
-            return;
-        } elsif ( $response->base->path =~ m{^/Error/} ) {
+# e.g. if we load contents of http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Person=4617024
+            if ( $response->decoded_content
+                 =~ m/The given key was not present in the dictionary/ ) {
+                warn
+                    "Tried to look up user '$identifier', but got no results\n";
+                return;
+            } else {
+                my $status_line = $response->status_line;
+                warn
+                    "Sorry, we could not return results due to an internal UCSF Profiles error (couldn't load internal URL $url / $status_line)\n";
+                return;
+            }
+        } elsif ( $response->base->path =~ m{^/Error/} ) {  # still happening?
             warn "Tried to look up user '$identifier', but got no results\n";
             return;
         }
