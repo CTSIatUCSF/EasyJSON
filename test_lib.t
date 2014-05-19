@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 57;
+plan tests => 58;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -22,8 +22,11 @@ is( identifier_to_canonical_url( 'FNO', 'anirvan.chatterjee@ucsf.edu' ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url FNO'
 );
-is( identifier_to_canonical_url( 'Person', '4617024' ),
-    undef, 'identifier_to_canonical_url Outdated' );
+{
+    local $SIG{__WARN__} = sub { };    # override warnings
+    is( identifier_to_canonical_url( 'Person', '4617024' ),
+        undef, 'identifier_to_canonical_url Outdated' );
+}
 is( identifier_to_canonical_url( 'Person', '5396511' ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url Person'
