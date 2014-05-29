@@ -1,7 +1,6 @@
 #!/usr/bin/perl
 
 # TODO:
-# disable JSON pretty encoding in mobile view?
 # add timeout support?
 
 package ProfilesEasyJSON;
@@ -249,10 +248,9 @@ sub canonical_url_to_json {
                 $c2j_cache->set( $expanded_jsonld_url, $raw_json,
                                  '23.5 hours' );
             };
-        } else {
+        } else {    # if we got an error message from upstream
             warn "Could not load URL ", dump($expanded_jsonld_url),
-                " to look up JSON-LD (",
-                $response->status_line, ")\n";
+                " to look up JSON-LD (", $response->status_line, ")\n";
             if (     $options->{cache} ne 'never'
                  and $c2j_cache->exists_and_is_expired($expanded_jsonld_url) )
             {
@@ -703,16 +701,12 @@ sub canonical_url_to_json {
                                    'prns:informationResourceReference'},
                                PublicationSource => [
                                    {  PublicationSourceName => (
-                                                           $pub->{'bibo:pmid'}
-                                                           ? 'PubMed'
-                                                           : undef
+                                                $pub->{'bibo:pmid'} ? 'PubMed'
+                                                : undef
                                       ),
                                       PublicationSourceURL => (
                                           $pub->{'bibo:pmid'}
-                                          ? ( $options->{mobile}
-                                              ? "http://www.ncbi.nlm.nih.gov/m/pubmed/$pub->{'bibo:pmid'}"
-                                              : "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'bibo:pmid'}"
-                                              )
+                                          ? "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'bibo:pmid'}"
                                           : undef
                                       ),
                                       PMID =>
