@@ -546,8 +546,16 @@ sub canonical_url_to_json {
                             Address4  => $address[3],
                             Telephone => $person->{'vivo:phoneNumber'},
                             Fax       => $person->{'vivo:faxNumber'},
-                            Latitude  => $person->{'prns:latitude'} + 0,
-                            Longitude => $person->{'prns:longitude'} + 0,
+                            Latitude  => (
+                                         defined( $person->{'prns:latitude'} )
+                                         ? ( $person->{'prns:latitude'} + 0 )
+                                         : undef
+                            ),
+                            Longitude => (
+                                        defined( $person->{'prns:longitude'} )
+                                        ? ( $person->{'prns:longitude'} + 0 )
+                                        : undef
+                            ),
                },
 
                # only handling primary department at this time
