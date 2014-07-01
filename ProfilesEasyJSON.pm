@@ -795,21 +795,34 @@ sub canonical_url_to_json {
                    : []
                ),
 
-               GlobalHealth_beta => eval {
-                   if (    $orng_data{'orng:hasGlobalHealth'}
-                       and $orng_data{'orng:hasGlobalHealth'}->{countries} ) {
-                       return { 'Countries' => [
-                                        split(
-                                            /;\s*/,
-                                            $orng_data{'orng:hasGlobalHealth'}
-                                                ->{countries}
-                                        )
-                                ]
-                       };
-                   } else {
-                       return undef;
+               GlobalHealth_beta => (
+                   eval {
+                       my %countries;
+                       if ( $orng_data{'orng:hasGlobalHealth'} ) {
+
+                           my $gh = $orng_data{'orng:hasGlobalHealth'};
+                           if ( $gh->{gh_0} ) {
+                               foreach my $value ( values %{$gh} ) {
+                                   if (     ref($value) eq 'HASH'
+                                        and $value->{Locations}
+                                        and ref $value->{Locations} eq
+                                        'ARRAY' ) {
+                                       foreach my $country (
+                                                  @{ $value->{Locations} } ) {
+                                           $countries{$country} = 1;
+                                       }
+                                   }
+                               }
+                           }
+                       }
+
+                       if (%countries) {
+                           return { Countries => [ sort keys %countries ] };
+                       } else {
+                           return {};
+                       }
                    }
-               },
+               ),
 
                NIHGrants_beta => [
                    eval {
