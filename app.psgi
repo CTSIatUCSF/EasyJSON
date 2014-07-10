@@ -66,7 +66,7 @@ my $app = sub {
              or $q->referer() ) {
         $error
             ||= { error =>
-            q{Missing source! Please send a source= parameter to let us know who's sending the request. For example, ?source=example.ucsf.edu if the data's being used on that website, or ?source=Foobar+University+XYZ+Tool for a script -- doesn't have to be fancy, just some way to help us understand usage, and so we can get a hold of you in case of an emergency.}
+            q{Missing source! Please send a source= parameter to let us know who's sending the request. For example, ?source=example.ucsf.edu if the data's being used on that website, or ?source=Foobar+University+XYZ+Tool for a script -- it doesn't have to be fancy, just some way to help us understand usage, and so we can get a hold of you in case of an emergency.}
             };
         $http_status = "400 Invalid argument sent";
     }
