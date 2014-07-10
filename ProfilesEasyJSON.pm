@@ -781,7 +781,10 @@ sub canonical_url_to_json {
 
                Twitter_beta => (
                    eval {
-                       $orng_data{'orng:hasTwitter'}->{twitter_username};
+                       $orng_data{'orng:hasTwitter'}->{twitter_username}
+                           and
+                           $orng_data{'orng:hasTwitter'}->{twitter_username}
+                           =~ /^([A-Za-z0-9_]+)$/;
                        }
                    ? [ $orng_data{'orng:hasTwitter'}->{twitter_username} ]
                    : []
