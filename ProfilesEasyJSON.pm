@@ -611,9 +611,14 @@ sub canonical_url_to_json {
                },
 
                PublicationCount => eval {
-                   scalar @{ $person->{'vivo:authorInAuthorship'} } + 0;
+                   if ( $publications_by_author{ $person->{'@id'} } ) {
+                       return
+                           scalar
+                           @{ $publications_by_author{ $person->{'@id'} } };
+                   } else {
+                       return 0;
                    }
-                   || 0,
+               },
 
                #CoAuthors     => ['???'], # need to handle <- name
                #SimilarPeople => ['???'], # need to handle <- name
