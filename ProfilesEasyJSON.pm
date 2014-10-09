@@ -342,8 +342,9 @@ sub canonical_url_to_json {
     }
 
     # ensure that repeatable fields are set up as an array
-    foreach my $field ( 'vivo:hasResearchArea', 'vivo:awardOrHonor',
-                        'vivo:personInPosition' ) {
+    foreach my $field ( 'vivo:hasResearchArea',  'vivo:awardOrHonor',
+                        'vivo:personInPosition', 'vivo:educationalTraining'
+        ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
         } elsif ( !ref $person->{$field} or ref $person->{$field} ne 'ARRAY' )
@@ -632,6 +633,36 @@ sub canonical_url_to_json {
                        return
                            map { $items_by_url_id{$_}->{'rdfs:label'} }
                            @research_area_ids;
+                   }
+               ],
+
+               Education_Training => [
+                   eval {
+                       my @education_training;
+                       if ( defined $person->{'vivo:educationalTraining'} ) {
+                           my @ed_training_ids = map { $_->{'@id'} }
+                               @{ $person->{'vivo:educationalTraining'} };
+                           foreach my $id (@ed_training_ids) {
+                               my $item = $items_by_url_id{$id};
+                               push @education_training,
+                                   {
+                                   degree   => $item->{'vivo:degreeEarned'},
+                                   end_date => $item->{'prns:endDate'},
+                                   organization =>
+                                       $item->{'vivo:trainingAtOrganization'},
+                                   'department_or_school' =>
+                                       $item->{"vivo:departmentOrSchool"},
+                                   };
+                           }
+
+                           @education_training
+                               = sort { $b->{end_date} cmp $a->{end_date} }
+                               @education_training;
+
+                           return @education_training;
+                       } else {
+                           return ();
+                       }
                    }
                ],
 
