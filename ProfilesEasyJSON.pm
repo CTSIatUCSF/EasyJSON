@@ -297,12 +297,18 @@ sub canonical_url_to_json {
         }
 
         # handle authorship
-        if ( grep { $_ eq 'vivo:Authorship' } @{ $item->{'@type'} } ) {
-            if (     $item->{'vivo:linkedAuthor'}
-                 and $item->{'vivo:linkedInformationResource'} ) {
-                push @{ $publications_by_author{ $item->{'vivo:linkedAuthor'}
-                            ->{'@id'} } },
-                    $item->{'vivo:linkedInformationResource'}->{'@id'};
+        if ( ref $item and $item->{'@type'} ) {
+            foreach my $type ( @{ $item->{'@type'} } ) {
+                if ( $type eq 'vivo:Authorship' ) {
+                    if (     $item->{'linkedAuthor'}
+                         and $item->{'linkedInformationResource'} ) {
+
+                        push @{ $publications_by_author{ $item->{
+                                    'linkedAuthor'} } },
+                            $item->{'linkedInformationResource'};
+                    }
+
+                }
             }
         }
 
@@ -316,18 +322,12 @@ sub canonical_url_to_json {
     }
 
     # ensure there's only one of the following...
-    foreach my $field ( 'vivo:email',
-                        'prns:fullName',
-                        'foaf:firstName',
-                        'foaf:lastName',
-                        'vivo:mailingAddress',
-                        'vivo:phoneNumber',
-                        'vivo:faxNumber',
-                        'prns:latitude',
-                        'prns:longitude',
-                        'prns:mainImage',
-                        'vivo:preferredTitle',
-                        'prns:personInPrimaryPosition'
+    foreach my $field ( 'email',          'fullName',
+                        'firstName',      'lastName',
+                        'mailingAddress', 'phoneNumber',
+                        'faxNumber',      'latitude',
+                        'longitude',      'mainImage',
+                        'preferredTitle', 'personInPrimaryPosition'
         ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = $person->{$field}->[0];
@@ -335,15 +335,15 @@ sub canonical_url_to_json {
     }
 
     # merge with return if there are multiple of the following...
-    foreach my $field ( 'vivo:freetextKeyword', 'vivo:overview' ) {
+    foreach my $field ( 'freetextKeyword', 'overview' ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = join "\n", @{ $person->{$field} };
         }
     }
 
     # ensure that repeatable fields are set up as an array
-    foreach my $field ( 'vivo:hasResearchArea',  'vivo:awardOrHonor',
-                        'vivo:personInPosition', 'vivo:educationalTraining'
+    foreach my $field ( 'hasResearchArea',  'awardOrHonor',
+                        'personInPosition', 'educationalTraining'
         ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
@@ -361,19 +361,15 @@ sub canonical_url_to_json {
     );
 
     # load ORNG data
-    foreach my $field ( 'orng:hasFeaturedPublications',
-                        'orng:hasGlobalHealth',
-                        'orng:hasLinks',
-                        'orng:hasMentor',
-                        'orng:hasNIHGrantList',
-                        'orng:hasTwitter',
-                        'orng:hasSlideShare',
-                        'orng:hasMediaLinks',
+    foreach my $field ( 'hasFeaturedPublications', 'hasGlobalHealth',
+                        'hasLinks',                'hasMentor',
+                        'hasNIHGrantList',         'hasTwitter',
+                        'hasSlideShare',           'hasMediaLinks',
         ) {
 
-        if (     eval { ref $person->{$field} eq 'HASH' }
-             and $person->{$field}->{'@id'}
-             and $person->{$field}->{'@id'} =~ m/^(\d+)$/ ) {
+        if (     $person->{$field}
+             and $person->{$field}
+             =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
 
             my $field_jsonld_url
                 = 'http://profiles.ucsf.edu/ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
@@ -421,13 +417,12 @@ sub canonical_url_to_json {
                     foreach my $item (
                            @{ $field_data->{entry}->{jsonld}->{'@graph'} } ) {
 
-                        if ( defined $item->{
-                                 'orng:applicationInstanceDataValue'}
-                             and defined $item->{'rdfs:label'} ) {
+                        if ( defined $item->{'applicationInstanceDataValue'}
+                             and defined $item->{'label'} ) {
 
-                            my $item_data = $item->{
-                                'orng:applicationInstanceDataValue'};
-                            my $item_label = $item->{'rdfs:label'};
+                            my $item_data
+                                = $item->{'applicationInstanceDataValue'};
+                            my $item_label = $item->{'label'};
 
                             if ( length $item_data ) {
                                 my $decoded = eval {
@@ -448,15 +443,15 @@ sub canonical_url_to_json {
 
     my %featured_publication_order_by_id;
 
-    if ( $orng_data{'orng:hasFeaturedPublications'} ) {
+    if ( $orng_data{'hasFeaturedPublications'} ) {
 
         for my $i ( 0 .. 199 ) {
             my $featured_num = $i + 1;
-            my $pub          = $orng_data{'orng:hasFeaturedPublications'}
-                ->{"featured_pub_$i"};
+            my $pub
+                = $orng_data{'hasFeaturedPublications'}->{"featured_pub_$i"};
 
             # we double-check if $pub is a hash because we found at least
-            # one case (Kirsten Bibbins-Domingo) where the data was
+            # one case (kirsten.bibbins-domingo) where the data was
             # accidentally encoded as a JSON string, probably due to
             # accidental double-JSON encoding.
             if ( $pub and ref $pub and ref $pub eq 'HASH' ) {
@@ -478,8 +473,7 @@ sub canonical_url_to_json {
                     foreach my $candidate_pub_id (
                           @{ $publications_by_author{ $person->{'@id'} } } ) {
                         my $candidate_pmid
-                            = $items_by_url_id{$candidate_pub_id}
-                            ->{'bibo:pmid'};
+                            = $items_by_url_id{$candidate_pub_id}->{'pmid'};
                         if ( $candidate_pmid and $candidate_pmid == $pmid ) {
                             $featured_publication_order_by_id{
                                 $candidate_pub_id} = $featured_num;
@@ -493,40 +487,39 @@ sub canonical_url_to_json {
 
     # if person has multiple job role and titles, sort them appropriately
     my @sorted_positions;
-    if ( $person->{'vivo:personInPosition'}
-         and @{ $person->{'vivo:personInPosition'} } ) {
-        @sorted_positions = @{ $person->{'vivo:personInPosition'} };
-    } elsif ( $person->{'prns:personInPrimaryPosition'} ) {
-        @sorted_positions = $person->{'prns:personInPrimaryPosition'};
+    if ( $person->{'personInPosition'}
+         and @{ $person->{'personInPosition'} } ) {
+        @sorted_positions = @{ $person->{'personInPosition'} };
+    } elsif ( $person->{'personInPrimaryPosition'} ) {
+        @sorted_positions = $person->{'personInPrimaryPosition'};
     }
 
-    @sorted_positions = grep {defined}
-        map { $items_by_url_id{ $_->{'@id'} } } @sorted_positions;
+    @sorted_positions = map  { $items_by_url_id{$_} } @sorted_positions;
+    @sorted_positions = grep {defined} @sorted_positions;
+
     @sorted_positions
-        = sort { $a->{'prns:sortOrder'} <=> $b->{'prns:sortOrder'} }
-        @sorted_positions;
+        = sort { $a->{'sortOrder'} <=> $b->{'sortOrder'} } @sorted_positions;
 
     # get all the address lines into a series of 1-4 lines of text
     my @address;
     {
-        my $address_data
-            = $items_by_url_id{ $person->{'vivo:mailingAddress'}->{'@id'} };
-        foreach my $field (
-              qw( vivo:address1 vivo:address2 vivo:address3 vivo:address4 )) {
+
+        my $address_data = $items_by_url_id{ $person->{'mailingAddress'} };
+        foreach my $field (qw( address1 address2 address3 address4 )) {
             if ( $address_data->{$field} ) {
                 push @address, $address_data->{$field};
             }
         }
 
         my $last_line = '';
-        if ( $address_data->{'vivo:addressCity'} ) {
-            $last_line = $address_data->{'vivo:addressCity'};
+        if ( $address_data->{'addressCity'} ) {
+            $last_line = $address_data->{'addressCity'};
 
-            if ( $address_data->{'vivo:addressState'} ) {
-                $last_line .= ', ' . $address_data->{'vivo:addressState'};
+            if ( $address_data->{'addressState'} ) {
+                $last_line .= ', ' . $address_data->{'addressState'};
             }
-            if ( $address_data->{'vivo:addressPostalCode'} ) {
-                $last_line .= ' ' . $address_data->{'vivo:addressPostalCode'};
+            if ( $address_data->{'addressPostalCode'} ) {
+                $last_line .= ' ' . $address_data->{'addressPostalCode'};
             }
 
             push @address, $last_line;
@@ -535,37 +528,34 @@ sub canonical_url_to_json {
 
     my $final_data = {
         Profiles => [
-            {  Name        => $person->{'prns:fullName'},
-               FirstName   => $person->{'foaf:firstName'},
-               LastName    => $person->{'foaf:lastName'},
+            {  Name        => $person->{'fullName'},
+               FirstName   => $person->{'firstName'},
+               LastName    => $person->{'lastName'},
                ProfilesURL => "$profiles_profile_root_url$node_id",
-               Email       => $person->{'vivo:email'},
+               Email       => $person->{'email'},
                Address     => {
                             Address1  => $address[0],
                             Address2  => $address[1],
                             Address3  => $address[2],
                             Address4  => $address[3],
-                            Telephone => $person->{'vivo:phoneNumber'},
-                            Fax       => $person->{'vivo:faxNumber'},
-                            Latitude  => (
-                                         defined( $person->{'prns:latitude'} )
-                                         ? ( $person->{'prns:latitude'} + 0 )
-                                         : undef
+                            Telephone => $person->{'phoneNumber'},
+                            Fax       => $person->{'faxNumber'},
+                            Latitude  => (defined( $person->{'latitude'} )
+                                          ? ( $person->{'latitude'} + 0 )
+                                          : undef
                             ),
-                            Longitude => (
-                                        defined( $person->{'prns:longitude'} )
-                                        ? ( $person->{'prns:longitude'} + 0 )
-                                        : undef
+                            Longitude => ( defined( $person->{'longitude'} )
+                                           ? ( $person->{'longitude'} + 0 )
+                                           : undef
                             ),
                },
 
                # only handling primary department at this time
                Department => eval {
-                   if ( $sorted_positions[0]->{'prns:positionInDepartment'} )
-                   {
-                       my $dept_id = $sorted_positions[0]
-                           ->{'prns:positionInDepartment'}->{'@id'};
-                       return $items_by_url_id{$dept_id}->{'rdfs:label'};
+                   if ( $sorted_positions[0]->{'positionInDepartment'} ) {
+                       my $dept_id
+                           = $sorted_positions[0]->{'positionInDepartment'};
+                       return $items_by_url_id{$dept_id}->{'label'};
                    } else {
                        return undef;
                    }
@@ -573,11 +563,10 @@ sub canonical_url_to_json {
 
                # only handling primary school at this time
                School => eval {
-                   if ($sorted_positions[0]->{'vivo:positionInOrganization'} )
-                   {
-                       my $school_id = $sorted_positions[0]
-                           ->{'vivo:positionInOrganization'}->{'@id'};
-                       return $items_by_url_id{$school_id}->{'rdfs:label'};
+                   if ( $sorted_positions[0]->{'positionInOrganization'} ) {
+                       my $school_id
+                           = $sorted_positions[0]->{'positionInOrganization'};
+                       return $items_by_url_id{$school_id}->{'label'};
                    } else {
                        return undef;
                    }
@@ -585,11 +574,10 @@ sub canonical_url_to_json {
 
                # can handle multiple titles
                # but we're only listing first title at this time
-               Title  => $person->{'vivo:preferredTitle'},
+               Title  => $person->{'preferredTitle'},
                Titles => [
                    eval {
-                       my @titles
-                           = map { $_->{'rdfs:label'} } @sorted_positions;
+                       my @titles = map { $_->{'label'} } @sorted_positions;
 
                        # multiple titles sometimes concatenated "A; B"
                        @titles = map { split /; / } @titles;
@@ -599,12 +587,11 @@ sub canonical_url_to_json {
                    }
                ],
 
-               Narrative => $person->{'vivo:overview'},
+               Narrative => $person->{'overview'},
 
                PhotoURL => eval {
-                   if ( $person->{'prns:mainImage'} ) {
-                       my $img_url_segment
-                           = $person->{'prns:mainImage'}->{'@id'};
+                   if ( $person->{'mainImage'} ) {
+                       my $img_url_segment = $person->{'mainImage'};
                        return "$profiles_profile_root_url$img_url_segment";
                    } else {
                        return undef;
@@ -627,11 +614,10 @@ sub canonical_url_to_json {
                Keywords => [
                    eval {
                        my @research_area_ids
-                           = map { $_->{'@id'} }
-                           @{ $person->{'vivo:hasResearchArea'} };
+                           = @{ $person->{'hasResearchArea'} };
 
                        return
-                           map { $items_by_url_id{$_}->{'rdfs:label'} }
+                           map { $items_by_url_id{$_}->{'label'} }
                            @research_area_ids;
                    }
                ],
@@ -639,30 +625,26 @@ sub canonical_url_to_json {
                Education_Training => [
                    eval {
                        my @education_training;
-                       if ( defined $person->{'vivo:educationalTraining'} ) {
-                           my @ed_training_ids = map { $_->{'@id'} }
-                               @{ $person->{'vivo:educationalTraining'} };
+                       if ( defined $person->{'educationalTraining'} ) {
+                           my @ed_training_ids
+                               = @{ $person->{'educationalTraining'} };
                            foreach my $id (@ed_training_ids) {
                                my $item = $items_by_url_id{$id};
                                push @education_training,
-                                   {degree =>
-                                        trim( $item->{'vivo:degreeEarned'} ),
-                                    end_date =>
-                                        trim( $item->{'prns:endDate'} ),
+                                   {degree => trim( $item->{'degreeEarned'} ),
+                                    end_date => trim( $item->{'endDate'} ),
                                     organization =>
-                                        trim(
-                                        $item->{'vivo:trainingAtOrganization'}
+                                        trim($item->{'trainingAtOrganization'}
                                         ),
                                     department_or_school =>
-                                        trim(
-                                            $item->{"vivo:departmentOrSchool"}
-                                        ),
+                                        trim( $item->{"departmentOrSchool"} ),
                                    };
                            }
 
-                           @education_training
-                               = sort { $b->{end_date} cmp $a->{end_date} }
-                               @education_training;
+                           @education_training = sort {
+                               ( $b->{end_date} || '' )
+                                   cmp( $a->{end_date} || '' )
+                           } @education_training;
 
                            return @education_training;
                        } else {
@@ -673,10 +655,10 @@ sub canonical_url_to_json {
 
                FreetextKeywords => [
                    eval {
-                       if ( defined $person->{'vivo:freetextKeyword'} ) {
+                       if ( defined $person->{'freetextKeyword'} ) {
                            return map { trim($_) }
                                split qr/\s*,\s*|\s*[\r\n]+\s*/,
-                               $person->{'vivo:freetextKeyword'};
+                               $person->{'freetextKeyword'};
                        } else {
                            return ();
                        }
@@ -685,18 +667,18 @@ sub canonical_url_to_json {
 
                AwardOrHonors => eval {
                    my @awards;
-                   if ( $person->{'vivo:awardOrHonor'} ) {
-                       my @award_ids = map { $_->{'@id'} }
-                           @{ $person->{'vivo:awardOrHonor'} };
+                   if ( $person->{'awardOrHonor'} ) {
+
+                       my @award_ids = @{ $person->{'awardOrHonor'} };
 
                        foreach my $id (@award_ids) {
                            my $item = $items_by_url_id{$id};
                            my $award = {
-                                  AwardLabel => $item->{'rdfs:label'},
-                                  AwardConferredBy =>
-                                      $item->{'prns:awardConferredBy'},
-                                  AwardStartDate => $item->{'prns:startDate'},
-                                  AwardEndDate   => $item->{'prns:endDate'},
+                                       AwardLabel => $item->{'label'},
+                                       AwardConferredBy =>
+                                           $item->{'awardConferredBy'},
+                                       AwardStartDate => $item->{'startDate'},
+                                       AwardEndDate   => $item->{'endDate'},
                            };
                            $award->{Summary}
                                = join( ', ',
@@ -734,32 +716,28 @@ sub canonical_url_to_json {
                                PublicationID => $profiles_profile_root_url
                                    . $pub_id,
                                AuthorList =>
-                                   ( $pub->{'prns:hasAuthorList'} || undef ),
-                               Publication => (
-                                   $pub->{'prns:hasPublicationVenue'} || undef
-                               ),
+                                   ( $pub->{'hasAuthorList'} || undef ),
+                               Publication =>
+                                   ( $pub->{'hasPublicationVenue'} || undef ),
                                PublicationMedlineTA =>
-                                   ( $pub->{'prns:medlineTA'} || undef ),
-                               Title => ( $pub->{'rdfs:label'} || undef ),
-                               Date => (
-                                       $pub->{'prns:publicationDate'} || undef
-                               ),
-                               Year => ( $pub->{'prns:year'} || undef ),
+                                   ( $pub->{'medlineTA'} || undef ),
+                               Title => ( $pub->{'label'} || undef ),
+                               Date => ( $pub->{'publicationDate'} || undef ),
+                               Year => ( $pub->{'year'}            || undef ),
 
-                               PublicationTitle => $pub->{
-                                   'prns:informationResourceReference'},
+                               PublicationTitle =>
+                                   $pub->{'informationResourceReference'},
                                PublicationSource => [
                                    {  PublicationSourceName => (
-                                                $pub->{'bibo:pmid'} ? 'PubMed'
-                                                : undef
+                                                     $pub->{'pmid'} ? 'PubMed'
+                                                     : undef
                                       ),
                                       PublicationSourceURL => (
-                                          $pub->{'bibo:pmid'}
-                                          ? "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'bibo:pmid'}"
+                                          $pub->{'pmid'}
+                                          ? "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'pmid'}"
                                           : undef
                                       ),
-                                      PMID =>
-                                          ( $pub->{'bibo:pmid'} || undef ),
+                                      PMID => ( $pub->{'pmid'} || undef ),
                                    }
                                ],
 
@@ -780,12 +758,12 @@ sub canonical_url_to_json {
                    eval {
                        my @links;
 
-                       if (     $orng_data{'orng:hasLinks'}->{VISIBLE}
-                            and $orng_data{'orng:hasLinks'}->{links}
-                            and @{ $orng_data{'orng:hasLinks'}->{links} } ) {
+                       if (     $orng_data{'hasLinks'}->{VISIBLE}
+                            and $orng_data{'hasLinks'}->{links}
+                            and @{ $orng_data{'hasLinks'}->{links} } ) {
 
                            foreach my $link (
-                                 @{ $orng_data{'orng:hasLinks'}->{links} } ) {
+                                      @{ $orng_data{'hasLinks'}->{links} } ) {
                                push @links,
                                    { Label => $link->{link_name},
                                      URL   => $link->{link_url}
@@ -799,10 +777,9 @@ sub canonical_url_to_json {
                MediaLinks_beta => [
                    eval {
                        my @links;
-                       if ( @{ $orng_data{'orng:hasMediaLinks'}->{links} } ) {
+                       if ( @{ $orng_data{'hasMediaLinks'}->{links} } ) {
                            foreach my $link (
-                                @{ $orng_data{'orng:hasMediaLinks'}->{links} }
-                               ) {
+                                 @{ $orng_data{'hasMediaLinks'}->{links} } ) {
 
                                my $date = $link->{link_date};
                                if ( $date
@@ -822,29 +799,28 @@ sub canonical_url_to_json {
 
                Twitter_beta => (
                    eval {
-                       $orng_data{'orng:hasTwitter'}->{twitter_username}
-                           and
-                           $orng_data{'orng:hasTwitter'}->{twitter_username}
+                               $orng_data{'hasTwitter'}->{twitter_username}
+                           and $orng_data{'hasTwitter'}->{twitter_username}
                            =~ /^([A-Za-z0-9_]+)$/;
                        }
-                   ? [ $orng_data{'orng:hasTwitter'}->{twitter_username} ]
+                   ? [ $orng_data{'hasTwitter'}->{twitter_username} ]
                    : []
                ),
 
                SlideShare_beta => (
                    eval {
-                       $orng_data{'orng:hasSlideShare'}->{username};
+                       $orng_data{'hasSlideShare'}->{username};
                        }
-                   ? [ $orng_data{'orng:hasSlideShare'}->{username} ]
+                   ? [ $orng_data{'hasSlideShare'}->{username} ]
                    : []
                ),
 
                GlobalHealth_beta => (
                    eval {
                        my %countries;
-                       if ( $orng_data{'orng:hasGlobalHealth'} ) {
+                       if ( $orng_data{'hasGlobalHealth'} ) {
 
-                           my $gh = $orng_data{'orng:hasGlobalHealth'};
+                           my $gh = $orng_data{'hasGlobalHealth'};
                            if ( $gh->{gh_0} ) {
                                foreach my $value ( values %{$gh} ) {
                                    if (     ref($value) eq 'HASH'
@@ -873,8 +849,8 @@ sub canonical_url_to_json {
                        my @grants;
                        my %seen_project_number;
                        for my $i ( 0 .. 199 ) {
-                           if ( my $grant = $orng_data{'orng:hasNIHGrantList'}
-                                ->{"nih_$i"} ) {
+                           if ( my $grant
+                               = $orng_data{'hasNIHGrantList'}->{"nih_$i"} ) {
 
                                # remove dupes
                                next
