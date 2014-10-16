@@ -645,13 +645,18 @@ sub canonical_url_to_json {
                            foreach my $id (@ed_training_ids) {
                                my $item = $items_by_url_id{$id};
                                push @education_training,
-                                   {
-                                   degree   => $item->{'vivo:degreeEarned'},
-                                   end_date => $item->{'prns:endDate'},
-                                   organization =>
-                                       $item->{'vivo:trainingAtOrganization'},
-                                   'department_or_school' =>
-                                       $item->{"vivo:departmentOrSchool"},
+                                   {degree =>
+                                        trim( $item->{'vivo:degreeEarned'} ),
+                                    end_date =>
+                                        trim( $item->{'prns:endDate'} ),
+                                    organization =>
+                                        trim(
+                                        $item->{'vivo:trainingAtOrganization'}
+                                        ),
+                                    department_or_school =>
+                                        trim(
+                                            $item->{"vivo:departmentOrSchool"}
+                                        ),
                                    };
                            }
 
