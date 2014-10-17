@@ -592,7 +592,12 @@ sub canonical_url_to_json {
                PhotoURL => eval {
                    if ( $person->{'mainImage'} ) {
                        my $img_url_segment = $person->{'mainImage'};
-                       return "$profiles_profile_root_url$img_url_segment";
+                       if ( $img_url_segment =~ m/^http/ ) {
+                           return $img_url_segment;
+                       } else {
+                           return
+                               "$profiles_profile_root_url$img_url_segment";
+                       }
                    } else {
                        return undef;
                    }
