@@ -365,6 +365,7 @@ sub canonical_url_to_json {
                         'hasLinks',                'hasMentor',
                         'hasNIHGrantList',         'hasTwitter',
                         'hasSlideShare',           'hasMediaLinks',
+                        'hasYouTube',
         ) {
 
         if (     $person->{$field}
@@ -810,6 +811,32 @@ sub canonical_url_to_json {
                        }
                    ? [ $orng_data{'hasTwitter'}->{twitter_username} ]
                    : []
+               ),
+
+               Videos => (
+                   eval {
+                       my @videos;
+                       if ( eval { @{ $orng_data{'hasYouTube'}->{videos} } } )
+                       {
+                           foreach my $entry (
+                                   @{ $orng_data{'hasYouTube'}->{videos} } ) {
+                               next unless $entry->{url}  =~ m/^http/;
+                               next unless $entry->{name} =~ m/\w/;
+                               if (     $entry->{url} !~ m/youtube/i
+                                    and $entry->{id}
+                                    and $entry->{id} =~ m/\w/ ) {
+                                   $entry->{url}
+                                       = 'https://www.youtube.com/watch?v='
+                                       . $entry->{id};
+                               }
+                               push @videos,
+                                   { url   => $entry->{url},
+                                     label => $entry->{name}
+                                   };
+                           }
+                       }
+                       return \@videos;
+                   }
                ),
 
                SlideShare_beta => (
