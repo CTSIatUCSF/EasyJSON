@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 58;
+plan tests => 59;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -110,10 +110,8 @@ SKIP: {
 
 {
     my $test_name = 'Clay Johnston';
-    my $json =
-        identifier_to_json( 'URL',
-                            'http://profiles.ucsf.edu/clay.johnston',
-                            { mobile => 1 } );
+    my $json      = identifier_to_json( 'URL',
+                                   'http://profiles.ucsf.edu/clay.johnston' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 3 unless $json;
@@ -128,11 +126,6 @@ SKIP: {
               qr/^Clay$/i, "$test_name: first name" );
         like( $data->{Profiles}->[0]->{LastName},
               qr/^Johnston$/i, "$test_name: last name" );
-
-        like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationSource}
-                  ->[0]->{PublicationSourceURL},
-              qr{/m/pubmed/}, "$test_name: mobile URL"
-        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 50, "$test_name: got 50+ publications" );
 
@@ -223,7 +216,7 @@ SKIP: {
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
-              qr/(Bibbins|Moyer VA).*\. \w.*?\. .*2\d\d\d/,
+              qr/(Bibbins|Moyer VA|LeFevre ML).*\. \w.*?\. .*2\d\d\d/,
               "$test_name: Valid publication title"
         );
     }
@@ -284,8 +277,8 @@ SKIP: {
                 );
             },
             '>=',
-            3,
-            "$test_name: got 3+ global health countries"
+            1,
+            "$test_name: got 1+ global health countries"
         );
 
         is( $data->{Profiles}->[0]->{PhotoURL},
@@ -305,8 +298,35 @@ SKIP: {
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 5, "$test_name: Got enough publications" );
 
-        is( $data->{Profiles}->[0]->{GlobalHealth_beta},
-            undef, "$test_name: no global health experience" );
+        is_deeply( $data->{Profiles}->[0]->{GlobalHealth_beta},
+                   {}, "$test_name: no global health experience" );
+    }
+}
+
+{
+    my $test_name = 'George Rutherford';
+    my $json      = identifier_to_json( 'URL',
+                               'http://profiles.ucsf.edu/george.rutherford' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
+                '>=', 5, "$test_name: Got enough publications" );
+
+        cmp_ok(
+            eval {
+                scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
+                                ->{Countries}
+                            }
+                );
+            },
+            '>=',
+            3,
+            "$test_name: got 3+ global health countries"
+        );
+
     }
 }
 
