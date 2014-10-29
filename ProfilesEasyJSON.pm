@@ -419,11 +419,14 @@ sub canonical_url_to_json {
                            @{ $field_data->{entry}->{jsonld}->{'@graph'} } ) {
 
                         if ( defined $item->{'applicationInstanceDataValue'}
-                             and defined $item->{'label'} ) {
+                             and (    defined $item->{'label'}
+                                   or defined $item->{'rdfs:label'} )
+                            ) {
 
                             my $item_data
                                 = $item->{'applicationInstanceDataValue'};
-                            my $item_label = $item->{'label'};
+                            my $item_label = $item->{'label'}
+                                || $item->{'rdfs:label'};
 
                             if ( length $item_data ) {
                                 my $decoded = eval {
