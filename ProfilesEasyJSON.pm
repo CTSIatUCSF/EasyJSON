@@ -78,7 +78,7 @@ sub identifier_to_canonical_url {
         }
     }
 
-    # Canonical URL was not in cache
+    # Canonical URL was not a valid cache entry
     # Need to retrieve from server
 
     my $node_uri;
@@ -733,6 +733,9 @@ sub canonical_url_to_json {
                                Title => ( $pub->{'label'} || undef ),
                                Date => ( $pub->{'publicationDate'} || undef ),
                                Year => ( $pub->{'year'}            || undef ),
+
+                               PublicationCategory =>
+                                   ( $pub->{'hmsPubCategory'} || undef ),
 
                                PublicationTitle =>
                                    $pub->{'informationResourceReference'},
