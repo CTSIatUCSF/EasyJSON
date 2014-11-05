@@ -211,56 +211,80 @@ sub canonical_url_to_json {
         . $node_id;
 
     my $raw_json;
+    my $decoded_json;
 
-    if ( $options->{cache} eq 'always' ) {
+    # attempt to get it from the cache, if possible
+    unless ( $options->{cache} eq 'never' ) {
         my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
         if ($cache_object) {
+
             $raw_json = $cache_object->value;
-            if ($raw_json) {
+            $decoded_json = eval { $json_obj->decode($raw_json) };
+
+            if ( $raw_json and $decoded_json ) {
+
+                my $api_note_preamble
+                    = 'To maximize performance, we are providing recently-cached data.';
+                if ( $options->{cache} eq 'always' ) {
+                    $api_note_preamble = 'You requested cached data.';
+                }
+
+                my $printable_cache_time
+                    = scalar( localtime( $cache_object->created_at() ) );
+
                 push @api_notes,
-                      'You requested cached data. This data was cached on '
-                    . scalar( localtime( $cache_object->created_at() ) )
-                    . '.';
-            }
-        }
-    } elsif ( $options->{cache} eq 'fallback' ) {
-        $raw_json = $c2j_cache->get($expanded_jsonld_url);
-        if ($raw_json) {
-            my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
-            if ($cache_object) {
-                push @api_notes,
-                    'To maximize performance, we are providing recently-cached data. This data was cached on '
-                    . scalar( localtime( $cache_object->created_at() ) )
-                    . '.';
+                    "$api_note_preamble This data was cached on $printable_cache_time";
             }
         }
     }
 
-    if ( !$raw_json ) {
+    # if we didn't get back valid JSON from the cache, and we're
+    # allowed to do an HTTP lookup, then go do it
+
+    if ( !$decoded_json and $options->{cache} ne 'always' ) {
         _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
-            push @api_notes,
-                'This data was retrieved live from our database at '
-                . scalar(localtime);
             $raw_json = $response->decoded_content;
+            $decoded_json = eval { $json_obj->decode($raw_json) };
 
-            eval {
-                $c2j_cache->set( $expanded_jsonld_url, $raw_json,
-                                 '23.5 hours' );
-            };
+            if ( $raw_json and $decoded_json ) {
+                push @api_notes,
+                    'This data was retrieved live from our database at '
+                    . scalar(localtime);
+
+                eval {
+                    $c2j_cache->set( $expanded_jsonld_url, $raw_json,
+                                     '24 hours' );
+                };
+            } else {
+                warn 'Loaded URL ', dump($expanded_jsonld_url),
+                    " to look up JSON-LD, but JSON was either missing or invalid\n";
+            }
         } else {    # if we got an error message from upstream
-            warn "Could not load URL ", dump($expanded_jsonld_url),
-                " to look up JSON-LD (", $response->status_line, ")\n";
-            if (     $options->{cache} ne 'never'
-                 and $c2j_cache->exists_and_is_expired($expanded_jsonld_url) )
-            {
+            warn 'Could not load URL ', dump($expanded_jsonld_url),
+                ' to look up JSON-LD (', $response->status_line, ")\n";
+        }
+    }
+
+    # if we STILL don't have valid JSON, we look for it in expired
+    # cache results, if we're allowed to...
+
+    unless ( $raw_json and $decoded_json ) {
+        if ( $options->{cache} ne 'never' ) {
+            if ( $c2j_cache->exists_and_is_expired($expanded_jsonld_url) ) {
+
                 my $cache_object
                     = $c2j_cache->get_object($expanded_jsonld_url);
+
                 if ($cache_object) {
-                    $raw_json = $cache_object->value() || undef;
+                    $raw_json = $cache_object->value || undef;
                     if ($raw_json) {
+                        $decoded_json = eval { $json_obj->decode($raw_json) };
+                    }
+
+                    if ( $raw_json and $decoded_json ) {
                         push @api_notes,
                             'We could not connect to our database right now, so we are providing cached data. This data was cached on '
                             . scalar(
@@ -271,11 +295,12 @@ sub canonical_url_to_json {
             }
         }
     }
-    if ( !$raw_json ) {
+
+    unless ( $raw_json and $decoded_json ) {
         return;
     }
 
-    my $data = $json_obj->decode($raw_json);
+    my $data = $decoded_json;
 
     # print STDERR dump($data);
 
