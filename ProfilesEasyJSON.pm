@@ -969,7 +969,7 @@ sub _init_ua {
         $ua = LWP::UserAgent->new;
         $ua->timeout(5);
         $ua->agent(
-            'UCSF Profiles EasyJSON Interface/1.0 (anirvan.chatterjee@ucsf.edu)'
+            'UCSF Profiles EasyJSON Interface/1.1 (anirvan.chatterjee@ucsf.edu)'
         );
     }
 }
