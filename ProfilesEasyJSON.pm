@@ -24,7 +24,8 @@ our @EXPORT_OK
 my ( $i2c_cache, $c2j_cache, $url_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
 
-my $profiles_profile_root_url = 'http://profiles.ucsf.edu/profile/';
+my $profiles_native_api_root_url = 'http://profiles.ucsf.edu/';
+my $profiles_profile_root_url    = 'http://profiles.ucsf.edu/profile/';
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
@@ -122,7 +123,7 @@ sub identifier_to_canonical_url {
         }
 
         my $url
-            = "http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?"
+            = "${profiles_native_api_root_url}CustomAPI/v2/Default.aspx?"
             . uri_escape($identifier_type) . '='
             . uri_escape($identifier);
 
@@ -205,7 +206,8 @@ sub canonical_url_to_json {
     );
 
     my $expanded_jsonld_url
-        = 'http://profiles.ucsf.edu/ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
+        = $profiles_native_api_root_url
+        . 'ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
         . $node_id;
 
     my $raw_json;
@@ -373,7 +375,8 @@ sub canonical_url_to_json {
              =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
 
             my $field_jsonld_url
-                = 'http://profiles.ucsf.edu/ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
+                = $profiles_native_api_root_url
+                . 'ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
                 . $1;
 
             # grab from cache, if available
