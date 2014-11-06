@@ -750,8 +750,7 @@ sub canonical_url_to_json {
                            push @publications, {
 
                                # PublicationAddedBy => '?',
-                               PublicationID => $profiles_profile_root_url
-                                   . $pub_id,
+                               PublicationID => $pub_id,
                                AuthorList =>
                                    ( $pub->{'hasAuthorList'} || undef ),
                                Publication =>
