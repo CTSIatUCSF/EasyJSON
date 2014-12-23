@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 62;
+plan tests => 64;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -343,6 +343,25 @@ SKIP: {
                 scalar @{ $data->{Profiles}->[0]->{MediaLinks_beta} } >= 2;
             },
             "$test_name: has 2+ news stories"
+        );
+
+    }
+}
+
+{
+    my $test_name = 'Harold Chapman';
+    my $json
+        = identifier_to_json( 'URL',
+                              'http://profiles.ucsf.edu/harold.chapman'
+        );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 3; }
+            ,
+            "$test_name: has 3+ web links"
         );
 
     }
