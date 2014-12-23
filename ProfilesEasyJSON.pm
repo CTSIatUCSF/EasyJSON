@@ -9,6 +9,7 @@ use Data::Dump qw( dump );
 use Encode qw( encode );
 use HTTP::Message 6.06;
 use JSON;
+use List::MoreUtils qw( uniq );
 use LWP::UserAgent 6.0;
 use String::Util qw( trim );
 use URI::Escape qw( uri_escape );
@@ -95,7 +96,7 @@ sub identifier_to_canonical_url {
             if ( $identifier =~ m/^(\d\d+)$/ ) {
                 return "$profiles_profile_root_url$1";
             } else {
-                warn "Expected to see an all-numeric ProfilesNodeID";
+                warn "Expected to see an all-numeric ProfilesNodeID\n";
                 return;
             }
         } elsif ( $identifier_type eq 'PrettyURL' ) {
@@ -129,35 +130,56 @@ sub identifier_to_canonical_url {
 
         _init_ua() unless $ua;
         my $response = $ua->get($url);
-        if ( !$response->is_success ) {
 
-            if ( $i2c_cache->exists_and_is_expired($cache_key) ) {
-                my $potential_expired_cache_object
-                    = $i2c_cache->get_object($cache_key);
-                if ($potential_expired_cache_object) {
-                    $node_uri = $potential_expired_cache_object->value();
-                    if ($node_uri) {
-                        return $node_uri;
+   # if there was an error loading the content, figure out an error message...
+
+        my $error_warning;
+        if ( $response->is_success ) {
+            if ( $response->base->path =~ m{^/Error/} ) {   # still happening?
+                $error_warning
+                    = "Tried to look up user '$identifier', but got no results\n";
+            }
+        } else {
+
+           # e.g. if we load contents of
+           # http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Person=4617024
+            if ( $response->decoded_content
+                 =~ m/The given key was not present in the dictionary/ ) {
+                $error_warning
+                    = "Tried to look up user '$identifier', but got no results\n";
+            } else {
+                my $status_line = $response->status_line;
+                $error_warning
+                    = "Sorry, we could not return results due to an internal UCSF Profiles error (couldn't load internal URL $url / $status_line)\n";
+            }
+        }
+
+        # if there was an error...
+
+        if ($error_warning) {
+
+            # first, maybe we can just return expired content?
+            foreach my $key ( $cache_key, $cache_key_alt ) {
+                if ( $i2c_cache->exists_and_is_expired($key) ) {
+                    my $potential_expired_cache_object
+                        = $i2c_cache->get_object($key);
+                    if ($potential_expired_cache_object) {
+                        $node_uri = $potential_expired_cache_object->value();
+                        if ($node_uri) {
+                            $error_warning = undef;
+                            return $node_uri;
+                        }
                     }
                 }
             }
 
-# e.g. if we load contents of http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Person=4617024
-            if ( $response->decoded_content
-                 =~ m/The given key was not present in the dictionary/ ) {
-                warn
-                    "Tried to look up user '$identifier', but got no results\n";
-                return;
-            } else {
-                my $status_line = $response->status_line;
-                warn
-                    "Sorry, we could not return results due to an internal UCSF Profiles error (couldn't load internal URL $url / $status_line)\n";
-                return;
-            }
-        } elsif ( $response->base->path =~ m{^/Error/} ) {  # still happening?
-            warn "Tried to look up user '$identifier', but got no results\n";
+            # nope, I guess we have to return an error
+            warn $error_warning;
             return;
+
         }
+
+        # now we know we have a valid HTTP response
 
         my $raw = $response->decoded_content;
         if ( $raw =~ m{rdf:about="(http.*?)"} ) {
@@ -176,6 +198,7 @@ sub identifier_to_canonical_url {
         warn 'Unknown identifier type ', dump($identifier_type), "\n";
         return;
     }
+
     return;
 }
 
@@ -416,7 +439,7 @@ sub canonical_url_to_json {
                         = $field_jsonld_response->decoded_content;
                     eval {
                         $url_cache->set( $field_jsonld_url,
-                                         $raw_json_for_field, '23.5 hours' );
+                                         $raw_json_for_field, '24 hours' );
                     };
                 }
             }
@@ -717,16 +740,22 @@ sub canonical_url_to_json {
                                        AwardStartDate => $item->{'startDate'},
                                        AwardEndDate   => $item->{'endDate'},
                            };
+
                            $award->{Summary}
-                               = join( ', ',
-                                       grep { defined and length } (
-                                             $award->{AwardLabel},
-                                             $award->{AwardConferredBy},
-                                             join( '-',
+                               = join(
+                                     ', ',
+                                     grep { defined and length } (
+                                         $award->{AwardLabel},
+                                         $award->{AwardConferredBy},
+                                         join(
+                                             '-',
+                                             uniq(
                                                  grep {defined}
                                                      $award->{AwardStartDate},
-                                                 $award->{AwardEndDate} )
-                                       )
+                                                 $award->{AwardEndDate}
+                                             )
+                                         )
+                                     )
                                );
                            push @awards, $award;
                        }
@@ -798,15 +827,24 @@ sub canonical_url_to_json {
                        my @links;
 
                        if (     $orng_data{'hasLinks'}->{VISIBLE}
-                            and $orng_data{'hasLinks'}->{links}
-                            and @{ $orng_data{'hasLinks'}->{links} } ) {
+                            and $orng_data{'hasLinks'}->{links_count}
+                            and $orng_data{'hasLinks'}->{links_count}
+                            =~ m/^\d+$/ ) {
 
-                           foreach my $link (
-                                      @{ $orng_data{'hasLinks'}->{links} } ) {
-                               push @links,
-                                   { Label => $link->{link_name},
-                                     URL   => $link->{link_url}
-                                   };
+                           my $max_links_count
+                               = $orng_data{'hasLinks'}->{links_count};
+
+                           for ( my $i = 0; $i < $max_links_count; $i++ ) {
+                               if ( $orng_data{hasLinks}->{"link_$i"}
+                                   and ref $orng_data{hasLinks}->{"link_$i"} )
+                               {
+                                   my $link
+                                       = $orng_data{hasLinks}->{"link_$i"};
+                                   push @links,
+                                       { Label => $link->{name},
+                                         URL   => $link->{url}
+                                       };
+                               }
                            }
                        }
                        return @links;
