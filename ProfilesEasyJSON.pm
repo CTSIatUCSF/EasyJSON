@@ -717,7 +717,7 @@ sub canonical_url_to_json {
                    eval {
                        if ( defined $person->{'freetextKeyword'} ) {
                            return map { trim($_) }
-                               split qr/\s*,\s*|\s*[\r\n]+\s*/,
+                               split qr/\s*,\s*|\s*;\s*|\s*[\r\n]+\s*/,
                                $person->{'freetextKeyword'};
                        } else {
                            return ();
