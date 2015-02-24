@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 64;
+plan tests => 66;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -350,10 +350,8 @@ SKIP: {
 
 {
     my $test_name = 'Harold Chapman';
-    my $json
-        = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/harold.chapman'
-        );
+    my $json      = identifier_to_json( 'URL',
+                                  'http://profiles.ucsf.edu/harold.chapman' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -364,6 +362,26 @@ SKIP: {
             "$test_name: has 3+ web links"
         );
 
+    }
+}
+
+{
+    my $test_name = 'Andrew Auerbach';
+    my $json      = identifier_to_json( 'URL',
+                                 'http://profiles.ucsf.edu/andrew.auerbach' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        my @featured_pubs = grep { $_->{Featured} }
+            @{ $data->{Profiles}->[0]->{Publications} };
+        cmp_ok( @featured_pubs,
+                '>=',
+                5,
+                "$test_name: found at least 5 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
     }
 }
 
