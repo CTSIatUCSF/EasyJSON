@@ -516,7 +516,7 @@ sub canonical_url_to_json {
 
                 if ( defined $id and $id =~ m/^\d+$/ ) {
 
-                    $featured_publication_order_by_id{$id} = $featured_num;
+                    $featured_publication_order_by_id{$profiles_profile_root_url . $id} = $featured_num;
 
                 } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
 
