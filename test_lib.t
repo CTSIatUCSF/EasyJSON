@@ -267,7 +267,7 @@ SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
-                '>=', 100, "$test_name: Got enough publications" );
+                '>=', 10, "$test_name: Got enough publications" );
 
         cmp_ok(
             eval {
@@ -350,8 +350,10 @@ SKIP: {
 
 {
     my $test_name = 'Harold Chapman';
-    my $json      = identifier_to_json( 'URL',
-                                  'http://profiles.ucsf.edu/harold.chapman' );
+    my $json
+        = identifier_to_json( 'URL',
+                              'http://profiles.ucsf.edu/harold.chapman'
+        );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
