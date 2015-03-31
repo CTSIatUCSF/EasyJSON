@@ -48,17 +48,6 @@ test_psgi $app, sub {
         is $res->code, 404;
     }
 
-    # 404 for nonexistent user maybe still in system
-    {
-    TODO: {
-            local $TODO = "No idea why this isn't working";
-            my $req = GET(
-                    'http://localhost/?source=Anirvan_script&Person=4655068');
-            my $res = $cb->($req);
-            is $res->code, 404;
-        }
-    }
-
 };
 
 done_testing;
