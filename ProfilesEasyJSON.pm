@@ -516,7 +516,8 @@ sub canonical_url_to_json {
 
                 if ( defined $id and $id =~ m/^\d+$/ ) {
 
-                    $featured_publication_order_by_id{$profiles_profile_root_url . $id} = $featured_num;
+                    $featured_publication_order_by_id{
+                        $profiles_profile_root_url . $id } = $featured_num;
 
                 } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
 
@@ -586,10 +587,11 @@ sub canonical_url_to_json {
             {  Name        => $person->{'fullName'},
                FirstName   => $person->{'firstName'},
                LastName    => $person->{'lastName'},
-               ProfilesURL => "$profiles_profile_root_url$node_id",
-               Email       => $person->{'email'},
-               Address     => {
-                            Address1  => $address[0],
+               ProfilesURL => ( $person->{'workplaceHomepage'}
+                                    || "$profiles_profile_root_url$node_id"
+               ),
+               Email   => $person->{'email'},
+               Address => { Address1  => $address[0],
                             Address2  => $address[1],
                             Address3  => $address[2],
                             Address4  => $address[3],
