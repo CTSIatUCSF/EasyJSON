@@ -415,7 +415,7 @@ sub canonical_url_to_json {
                         'hasLinks',                'hasMentor',
                         'hasNIHGrantList',         'hasTwitter',
                         'hasSlideShare',           'hasMediaLinks',
-                        'hasYouTube',
+                        'hasVideos',
         ) {
 
         if (     $person->{$field}
@@ -889,10 +889,10 @@ sub canonical_url_to_json {
                Videos => (
                    eval {
                        my @videos;
-                       if ( eval { @{ $orng_data{'hasYouTube'}->{videos} } } )
+                       if ( eval { @{ $orng_data{'hasVideos'}->{videos} } } )
                        {
                            foreach my $entry (
-                                   @{ $orng_data{'hasYouTube'}->{videos} } ) {
+                                    @{ $orng_data{'hasVideos'}->{videos} } ) {
                                next unless $entry->{url}  =~ m/^http/;
                                next unless $entry->{name} =~ m/\w/;
                                if (     $entry->{url} !~ m/youtube/i
