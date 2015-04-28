@@ -893,8 +893,10 @@ sub canonical_url_to_json {
                        {
                            foreach my $entry (
                                     @{ $orng_data{'hasVideos'}->{videos} } ) {
-                               next unless $entry->{url}  =~ m/^http/;
-                               next unless $entry->{name} =~ m/\w/;
+                               next unless $entry->{url} =~ m/^http/;
+                               unless ( $entry->{name} =~ m/\w/ ) {
+                                   $entry->{name} = 'Video';
+                               }
                                if (     $entry->{url} !~ m/youtube/i
                                     and $entry->{id}
                                     and $entry->{id} =~ m/\w/ ) {
