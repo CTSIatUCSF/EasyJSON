@@ -81,8 +81,9 @@ SKIP: {
         is( $data->{Profiles}->[0]->{Name},
             'Anirvan Chatterjee',
             'Anirvan name' );
-        is( $data->{Profiles}->[0]->{Email},
-            'anirvan.chatterjee@ucsf.edu', 'Anirvan email' );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^anirvan\.chatterjee\@ucsf\.edu$/i,
+              'Anirvan email' );
         like(
             $data->{Profiles}->[0]->{ProfilesURL},
             qr{^(http://profiles.ucsf.edu/profile/370974|http://profiles.ucsf.edu/anirvan.chatterjee)$},
@@ -206,7 +207,7 @@ SKIP: {
         like( $data->{Profiles}->[0]->{PhotoURL},
               qr/^http/, "$test_name: Got photo URL" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{Keywords} } ),
-              qr/coronary/i, "$test_name: matching keyword" );
+              qr/cardiovascular/i, "$test_name: matching keyword" );
 
         $data->{Profiles}->[0]->{FreetextKeywords} ||= [];
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
@@ -273,7 +274,7 @@ SKIP: {
             eval {
                 scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
                                 ->{Countries}
-                            }
+                        }
                 );
             },
             '>=',
@@ -319,7 +320,7 @@ SKIP: {
             eval {
                 scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
                                 ->{Countries}
-                            }
+                        }
                 );
             },
             '>=',
@@ -352,8 +353,7 @@ SKIP: {
     my $test_name = 'Harold Chapman';
     my $json
         = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/harold.chapman'
-        );
+                              'http://profiles.ucsf.edu/harold.chapman' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
