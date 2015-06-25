@@ -558,7 +558,7 @@ sub canonical_url_to_json {
 
     # get all the address lines into a series of 1-4 lines of text
     my @address;
-    {
+    if ( $person->{'mailingAddress'} ) {
 
         my $address_data = $items_by_url_id{ $person->{'mailingAddress'} };
         foreach my $field (qw( address1 address2 address3 address4 )) {
