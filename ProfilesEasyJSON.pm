@@ -517,7 +517,8 @@ sub canonical_url_to_json {
                 if ( defined $id and $id =~ m/^\d+$/ ) {
 
                     $featured_publication_order_by_id{
-                        $profiles_profile_root_url . $id } = $featured_num;
+                        $profiles_profile_root_url . $id
+                    } = $featured_num;
 
                 } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
 
@@ -579,6 +580,49 @@ sub canonical_url_to_json {
             }
 
             push @address, $last_line;
+        }
+    }
+
+    # no email? see if it's publicly accessible via the vCard
+    if ( !defined $person->{'email'} ) {
+        my $vcard_url
+            = "http://profiles.ucsf.edu/profile/modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id";
+
+        # grab from cache, if available
+        my $raw_vcard = $url_cache->get($vcard_url);
+
+        # ...or get from server, and cache if found
+        unless ($raw_vcard) {
+            _init_ua() unless $ua;
+            my $vcard_response = $ua->get($vcard_url);
+            if ( $vcard_response->is_success ) {
+                $raw_vcard = $vcard_response->decoded_content;
+                eval { $url_cache->set( $vcard_url, $raw_vcard, '1 week' ); };
+            }
+        }
+
+        # ...or try to get from expired cache
+        unless ($raw_vcard) {
+            if ( $url_cache->exists_and_is_expired($vcard_url) ) {
+                my $potential_expired_cache_object
+                    = $url_cache->get_object($vcard_url);
+                if ($potential_expired_cache_object) {
+                    if ( $potential_expired_cache_object->value() ) {
+                        $raw_vcard = $potential_expired_cache_object->value();
+                    }
+                }
+            }
+        }
+
+        # got some raw JSON? start using it
+        if ($raw_vcard) {
+            if ( $raw_vcard =~ m/[\r\n]EMAIL\S*?:(.*?)[\r\n]/s ) {
+                my $likely_email = $1;
+                if ( $likely_email
+                     =~ m/([\w+\-].?)+\@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+/i ) {
+                    $person->{'email'} = $likely_email;
+                }
+            }
         }
     }
 
@@ -1009,9 +1053,16 @@ sub _init_ua {
     unless ($ua) {
         $ua = LWP::UserAgent->new;
         $ua->timeout(5);
-        $ua->agent(
-            'UCSF Profiles EasyJSON Interface/1.1 (anirvan.chatterjee@ucsf.edu)'
-        );
+
+        # Profiles has bot detection that interferes with some
+        # downloads so we're trying to add some random spaces to the
+        # useragent.
+        my $agent_string
+            = 'UCSF Profiles EasyJSON Interface 1.2; anirvan.chatterjee@ucsf.edu)';
+        1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
+        $agent_string = "Mozilla/5.0 ($agent_string)";
+
+        $ua->agent($agent_string);
     }
 }
 
