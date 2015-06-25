@@ -619,7 +619,7 @@ sub canonical_url_to_json {
             if ( $raw_vcard =~ m/[\r\n]EMAIL\S*?:(.*?)[\r\n]/s ) {
                 my $likely_email = $1;
                 if ( $likely_email
-                     =~ m/([\w+\-].?)+\@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+/i ) {
+                     =~ m/^([\w+\-].?)+\@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+$/i ) {
                     $person->{'email'} = $likely_email;
                 }
             }
