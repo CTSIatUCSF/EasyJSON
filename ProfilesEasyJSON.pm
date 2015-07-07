@@ -6,6 +6,7 @@
 package ProfilesEasyJSON;
 use CHI;
 use Data::Dump qw( dump );
+use Data::Visitor::Callback;
 use Encode qw( encode );
 use HTTP::Message 6.06;
 use JSON;
@@ -807,6 +808,13 @@ sub canonical_url_to_json {
                        }
                    }
 
+                   # before sorting, make sure we have an AwardStartDate
+                   foreach my $award (@awards) {
+                       unless ( defined $award->{'AwardStartDate'} ) {
+                           $award->{'AwardStartDate'} = '';
+                       }
+                   }
+
                    @awards = sort {
                        $b->{'AwardStartDate'} cmp $a->{'AwardStartDate'}
                    } @awards;
@@ -1041,6 +1049,19 @@ sub canonical_url_to_json {
     if (@api_notes) {
         $final_data->{api_notes} = join ' ', @api_notes;
     }
+
+    # kill all leading and trailing whitespace
+    my $v = Data::Visitor::Callback->new(
+        plain_value => sub {
+            if ( defined($_) and length($_) and (m/^\s|\s$/) ) {
+                s/^\s+//;
+                s/\s+$//;
+            }
+            return $_;
+        },
+    );
+
+    $v->visit($final_data);
 
     my $out = $json_obj->encode($final_data);
     utf8::upgrade($out);
