@@ -808,15 +808,9 @@ sub canonical_url_to_json {
                        }
                    }
 
-                   # before sorting, make sure we have an AwardStartDate
-                   foreach my $award (@awards) {
-                       unless ( defined $award->{'AwardStartDate'} ) {
-                           $award->{'AwardStartDate'} = '';
-                       }
-                   }
-
                    @awards = sort {
-                       $b->{'AwardStartDate'} cmp $a->{'AwardStartDate'}
+                       ( $b->{'AwardStartDate'} || '' )
+                           cmp( $a->{'AwardStartDate'} || '' )
                    } @awards;
                    return \@awards;
                },
