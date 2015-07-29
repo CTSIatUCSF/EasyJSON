@@ -584,6 +584,20 @@ sub canonical_url_to_json {
         }
     }
 
+    # make sure lat/lon is numeric -- and that it's never [0,0]
+    my @lat_lon = [ undef, undef ];
+    if (     defined $person->{'latitude'}
+         and $person->{'latitude'} =~ m/\d/
+         and defined $person->{'longitude'}
+         and $person->{'longitude'} =~ m/\d/
+         and ( !(     ( $person->{'latitude'} == 0 )
+                  and ( $person->{'longitude'} == 0 )
+               )
+         )
+        ) {
+        @lat_lon = ( $person->{'latitude'} + 0, $person->{'longitude'} + 0 );
+    }
+
     # no email? see if it's publicly accessible via the vCard
     if ( !defined $person->{'email'} ) {
         my $vcard_url
@@ -642,14 +656,8 @@ sub canonical_url_to_json {
                             Address4  => $address[3],
                             Telephone => $person->{'phoneNumber'},
                             Fax       => $person->{'faxNumber'},
-                            Latitude  => (defined( $person->{'latitude'} )
-                                          ? ( $person->{'latitude'} + 0 )
-                                          : undef
-                            ),
-                            Longitude => ( defined( $person->{'longitude'} )
-                                           ? ( $person->{'longitude'} + 0 )
-                                           : undef
-                            ),
+                            Latitude  => $lat_lon[0],
+                            Longitude => $lat_lon[1],
                },
 
                # only handling primary department at this time
