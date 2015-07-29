@@ -78,12 +78,6 @@ my $app = sub {
             $options->{mobile} = 1;
         }
 
-        if ( $params->{publications} and $params->{publications} eq 'full' ) {
-            $options->{no_publications} = 0;
-        } else {
-            $options->{no_publications} = 1;
-        }
-
         if ( $params->{cache} and $params->{cache} =~ m/^(always|never)$/ ) {
             $options->{cache} = lc $1;
         }
