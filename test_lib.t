@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 66;
+plan tests => 71;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -384,6 +384,51 @@ SKIP: {
                 "$test_name: found at least 5 featured publications ("
                     . scalar(@featured_pubs) . ')'
         );
+    }
+}
+
+{
+    my $test_name = 'Melinda Bender';
+    my $json
+        = identifier_to_json( 'URL',
+                              'http://profiles.ucsf.edu/melinda.bender' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+
+        my @awards = @{ $data->{Profiles}->[0]->{AwardOrHonors} };
+        skip "$test_name: got back no JSON", 1 unless @awards;
+
+        my $found_a_leading_tab = 0;
+        foreach my $award (@awards) {
+            if ( $award->{AwardLabel} =~ m/^\s/ ) {
+                $found_a_leading_tab++;
+            }
+        }
+
+        ok( !$found_a_leading_tab,
+            'We killed any leading tabs in her awards' );
+
+    }
+}
+
+{
+    my $test_name = 'Dawn Benton';
+    my $json
+        = identifier_to_json( 'URL',
+                              'http://profiles.ucsf.edu/melinda.bender' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+
+        is( $data->{Address}->{Longitude},
+            undef, 'Address longitude should be undef' );
+        is( $data->{Address}->{Latitude},
+            undef, 'Address longitude should be undef' );
     }
 }
 
