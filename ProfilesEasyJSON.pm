@@ -914,16 +914,17 @@ sub canonical_url_to_json {
                            foreach my $link (
                                  @{ $orng_data{'hasMediaLinks'}->{links} } ) {
 
-                               my $date = $link->{link_date};
-                               if ( $date
-                                   =~ s{^(\d+)/(\d+)/((?:19|20)\d\d)$}{$3-$1-$2}
-                                   ) {
-                                   push @links,
-                                       { Label => $link->{link_name},
-                                         URL   => $link->{link_url},
-                                         Date  => $date
-                                       };
+                               my $date;
+                               if ( $link->{link_date}
+                                    =~ m{^(\d+)/(\d+)/((?:19|20)\d\d)$} ) {
+                                   $date = "$3-$1-$2";
                                }
+
+                               push @links,
+                                   { Label => $link->{link_name},
+                                     URL   => $link->{link_url},
+                                     Date  => $date
+                                   };
                            }
                            return @links;
                        }
@@ -1042,7 +1043,8 @@ sub canonical_url_to_json {
                  and @{ $person_data->{$key} }
                  and $person_data->{$key}->[0]
                  and $person_data->{$key}->[0]->{Date} ) {
-                @{ $person_data->{$key} } = sort { $b->{Date} cmp $a->{Date} }
+                @{ $person_data->{$key} }
+                    = sort { ( $b->{Date} || '' ) cmp( $a->{Date} || '' ) }
                     @{ $person_data->{$key} };
             }
         }
