@@ -1083,7 +1083,7 @@ sub _init_ua {
         # downloads so we're trying to add some random spaces to the
         # useragent.
         my $agent_string
-            = 'UCSF Profiles EasyJSON Interface 1.2; anirvan.chatterjee@ucsf.edu)';
+            = 'UCSF Profiles EasyJSON Interface 1.3; anirvan dot chatterjee at ucsf dot edu)';
         1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
         $agent_string = "Mozilla/5.0 ($agent_string)";
 
