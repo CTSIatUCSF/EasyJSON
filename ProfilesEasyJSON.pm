@@ -882,8 +882,7 @@ sub canonical_url_to_json {
                    eval {
                        my @links;
 
-                       if (     $orng_data{'hasLinks'}->{VISIBLE}
-                            and $orng_data{'hasLinks'}->{links_count}
+                       if (     $orng_data{'hasLinks'}->{links_count}
                             and $orng_data{'hasLinks'}->{links_count}
                             =~ m/^\d+$/ ) {
 
