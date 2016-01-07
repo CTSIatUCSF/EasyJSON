@@ -242,7 +242,7 @@ sub canonical_url_to_json {
     # attempt to get it from the cache, if possible
     unless ( $options->{cache} eq 'never' ) {
         my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
-        if ($cache_object) {
+        if ( $cache_object and verify_cache_object_policy($cache_object) ) {
 
             $raw_json = $cache_object->value;
             $decoded_json = eval { $json_obj->decode($raw_json) };
@@ -304,48 +304,25 @@ sub canonical_url_to_json {
                 my $cache_object
                     = $c2j_cache->get_object($expanded_jsonld_url);
 
-                if ($cache_object) {
+                if ( $cache_object
+                     and verify_cache_object_policy($cache_object) ) {
 
-                    my $how_may_days_old_cached_data_can_we_return = 14;
-                    my $is_expired_cache_recent_enough             = 0;
-
-                    {
-                        my $cached_time     = $cache_object->created_at();
-                        my $seconds_per_day = 60 * 60 * 24;
-
-                        if ($cached_time
-                            and $cached_time >= (
-                                time - (
-                                    $how_may_days_old_cached_data_can_we_return
-                                        * $seconds_per_day
-                                )
-                            )
-                            ) {
-                            $is_expired_cache_recent_enough = 1;
-                        }
+                    $raw_json = $cache_object->value || undef;
+                    if ($raw_json) {
+                        $decoded_json = eval { $json_obj->decode($raw_json) };
                     }
 
-                    if ($is_expired_cache_recent_enough) {
-
-                        $raw_json = $cache_object->value || undef;
-                        if ($raw_json) {
-                            $decoded_json
-                                = eval { $json_obj->decode($raw_json) };
-                        }
-
-                        if ( $raw_json and $decoded_json ) {
-                            push @api_notes,
-                                'We could not connect to our database right now, so we are providing cached data. This data was cached on '
-                                . scalar(
+                    if ( $raw_json and $decoded_json ) {
+                        push @api_notes,
+                            'We could not connect to our database right now, so we are providing cached data. This data was cached on '
+                            . scalar(
                                     localtime( $cache_object->created_at() ) )
-                                . '.';
-                        }
+                            . '.';
                     }
-
-                }    # end if cache object
-            }    # end if we expired cache object
-        }    # end if we're allowed to use cache
-    }    # end unless we have JSON
+                }
+            }
+        }
+    }
 
     unless ( $raw_json and $decoded_json ) {
         return;
@@ -1115,6 +1092,32 @@ sub _init_ua {
 
         $ua->agent($agent_string);
     }
+}
+
+###############################################################################
+
+# ensure that a cached object, expired or not, is never more than 14 days old
+# returns true if usable, false otherwise
+sub verify_cache_object_policy {
+
+    my $how_may_days_old_cached_data_can_we_return = 14;
+
+    my $cache_object = shift;
+    my $cached_time = eval { $cache_object->created_at() };
+    unless ($cached_time) {
+        return 0;
+    }
+
+    my $seconds_per_day = 60 * 60 * 24;
+    if ( $cached_time >= ( time - ($how_may_days_old_cached_data_can_we_return
+                                       * $seconds_per_day
+                           )
+         )
+        ) {
+        return 1;
+    }
+
+    return 0;
 }
 
 1;
