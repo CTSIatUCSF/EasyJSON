@@ -372,7 +372,7 @@ sub canonical_url_to_json {
 
     unless ($person) {
         warn
-            "Tried to look up user specified, but got no results in underlying JSON data source. You can manually verify whether or not this is a valid Profiles user by visiting $canonical_url -- if you get a 404, the user's not in the system\n";
+            "Tried to look up user specified, but got no results in the underlying data source. You can manually verify whether or not this is a valid Profiles user by visiting $canonical_url -- if you see a 404, the user's not in the system\n";
         return;
     }
 
