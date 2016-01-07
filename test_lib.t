@@ -282,8 +282,10 @@ SKIP: {
             "$test_name: got 1+ global health countries"
         );
 
-        is( $data->{Profiles}->[0]->{PhotoURL},
-            undef, "$test_name: No photo, as expected" );
+        like( $data->{Profiles}->[0]->{PhotoURL},
+              qr{^https?://profiles.ucsf.edu/},
+              "$test_name: Got photo, as expected"
+        );
     }
 }
 
