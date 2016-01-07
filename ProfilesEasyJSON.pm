@@ -46,6 +46,7 @@ sub identifier_to_json {
 }
 
 # given an identifier (like an FNO), returns the canonical Profiles URL
+# (may return old cached results)
 sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
@@ -204,6 +205,7 @@ sub identifier_to_canonical_url {
 }
 
 # given a canonical URL, returns our custom JSON for that person
+# (may return recent-ish cached results)
 sub canonical_url_to_json {
 
     my $canonical_url = shift;
@@ -303,22 +305,47 @@ sub canonical_url_to_json {
                     = $c2j_cache->get_object($expanded_jsonld_url);
 
                 if ($cache_object) {
-                    $raw_json = $cache_object->value || undef;
-                    if ($raw_json) {
-                        $decoded_json = eval { $json_obj->decode($raw_json) };
+
+                    my $how_may_days_old_cached_data_can_we_return = 14;
+                    my $is_expired_cache_recent_enough             = 0;
+
+                    {
+                        my $cached_time     = $cache_object->created_at();
+                        my $seconds_per_day = 60 * 60 * 24;
+
+                        if ($cached_time
+                            and $cached_time >= (
+                                time - (
+                                    $how_may_days_old_cached_data_can_we_return
+                                        * $seconds_per_day
+                                )
+                            )
+                            ) {
+                            $is_expired_cache_recent_enough = 1;
+                        }
                     }
 
-                    if ( $raw_json and $decoded_json ) {
-                        push @api_notes,
-                            'We could not connect to our database right now, so we are providing cached data. This data was cached on '
-                            . scalar(
+                    if ($is_expired_cache_recent_enough) {
+
+                        $raw_json = $cache_object->value || undef;
+                        if ($raw_json) {
+                            $decoded_json
+                                = eval { $json_obj->decode($raw_json) };
+                        }
+
+                        if ( $raw_json and $decoded_json ) {
+                            push @api_notes,
+                                'We could not connect to our database right now, so we are providing cached data. This data was cached on '
+                                . scalar(
                                     localtime( $cache_object->created_at() ) )
-                            . '.';
+                                . '.';
+                        }
                     }
-                }
-            }
-        }
-    }
+
+                }    # end if cache object
+            }    # end if we expired cache object
+        }    # end if we're allowed to use cache
+    }    # end unless we have JSON
 
     unless ( $raw_json and $decoded_json ) {
         return;
