@@ -58,9 +58,9 @@ sub identifier_to_canonical_url {
 
     # Identifier to Canonical URL cache
     $i2c_cache ||= CHI->new(
-                 driver    => 'File',
-                 namespace => 'Profiles JSON API identifier_to_canonical_url',
-                 expires_variance => 0.25,
+                   driver    => 'File',
+                   namespace => 'Profiles JSON API identifier_to_canonical_url',
+                   expires_variance => 0.25,
     );
 
     my $cache_key = join "\t", ( $identifier_type || '' ),
@@ -110,12 +110,11 @@ sub identifier_to_canonical_url {
                 $identifier      = $1;
                 $identifier_type = 'Person';
             } elsif ( $identifier
-                 =~ m{^https?://profiles.ucsf.edu/([a-zA-Z][a-z-\.]+\d*)$} ) {
+                   =~ m{^https?://profiles.ucsf.edu/([a-zA-Z][a-z-\.]+\d*)$} ) {
                 $identifier      = lc $1;
                 $identifier_type = 'PrettyURL';
             } elsif (
-                $identifier =~ m{^https?://profiles.ucsf.edu/profile/(\d+)$} )
-            {
+                $identifier =~ m{^https?://profiles.ucsf.edu/profile/(\d+)$} ) {
                 return $identifier;    # if passed a canonical URL, return it
             } else {
                 warn 'Unrecognized URL ', dump($identifier),
@@ -133,18 +132,18 @@ sub identifier_to_canonical_url {
         _init_ua() unless $ua;
         my $response = $ua->get($url);
 
-   # if there was an error loading the content, figure out an error message...
+     # if there was an error loading the content, figure out an error message...
 
         my $error_warning;
         if ( $response->is_success ) {
-            if ( $response->base->path =~ m{^/Error/} ) {   # still happening?
+            if ( $response->base->path =~ m{^/Error/} ) {    # still happening?
                 $error_warning
                     = "Tried to look up user '$identifier', but got no results\n";
             }
         } else {
 
-           # e.g. if we load contents of
-           # http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Person=4617024
+            # e.g. if we load contents of
+            # http://profiles.ucsf.edu/CustomAPI/v2/Default.aspx?Person=4617024
             if ( $response->decoded_content
                  =~ m/The given key was not present in the dictionary/ ) {
                 $error_warning
@@ -218,7 +217,7 @@ sub canonical_url_to_json {
     }
 
     unless ( defined $canonical_url
-         and $canonical_url =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
+           and $canonical_url =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
@@ -226,9 +225,9 @@ sub canonical_url_to_json {
 
     # Canonical URL to JSON cache
     $c2j_cache ||= CHI->new(
-             driver    => 'File',
-             namespace => 'Profiles JSON API canonical_url_to_json URL cache',
-             expires_variance => 0.25,
+               driver    => 'File',
+               namespace => 'Profiles JSON API canonical_url_to_json URL cache',
+               expires_variance => 0.25,
     );
 
     my $expanded_jsonld_url
@@ -301,8 +300,7 @@ sub canonical_url_to_json {
         if ( $options->{cache} ne 'never' ) {
             if ( $c2j_cache->exists_and_is_expired($expanded_jsonld_url) ) {
 
-                my $cache_object
-                    = $c2j_cache->get_object($expanded_jsonld_url);
+                my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
 
                 if ( $cache_object
                      and verify_cache_object_policy($cache_object) ) {
@@ -315,8 +313,7 @@ sub canonical_url_to_json {
                     if ( $raw_json and $decoded_json ) {
                         push @api_notes,
                             'We could not connect to our database right now, so we are providing cached data. This data was cached on '
-                            . scalar(
-                                    localtime( $cache_object->created_at() ) )
+                            . scalar( localtime( $cache_object->created_at() ) )
                             . '.';
                     }
                 }
@@ -346,8 +343,7 @@ sub canonical_url_to_json {
         }
 
         # handle main person
-        if ( $item->{'@id'} eq $node_id or $item->{'@id'} eq $canonical_url )
-        {
+        if ( $item->{'@id'} eq $node_id or $item->{'@id'} eq $canonical_url ) {
             $person = $item;
         }
 
@@ -358,8 +354,8 @@ sub canonical_url_to_json {
                     if (     $item->{'linkedAuthor'}
                          and $item->{'linkedInformationResource'} ) {
 
-                        push @{ $publications_by_author{ $item->{
-                                    'linkedAuthor'} } },
+                        push @{ $publications_by_author{ $item->{'linkedAuthor'}
+                                } },
                             $item->{'linkedInformationResource'};
                     }
 
@@ -402,17 +398,16 @@ sub canonical_url_to_json {
         ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
-        } elsif ( !ref $person->{$field} or ref $person->{$field} ne 'ARRAY' )
-        {
+        } elsif ( !ref $person->{$field} or ref $person->{$field} ne 'ARRAY' ) {
             $person->{$field} = [ $person->{$field} ];
         }
     }
 
     my %orng_data;
     $url_cache ||= CHI->new(
-              driver    => 'File',
-              namespace => 'Profiles JSON API cache of raw Profiles API URLs',
-              expires_variance => 0.25,
+                driver    => 'File',
+                namespace => 'Profiles JSON API cache of raw Profiles API URLs',
+                expires_variance => 0.25,
     );
 
     # load ORNG data
@@ -469,10 +464,9 @@ sub canonical_url_to_json {
                     = eval { $json_obj->decode($raw_json_for_field) };
                 if (     $field_data
                      and ref $field_data
-                     and eval { $field_data->{entry}->{jsonld}->{'@graph'} } )
-                {
+                     and eval { $field_data->{entry}->{jsonld}->{'@graph'} } ) {
                     foreach my $item (
-                           @{ $field_data->{entry}->{jsonld}->{'@graph'} } ) {
+                             @{ $field_data->{entry}->{jsonld}->{'@graph'} } ) {
 
                         if ( defined $item->{'applicationInstanceDataValue'}
                              and (    defined $item->{'label'}
@@ -533,12 +527,12 @@ sub canonical_url_to_json {
                     # inefficient, but not worth speeding up.
 
                     foreach my $candidate_pub_id (
-                          @{ $publications_by_author{ $person->{'@id'} } } ) {
+                            @{ $publications_by_author{ $person->{'@id'} } } ) {
                         my $candidate_pmid
                             = $items_by_url_id{$candidate_pub_id}->{'pmid'};
                         if ( $candidate_pmid and $candidate_pmid == $pmid ) {
-                            $featured_publication_order_by_id{
-                                $candidate_pub_id} = $featured_num;
+                            $featured_publication_order_by_id{$candidate_pub_id}
+                                = $featured_num;
                         }
                     }
 
@@ -709,8 +703,7 @@ sub canonical_url_to_json {
                        if ( $img_url_segment =~ m/^http/ ) {
                            return $img_url_segment;
                        } else {
-                           return
-                               "$profiles_profile_root_url$img_url_segment";
+                           return "$profiles_profile_root_url$img_url_segment";
                        }
                    } else {
                        return undef;
@@ -750,13 +743,13 @@ sub canonical_url_to_json {
                            foreach my $id (@ed_training_ids) {
                                my $item = $items_by_url_id{$id};
                                push @education_training,
-                                   {degree => trim( $item->{'degreeEarned'} ),
-                                    end_date => trim( $item->{'endDate'} ),
-                                    organization =>
-                                        trim($item->{'trainingAtOrganization'}
-                                        ),
-                                    department_or_school =>
-                                        trim( $item->{"departmentOrSchool"} ),
+                                   { degree => trim( $item->{'degreeEarned'} ),
+                                     end_date => trim( $item->{'endDate'} ),
+                                     organization =>
+                                         trim( $item->{'trainingAtOrganization'}
+                                         ),
+                                     department_or_school =>
+                                         trim( $item->{"departmentOrSchool"} ),
                                    };
                            }
 
@@ -793,28 +786,26 @@ sub canonical_url_to_json {
                        foreach my $id (@award_ids) {
                            my $item = $items_by_url_id{$id};
                            my $award = {
-                                       AwardLabel => $item->{'label'},
-                                       AwardConferredBy =>
-                                           $item->{'awardConferredBy'},
-                                       AwardStartDate => $item->{'startDate'},
-                                       AwardEndDate   => $item->{'endDate'},
+                                AwardLabel       => $item->{'label'},
+                                AwardConferredBy => $item->{'awardConferredBy'},
+                                AwardStartDate   => $item->{'startDate'},
+                                AwardEndDate     => $item->{'endDate'},
                            };
 
                            $award->{Summary}
-                               = join(
-                                     ', ',
-                                     grep { defined and length } (
-                                         $award->{AwardLabel},
-                                         $award->{AwardConferredBy},
-                                         join(
-                                             '-',
-                                             uniq(
-                                                 grep {defined}
-                                                     $award->{AwardStartDate},
-                                                 $award->{AwardEndDate}
-                                             )
-                                         )
-                                     )
+                               = join( ', ',
+                                       grep { defined and length } (
+                                           $award->{AwardLabel},
+                                           $award->{AwardConferredBy},
+                                           join(
+                                               '-',
+                                               uniq(
+                                                   grep {defined}
+                                                       $award->{AwardStartDate},
+                                                   $award->{AwardEndDate}
+                                               )
+                                           )
+                                       )
                                );
                            push @awards, $award;
                        }
@@ -832,8 +823,7 @@ sub canonical_url_to_json {
                    unless ( $options->{no_publications} ) {
 
                        foreach my $pub_id (
-                            @{ $publications_by_author{ $person->{'@id'} } } )
-                       {
+                            @{ $publications_by_author{ $person->{'@id'} } } ) {
                            my $pub = $items_by_url_id{$pub_id};
 
                            push @publications, {
@@ -846,9 +836,9 @@ sub canonical_url_to_json {
                                    ( $pub->{'hasPublicationVenue'} || undef ),
                                PublicationMedlineTA =>
                                    ( $pub->{'medlineTA'} || undef ),
-                               Title => ( $pub->{'label'} || undef ),
-                               Date => ( $pub->{'publicationDate'} || undef ),
-                               Year => ( $pub->{'year'}            || undef ),
+                               Title => ( $pub->{'label'}           || undef ),
+                               Date  => ( $pub->{'publicationDate'} || undef ),
+                               Year  => ( $pub->{'year'}            || undef ),
 
                                PublicationCategory =>
                                    ( $pub->{'hmsPubCategory'} || undef ),
@@ -857,8 +847,8 @@ sub canonical_url_to_json {
                                    $pub->{'informationResourceReference'},
                                PublicationSource => [
                                    {  PublicationSourceName => (
-                                                     $pub->{'pmid'} ? 'PubMed'
-                                                     : undef
+                                                       $pub->{'pmid'} ? 'PubMed'
+                                                       : undef
                                       ),
                                       PublicationSourceURL => (
                                           $pub->{'pmid'}
@@ -870,8 +860,8 @@ sub canonical_url_to_json {
                                ],
 
                                Featured => (
-                                    $featured_publication_order_by_id{$pub_id}
-                                        || undef
+                                      $featured_publication_order_by_id{$pub_id}
+                                          || undef
                                ),
                            };
                        }    # end foreach publication
@@ -895,10 +885,8 @@ sub canonical_url_to_json {
 
                            for ( my $i = 0; $i < $max_links_count; $i++ ) {
                                if ( $orng_data{hasLinks}->{"link_$i"}
-                                   and ref $orng_data{hasLinks}->{"link_$i"} )
-                               {
-                                   my $link
-                                       = $orng_data{hasLinks}->{"link_$i"};
+                                   and ref $orng_data{hasLinks}->{"link_$i"} ) {
+                                   my $link = $orng_data{hasLinks}->{"link_$i"};
                                    push @links,
                                        { Label => $link->{name},
                                          URL   => $link->{url}
@@ -915,7 +903,7 @@ sub canonical_url_to_json {
                        my @links;
                        if ( @{ $orng_data{'hasMediaLinks'}->{links} } ) {
                            foreach my $link (
-                                 @{ $orng_data{'hasMediaLinks'}->{links} } ) {
+                                   @{ $orng_data{'hasMediaLinks'}->{links} } ) {
 
                                my $date;
                                if ( $link->{link_date}
@@ -947,10 +935,9 @@ sub canonical_url_to_json {
                Videos => (
                    eval {
                        my @videos;
-                       if ( eval { @{ $orng_data{'hasVideos'}->{videos} } } )
-                       {
+                       if ( eval { @{ $orng_data{'hasVideos'}->{videos} } } ) {
                            foreach my $entry (
-                                    @{ $orng_data{'hasVideos'}->{videos} } ) {
+                                      @{ $orng_data{'hasVideos'}->{videos} } ) {
                                next unless $entry->{url} =~ m/^http/;
                                unless ( $entry->{name} =~ m/\w/ ) {
                                    $entry->{name} = 'Video';
@@ -990,10 +977,10 @@ sub canonical_url_to_json {
                                foreach my $value ( values %{$gh} ) {
                                    if (     ref($value) eq 'HASH'
                                         and $value->{Locations}
-                                        and ref $value->{Locations} eq
-                                        'ARRAY' ) {
+                                        and ref $value->{Locations} eq 'ARRAY' )
+                                   {
                                        foreach my $country (
-                                                  @{ $value->{Locations} } ) {
+                                                    @{ $value->{Locations} } ) {
                                            $countries{$country} = 1;
                                        }
                                    }
@@ -1015,7 +1002,7 @@ sub canonical_url_to_json {
                        my %seen_project_number;
                        for my $i ( 0 .. 199 ) {
                            if ( my $grant
-                               = $orng_data{'hasNIHGrantList'}->{"nih_$i"} ) {
+                                = $orng_data{'hasNIHGrantList'}->{"nih_$i"} ) {
 
                                # remove dupes
                                next
@@ -1029,9 +1016,9 @@ sub canonical_url_to_json {
                        }
 
                        # sort grants by date
-                       @grants = sort {
-                           $b->{NIHFiscalYear} <=> $a->{NIHFiscalYear}
-                       } @grants;
+                       @grants
+                           = sort { $b->{NIHFiscalYear} <=> $a->{NIHFiscalYear} }
+                           @grants;
                        return @grants;
                    }
                ],
@@ -1109,9 +1096,10 @@ sub verify_cache_object_policy {
     }
 
     my $seconds_per_day = 60 * 60 * 24;
-    if ( $cached_time >= ( time - ($how_may_days_old_cached_data_can_we_return
-                                       * $seconds_per_day
-                           )
+    if ( $cached_time >= (
+              time - (
+                  $how_may_days_old_cached_data_can_we_return * $seconds_per_day
+              )
          )
         ) {
         return 1;
