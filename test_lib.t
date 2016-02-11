@@ -12,16 +12,14 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 71;
+plan tests => 72;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url ProfilesNodeID'
-);
+    'identifier_to_canonical_url ProfilesNodeID' );
 is( identifier_to_canonical_url( 'FNO', 'anirvan.chatterjee@ucsf.edu' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url FNO'
-);
+    'identifier_to_canonical_url FNO' );
 {
     local $SIG{__WARN__} = sub { };    # override warnings
     is( identifier_to_canonical_url( 'Person', '4617024' ),
@@ -55,8 +53,8 @@ is( identifier_to_canonical_url( 'URL',
     'identifier_to_canonical_url canonical URL'
 );
 is( identifier_to_canonical_url(
-                 'URL',
-                 'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
+                   'URL',
+                   'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
     ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url old ProfileDetails URL'
@@ -70,8 +68,7 @@ is( identifier_to_canonical_url( 'URL',
 
 {
     my $test_name = 'Anirvan Chatterjee';
-    my $json
-        = canonical_url_to_json('http://profiles.ucsf.edu/profile/370974');
+    my $json = canonical_url_to_json('http://profiles.ucsf.edu/profile/370974');
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -99,20 +96,31 @@ SKIP: {
                                { cache => 'always' } );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
 
         is( $data->{Profiles}->[0]->{Name},
             'Anirvan Chatterjee',
             "$test_name: name cached"
         );
+
+        ok( (  (  eval {
+                      $data->{Profiles}->[0]->{Publications}->[0]
+                          ->{PublicationTitle};
+                      }
+                      || ''
+               ) =~ m/Chatterjee/
+            ),
+            "$test_name: Anirvan's pub PublicationTitle includes his own names [regression]"
+        );
+
     }
 }
 
 {
     my $test_name = 'Clay Johnston';
-    my $json      = identifier_to_json( 'URL',
-                                   'http://profiles.ucsf.edu/clay.johnston' );
+    my $json
+        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/clay.johnston' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 3 unless $json;
@@ -192,8 +200,7 @@ SKIP: {
 {
     my $test_name = 'Kirsten Bibbins-Domingo';
 
-    my $json
-        = identifier_to_json( 'FNO', 'Kirsten.Bibbins-Domingo@ucsf.edu' );
+    my $json = identifier_to_json( 'FNO', 'Kirsten.Bibbins-Domingo@ucsf.edu' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -212,8 +219,7 @@ SKIP: {
         $data->{Profiles}->[0]->{FreetextKeywords} ||= [];
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
               qr/Health disparities/i,
-              "$test_name: matching freetext keyword"
-        );
+              "$test_name: matching freetext keyword" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
@@ -272,9 +278,9 @@ SKIP: {
 
         cmp_ok(
             eval {
-                scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
-                                ->{Countries}
-                        }
+                scalar(
+                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
+                    }
                 );
             },
             '>=',
@@ -309,7 +315,7 @@ SKIP: {
 {
     my $test_name = 'George Rutherford';
     my $json      = identifier_to_json( 'URL',
-                               'http://profiles.ucsf.edu/george.rutherford' );
+                                 'http://profiles.ucsf.edu/george.rutherford' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -320,9 +326,9 @@ SKIP: {
 
         cmp_ok(
             eval {
-                scalar( @{  $data->{Profiles}->[0]->{GlobalHealth_beta}
-                                ->{Countries}
-                        }
+                scalar(
+                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
+                    }
                 );
             },
             '>=',
@@ -336,15 +342,14 @@ SKIP: {
 {
     my $test_name = 'Shinya Yamanaka';
     my $json      = identifier_to_json( 'URL',
-                                 'http://profiles.ucsf.edu/shinya.yamanaka' );
+                                   'http://profiles.ucsf.edu/shinya.yamanaka' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
         ok( eval {
-                scalar @{ $data->{Profiles}->[0]->{MediaLinks_beta} } >= 2;
-            },
+                scalar @{ $data->{Profiles}->[0]->{MediaLinks_beta} } >= 2; },
             "$test_name: has 2+ news stories"
         );
 
@@ -361,10 +366,8 @@ SKIP: {
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
-        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 3; }
-            ,
-            "$test_name: has 3+ web links"
-        );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 3; },
+            "$test_name: has 3+ web links" );
 
     }
 }
@@ -372,7 +375,7 @@ SKIP: {
 {
     my $test_name = 'Andrew Auerbach';
     my $json      = identifier_to_json( 'URL',
-                                 'http://profiles.ucsf.edu/andrew.auerbach' );
+                                   'http://profiles.ucsf.edu/andrew.auerbach' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -410,8 +413,7 @@ SKIP: {
             }
         }
 
-        ok( !$found_a_leading_tab,
-            'We killed any leading tabs in her awards' );
+        ok( !$found_a_leading_tab, 'We killed any leading tabs in her awards' );
 
     }
 }
