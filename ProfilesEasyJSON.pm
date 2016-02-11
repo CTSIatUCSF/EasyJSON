@@ -826,6 +826,28 @@ sub canonical_url_to_json {
                             @{ $publications_by_author{ $person->{'@id'} } } ) {
                            my $pub = $items_by_url_id{$pub_id};
 
+                           # In January 2016, Profiles RDF stopped
+                           #   including the list of authors in the
+                           #   "informationResourceReference"
+                           # It *should* look like:
+                           #   "Last A, Last B. Title. Etc."
+                           # But we were getting only:
+                           #   "Title. Etc."
+                           # So as a temporary workaround, we're
+                           #   adding the author list back in.
+
+                           my $title = $pub->{'informationResourceReference'};
+                           {
+                               my $author_list = $pub->{'hasAuthorList'};
+                               if (     $title
+                                    and length $title
+                                    and $author_list
+                                    and length $author_list
+                                    and $title !~ m/\Q$author_list\E/i ) {
+                                   $title = "$author_list. $title";
+                               }
+                           }
+
                            push @publications, {
 
                                # PublicationAddedBy => '?',
@@ -843,8 +865,7 @@ sub canonical_url_to_json {
                                PublicationCategory =>
                                    ( $pub->{'hmsPubCategory'} || undef ),
 
-                               PublicationTitle =>
-                                   $pub->{'informationResourceReference'},
+                               PublicationTitle  => $title,
                                PublicationSource => [
                                    {  PublicationSourceName => (
                                                        $pub->{'pmid'} ? 'PubMed'
