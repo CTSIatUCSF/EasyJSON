@@ -858,9 +858,19 @@ sub canonical_url_to_json {
                                    ( $pub->{'hasPublicationVenue'} || undef ),
                                PublicationMedlineTA =>
                                    ( $pub->{'medlineTA'} || undef ),
-                               Title => ( $pub->{'label'}           || undef ),
-                               Date  => ( $pub->{'publicationDate'} || undef ),
-                               Year  => ( $pub->{'year'}            || undef ),
+                               Title => ( $pub->{'label'} || undef ),
+                               Date => (
+                                   eval {
+                                              $pub->{'publicationDate'}
+                                           && $pub->{'publicationDate'}
+                                           !~ m/^1900-01-01/;
+                                   } ? $pub->{'publicationDate'} : undef
+                               ),
+                               Year => (
+                                   eval {
+                                       $pub->{'year'} && $pub->{'year'} > 1900;
+                                   } ? $pub->{'year'} : undef
+                               ),
 
                                PublicationCategory =>
                                    ( $pub->{'hmsPubCategory'} || undef ),
@@ -895,9 +905,13 @@ sub canonical_url_to_json {
 
                WebLinks_beta => [
                    eval {
+
                        my @links;
 
-                       if (     $orng_data{'hasLinks'}->{links_count}
+                       # individually numbered entries data structure?
+                       my @numbered_style_links;
+                       if (    !@links
+                            and $orng_data{'hasLinks'}->{links_count}
                             and $orng_data{'hasLinks'}->{links_count}
                             =~ m/^\d+$/ ) {
 
@@ -915,6 +929,26 @@ sub canonical_url_to_json {
                                }
                            }
                        }
+
+                       # array style data structure?
+                       if (    !@links
+                            and $orng_data{'hasLinks'}
+                            and $orng_data{'hasLinks'}->{links}
+                            and ref $orng_data{'hasLinks'}->{links} eq 'ARRAY' )
+                       {
+
+                           foreach
+                               my $link ( @{ $orng_data{'hasLinks'}->{links} } )
+                           {
+                               if ( $link and $link->{link_url} ) {
+                                   push @links,
+                                       { Label => $link->{link_name} || undef,
+                                         URL => $link->{link_url}
+                                       };
+                               }
+                           }
+                       }
+
                        return @links;
                    }
                ],
