@@ -118,23 +118,23 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Clay Johnston';
+    my $test_name = 'Jennifer Grandis';
     my $json
-        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/clay.johnston' );
+        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/jennifer.grandis' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 3 unless $json;
         my $data = decode_json($json);
-        like( $data->{Profiles}->[0]->{Name}, qr/Johnston/, 'Clay name' );
+        like( $data->{Profiles}->[0]->{Name}, qr/Grandis/, 'Jenny name' );
         like( $data->{Profiles}->[0]->{Department},
-              qr/neurology/i, "$test_name: department" );
+              qr/Otolaryngology/i, "$test_name: department" );
         like( $data->{Profiles}->[0]->{School},
               qr/school of medicine/i,
               "$test_name: school" );
         like( $data->{Profiles}->[0]->{FirstName},
-              qr/^Clay$/i, "$test_name: first name" );
+              qr/^Jenn/i, "$test_name: first name" );
         like( $data->{Profiles}->[0]->{LastName},
-              qr/^Johnston$/i, "$test_name: last name" );
+              qr/^Grandis$/i, "$test_name: last name" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 50, "$test_name: got 50+ publications" );
 
@@ -149,8 +149,8 @@ SKIP: {
 
         cmp_ok( @featured_pubs,
                 '>=',
-                5,
-                "$test_name: found at least 5 featured publications ("
+                2,
+                "$test_name: found at least 2 featured publications ("
                     . scalar(@featured_pubs) . ')'
         );
 
@@ -223,7 +223,7 @@ SKIP: {
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
-              qr/(Bibbins|Moyer VA|LeFevre ML).*\. \w.*?\. .*2\d\d\d/,
+              qr/(Bibbins|Moyer VA|LeFevre ML|US Preventive Services Task Force).*\. \w.*?\. .*2\d\d\d/,
               "$test_name: Valid publication title"
         );
     }
