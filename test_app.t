@@ -38,16 +38,17 @@ test_psgi $app, sub {
         my $res = $cb->($req);
         is $res->code, 200, 'reasonable call should return 200';
 
-      SKIP: {
-	  skip "invalid data, can't test", 1 unless $res->code == 200;
-	  like( $res->decoded_content, qr/Anirvan/, 'call for Anirvan should mention Anirvan' );
-	}
+    SKIP: {
+            skip "invalid data, can't test", 1 unless $res->code == 200;
+            like( $res->decoded_content, qr/Anirvan/,
+                  'call for Anirvan should mention Anirvan' );
+        }
     }
 
     # 404 for nonexistent user
     {
         my $req = GET(
-            'http://localhost/?source=Anirvan_script&FNO=fake.user@ucsf.edu');
+              'http://localhost/?source=Anirvan_script&FNO=fake.user@ucsf.edu');
         my $res = $cb->($req);
         is $res->code, 404, 'call for nonexistent user should return 404';
     }

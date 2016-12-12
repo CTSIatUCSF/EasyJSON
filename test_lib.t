@@ -122,7 +122,8 @@ SKIP: {
 {
     my $test_name = 'Jennifer Grandis';
     my $json
-        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/jennifer.grandis' );
+        = identifier_to_json( 'URL',
+                              'http://profiles.ucsf.edu/jennifer.grandis' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 3 unless $json;
@@ -224,9 +225,10 @@ SKIP: {
               "$test_name: matching freetext keyword" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
-        like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
-              qr/(Bibbins|Moyer VA|LeFevre ML|US Preventive Services Task Force).*\. \w.*?\. .*2\d\d\d/,
-              "$test_name: Valid publication title"
+        like(
+            $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
+            qr/(Bibbins|Moyer VA|LeFevre ML|US Preventive Services Task Force).*\. \w.*?\. .*2\d\d\d/,
+            "$test_name: Valid publication title"
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
                 '>=', 3, "$test_name: Got enough in the news" );

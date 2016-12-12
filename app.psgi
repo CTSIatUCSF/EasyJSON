@@ -89,8 +89,8 @@ my $app = sub {
 
         unless ($json) {
             $error = { error => $error_string || 'Unknown error' };
-            if ( $error_string
-                 =~ m/Tried to look up user.*but got no results/ ) {
+            if ( $error_string =~ m/Tried to look up user.*but got no results/ )
+            {
                 $http_status = "404 Could not find user";
             }
         }
