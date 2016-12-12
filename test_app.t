@@ -19,25 +19,29 @@ test_psgi $app, sub {
     {
         my $req = GET('http://localhost/');
         my $res = $cb->($req);
-        is $res->code, 400;
+        is $res->code, 400, 'call without params should return 400';
     }
 
     # no req type
     {
         my $req = GET('http://localhost/?source=Anirvan_script');
         my $res = $cb->($req);
-        is $res->code, 400;
+        is $res->code, 400, 'call without request type should return 400';
     }
 
-    # no req type
+    # good req type and source
     {
         my $req
             = GET(
             'http://localhost/?source=Anirvan_script&FNO=anirvan.chatterjee@ucsf.edu'
             );
         my $res = $cb->($req);
-        is $res->code, 200;
-        like( $res->decoded_content, qr/Anirvan/ );
+        is $res->code, 200, 'reasonable call should return 200';
+
+      SKIP: {
+	  skip "invalid data, can't test", 1 unless $res->code == 200;
+	  like( $res->decoded_content, qr/Anirvan/, 'call for Anirvan should mention Anirvan' );
+	}
     }
 
     # 404 for nonexistent user
@@ -45,7 +49,7 @@ test_psgi $app, sub {
         my $req = GET(
             'http://localhost/?source=Anirvan_script&FNO=fake.user@ucsf.edu');
         my $res = $cb->($req);
-        is $res->code, 404;
+        is $res->code, 404, 'call for nonexistent user should return 404';
     }
 
 };
