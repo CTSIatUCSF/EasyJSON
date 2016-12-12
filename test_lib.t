@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 72;
+plan tests => 74;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -72,7 +72,7 @@ is( identifier_to_canonical_url( 'URL',
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 3 unless $json;
+        skip "$test_name: got back no JSON", 4 unless $json;
         my $data = decode_json($json);
 
         is( $data->{Profiles}->[0]->{Name},
@@ -86,6 +86,8 @@ SKIP: {
             qr{^(http://profiles.ucsf.edu/profile/370974|http://profiles.ucsf.edu/anirvan.chatterjee)$},
             'Anirvan URL'
         );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
+                '>=', 1, "$test_name: Got enough in the news" );
     }
 }
 
@@ -167,10 +169,10 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Jeanette Brown';
+    my $test_name = 'Daniel Lowenstein';
 
     my $canonical_url
-        = identifier_to_canonical_url( 'FNO', 'jeanette.brown@ucsf.edu' );
+        = identifier_to_canonical_url( 'FNO', 'daniel.lowenstein@ucsf.edu' );
     my $json = canonical_url_to_json($canonical_url);
     ok( $json, "$test_name: got back JSON" );
 
@@ -180,7 +182,7 @@ SKIP: {
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Name},
-              qr/Jeanette Brown/,
+              qr/Daniel Lowenstein/,
               "$test_name: Got name" );
         like( $data->{Profiles}->[0]->{PhotoURL},
               qr/^http/, "$test_name: Got photo URL" );
@@ -189,9 +191,9 @@ SKIP: {
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 50, "$test_name: Got enough publications" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{Keywords} } ),
-              qr/urinary/i, "$test_name: matching keyword" );
+              qr/epilepsy/i, "$test_name: matching keyword" );
         like( $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle},
-              qr/Brown.*\. \w.*?\. .*2\d\d\d/,
+              qr/Lowenstein.*\. \w.*?\. .*2\d\d\d/,
               "$test_name: Valid publication title"
         );
     }
@@ -204,7 +206,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 5 unless $json;
+        skip "$test_name: got back no JSON", 6 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Name},
@@ -226,6 +228,8 @@ SKIP: {
               qr/(Bibbins|Moyer VA|LeFevre ML|US Preventive Services Task Force).*\. \w.*?\. .*2\d\d\d/,
               "$test_name: Valid publication title"
         );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
+                '>=', 3, "$test_name: Got enough in the news" );
     }
 }
 
