@@ -116,13 +116,6 @@ my $app = sub {
         $header_options{'-type'} = 'text/javascript';
     }
 
-    # Without this, Perl 5.8.8 returns invalid data.
-    # But it's not needed on Perl 5.16.
-    # I don't understad this.
-    if ($] <= 5.010000) {
-	$output = decode_utf8($output);
-    }
-
     return [ $q->psgi_header(%header_options), [$output] ];
 
 };
