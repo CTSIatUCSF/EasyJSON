@@ -955,25 +955,44 @@ sub canonical_url_to_json {
 
                MediaLinks_beta => [
                    eval {
+
+		       # $orng_data{'hasMediaLinks'}->{links} is
+		       # sometimes accidentally double-encoded as
+		       # JSON. So user "wilson.liao" is corect but
+		       # user "anirvan.chatterjee" is wrong.
+
                        my @links;
-                       if ( @{ $orng_data{'hasMediaLinks'}->{links} } ) {
-                           foreach my $link (
-                                   @{ $orng_data{'hasMediaLinks'}->{links} } ) {
 
-                               my $date;
-                               if ( $link->{link_date}
-                                    =~ m{^(\d+)/(\d+)/((?:19|20)\d\d)$} ) {
-                                   $date = "$3-$1-$2";
-                               }
+		       my @raw_links;
+		       if (eval{$orng_data{'hasMediaLinks'}->{links}} and ref $orng_data{'hasMediaLinks'}->{links} eq 'ARRAY') {
+			   @raw_links = @{$orng_data{'hasMediaLinks'}->{links}};
+		       } elsif (eval{$orng_data{'hasMediaLinks'}->{links}}) {
+			   my $raw_json = $orng_data{'hasMediaLinks'}->{links};
+			   if (utf8::is_utf8($raw_json)) {
+			       $raw_json = Encode::encode_utf8($raw_json);
+			       my $decoded = eval { decode_json($raw_json) };
+			       if ($decoded and ref $decoded eq 'ARRAY') {
+				   @raw_links = @{$decoded};
+			       }
+			   }
+		       }
+		       @raw_links = grep { ref($_) eq 'HASH' } @raw_links;
 
-                               push @links,
-                                   { Label => $link->{link_name},
-                                     URL   => $link->{link_url},
-                                     Date  => $date
-                                   };
-                           }
-                           return @links;
-                       }
+		       foreach my $link (@raw_links) {
+
+			   my $date;
+			   if ( $link->{link_date}
+				=~ m{^(\d+)/(\d+)/((?:19|20)\d\d)$} ) {
+			       $date = "$3-$1-$2";
+			   }
+
+			   push @links,
+			   { Label => $link->{link_name},
+			     URL   => $link->{link_url},
+			     Date  => $date
+			   };
+		       }
+		       return @links;
                    }
                ],
 
