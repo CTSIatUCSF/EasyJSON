@@ -116,6 +116,9 @@ sub identifier_to_canonical_url {
             } elsif (
                 $identifier =~ m{^https?://profiles.ucsf.edu/profile/(\d+)$} ) {
                 return $identifier;    # if passed a canonical URL, return it
+            } elsif ( $identifier =~ m{^\Q$profiles_profile_root_url\E(\d+)$} )
+            {
+                return $identifier;    # if passed a canonical URL, return it
             } else {
                 warn 'Unrecognized URL ', dump($identifier),
                     ' (was expecting something like "http://profiles.ucsf.edu/clay.johnston" or "http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5036574")',
@@ -217,7 +220,9 @@ sub canonical_url_to_json {
     }
 
     unless ( defined $canonical_url
-           and $canonical_url =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
+        and $canonical_url
+        =~ m{^(?:http://profiles.ucsf.edu/profile/|\Q$profiles_profile_root_url\E)(\d+)$}
+        ) {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
@@ -331,7 +336,7 @@ sub canonical_url_to_json {
 
     my $person;
     my %items_by_url_id;
-    my %publications_by_author;
+    my ( %publications_by_author, %research_activities_and_funding_by_role );
 
     foreach my $item ( @{ $data->{entry}->{jsonld}->{'@graph'} } ) {
 
@@ -347,10 +352,10 @@ sub canonical_url_to_json {
             $person = $item;
         }
 
-        # handle authorship
+        # handle authorship and grants/research
         if ( ref $item and $item->{'@type'} ) {
             foreach my $type ( @{ $item->{'@type'} } ) {
-                if ( $type eq 'vivo:Authorship' ) {
+                if ( $type eq 'vivo:Authorship' ) {    # pubs
                     if (     $item->{'linkedAuthor'}
                          and $item->{'linkedInformationResource'} ) {
 
@@ -358,7 +363,16 @@ sub canonical_url_to_json {
                                 } },
                             $item->{'linkedInformationResource'};
                     }
+                } elsif ( $type eq 'vivo:ResearcherRole' ) {    # grants
+                    if (     $item->{'researcherRoleOf'}
+                         and $item->{'roleContributesTo'} ) {
 
+                        push @{ $research_activities_and_funding_by_role{ $item
+                                    ->{'researcherRoleOf'} } },
+                            { role => $item->{label},
+                              id   => $item->{'roleContributesTo'}
+                            };
+                    }
                 }
             }
         }
@@ -394,7 +408,8 @@ sub canonical_url_to_json {
 
     # ensure that repeatable fields are set up as an array
     foreach my $field ( 'hasResearchArea',  'awardOrHonor',
-                        'personInPosition', 'educationalTraining'
+                        'personInPosition', 'educationalTraining',
+                        'hasResearcherRole'
         ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
@@ -742,15 +757,17 @@ sub canonical_url_to_json {
                                = @{ $person->{'educationalTraining'} };
                            foreach my $id (@ed_training_ids) {
                                my $item = $items_by_url_id{$id};
-                               push @education_training,
-                                   { degree => trim( $item->{'degreeEarned'} ),
-                                     end_date => trim( $item->{'endDate'} ),
-                                     organization =>
-                                         trim( $item->{'trainingAtOrganization'}
-                                         ),
-                                     department_or_school =>
-                                         trim( $item->{"departmentOrSchool"} ),
-                                   };
+                               push @education_training, {
+                                   degree   => trim( $item->{'degreeEarned'} ),
+                                   end_date => trim( $item->{'endDate'} ),
+                                   organization =>
+                                       trim( $item->{'trainingAtOrganization'}
+                                       ),
+                                   department_or_school =>  # try new, old names
+                                       trim(       $item->{'majorField'}
+                                                || $item->{'departmentOrSchool'}
+                                       ),
+                               };
                            }
 
                            @education_training = sort {
@@ -1076,6 +1093,38 @@ sub canonical_url_to_json {
                        }
                    }
                ),
+
+               Grants => [
+                   eval {
+                       my @grants;
+                       if ( $research_activities_and_funding_by_role{ $person->{
+                                    '@id'} } ) {
+                           my @grant_roles
+                               = @{
+                               $research_activities_and_funding_by_role{
+                                   $person->{'@id'}
+                               }
+                               };
+                           foreach my $role_group (@grant_roles) {
+                               my $grant_id   = $role_group->{id};
+                               my $grant_role = $role_group->{role};
+                               my $grant      = $items_by_url_id{$grant_id};
+                               if ($grant) {
+
+                                   push @grants,
+                                       { Role      => $grant_role,
+                                         StartDate => $grant->{startDate},
+                                         EndDate   => $grant->{endDate},
+                                         Title     => $grant->{label},
+                                         SponsorAwardID =>
+                                             $grant->{sponsorAwardId},
+                                       };
+                               }
+                           }
+                       }
+                       return @grants;
+                   }
+               ],
 
                NIHGrants_beta => [
                    eval {
