@@ -1094,7 +1094,7 @@ sub canonical_url_to_json {
                    }
                ),
 
-               Grants => [
+               ResearchActivitiesAndFunding => [
                    eval {
                        my @grants;
                        if ( $research_activities_and_funding_by_role{ $person->{
@@ -1204,13 +1204,16 @@ sub canonical_url_to_json {
         ]
     };
 
-    # if we have new Grant data, but not the old NIHGrants_beta, then
-    # we do our best to back-port Grants to NIHGrants_beta
+    # if we have new ResearchActivitiesAndFunding data, but not the
+    # old NIHGrants_beta, then we do our best to back-port
+    # ResearchActivitiesAndFunding to NIHGrants_beta
     if (     $final_data
-         and $final_data->{Profiles}->[0]->{Grants}
+         and $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding}
          and !eval { @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} } } ) {
 
-        foreach my $grant ( @{ $final_data->{Profiles}->[0]->{Grants} } ) {
+        foreach my $grant (
+             @{ $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding} } )
+        {
             if ( $grant and $grant->{Sponsor} and $grant->{Sponsor} eq 'NIH' ) {
                 my $grant_year = $grant->{EndDate};
                 if ( length $grant_year ) {
@@ -1222,21 +1225,26 @@ sub canonical_url_to_json {
                     NIHFiscalYear    => $grant_year,
                     NIHProjectNumber => $grant->{SponsorAwardID},
                     api_notes =>
-                        'Deprecated, use Grants instead. Fiscal year may be off.',
+                        'Deprecated, use ResearchActivitiesAndFunding instead. The fiscal year may be off.',
                     };
             }
         }
     }
 
-    # if we have old NIHGrants_beta data, but not the new Grants, then
-    # we do our best to forward-port to NIHGrants_beta to Grants
-    if (     $final_data
-         and $final_data->{Profiles}->[0]->{NIHGrants_beta}
-         and !eval { @{ $final_data->{Profiles}->[0]->{Grants} } } ) {
+    # if we have old NIHGrants_beta data, but not the new
+    # ResearchActivitiesAndFunding, then we do our best to
+    # forward-port to NIHGrants_beta to ResearchActivitiesAndFunding
+    if (    $final_data
+        and $final_data->{Profiles}->[0]->{NIHGrants_beta}
+        and !eval {
+            @{ $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding} };
+        }
+        ) {
 
         foreach
             my $grant ( @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} } ) {
-            push @{ $final_data->{Profiles}->[0]->{Grants} },
+            push @{ $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding}
+                },
                 {
                 Role      => 'Principal Investigator',
                 StartDate => undef,
@@ -1248,7 +1256,7 @@ sub canonical_url_to_json {
                 Title   => $grant->{Title},
                 Sponsor => 'NIH',
                 api_notes =>
-                    'Generated from NIHGrants_beta for testing. Dates and role may be wrong.'
+                    'Auto-converted from NIHGrants_beta for testing purposes. The dates and role may be temporarily wrong.'
                 };
         }
     }
