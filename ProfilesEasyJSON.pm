@@ -1108,26 +1108,73 @@ sub canonical_url_to_json {
                            foreach my $role_group (@grant_roles) {
                                my $grant_id   = $role_group->{id};
                                my $grant_role = $role_group->{role};
-                               my $grant      = $items_by_url_id{$grant_id};
-                               if ($grant) {
+                               my $raw_grant  = $items_by_url_id{$grant_id};
 
-                                   push @grants,
-                                       { Role      => $grant_role,
-                                         StartDate => $grant->{startDate},
-                                         EndDate   => $grant->{endDate},
-                                         Title     => $grant->{label},
-                                         SponsorAwardID =>
-                                             $grant->{sponsorAwardId},
+                               if ($raw_grant) {
+
+                                   my $grant
+                                       = { Role      => $grant_role,
+                                           StartDate => $raw_grant->{startDate},
+                                           EndDate   => $raw_grant->{endDate},
+                                           Title     => $raw_grant->{label},
+                                           SponsorAwardID =>
+                                               $raw_grant->{sponsorAwardId},
                                        };
+
+                                   # no sponsor? check to see if award
+                                   # ID looks like it could maybe be
+                                   # from the NIH, and insert that
+                                   if ( !$grant->{Sponsor} ) {
+                                       my $award_id = $grant->{SponsorAwardID};
+                                       if ($award_id) {
+                                           if ((      $award_id =~ m/\d{5,12}/
+                                                  and $award_id =~ m/[A-Z]/
+                                               )
+                                               or ( $award_id
+                                                   =~ m/\d[A-Z]\d+[A-Z][A-Z]-\d+/
+                                               )
+                                               ) {
+                                               $grant->{Sponsor} = 'NIH';
+                                               $grant->{api_notes}
+                                                   = "we're not 100% sure of sponsor, but NIH is likely";
+                                           }
+                                       }
+                                   }
+
+                                   # verify that dates are YYYY-MM-DD, or undef
+                                   foreach my $field ( 'StartDate', 'EndDate' )
+                                   {
+                                       if ( defined $grant->{$field}
+                                            and $grant->{$field}
+                                            !~ m/^\d{4}-\d{2}-\d{2}$/ ) {
+                                           $grant->{$field} = undef;
+                                       }
+                                   }
+
+                                   push @grants, $grant;
                                }
                            }
                        }
+
+                       # sort grants by date
+
+                       {
+                           no warnings 'uninitialized';
+                           @grants = sort {
+                               ( ( $b->{EndDate} || $b->{StartDate} )
+                                  cmp( $a->{EndDate} || $a->{StartDate} ) )
+                                   || ( $b->{StartDate} cmp $a->{StartDate} )
+                           } @grants;
+                       }
+
                        return @grants;
                    }
                ],
 
                NIHGrants_beta => [
                    eval {
+                       return ()
+                           unless $orng_data{'hasNIHGrantList'};
                        my @grants;
                        my %seen_project_number;
                        for my $i ( 0 .. 199 ) {
@@ -1156,6 +1203,55 @@ sub canonical_url_to_json {
             }
         ]
     };
+
+    # if we have new Grant data, but not the old NIHGrants_beta, then
+    # we do our best to back-port Grants to NIHGrants_beta
+    if (     $final_data
+         and $final_data->{Profiles}->[0]->{Grants}
+         and !eval { @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} } } ) {
+
+        foreach my $grant ( @{ $final_data->{Profiles}->[0]->{Grants} } ) {
+            if ( $grant and $grant->{Sponsor} and $grant->{Sponsor} eq 'NIH' ) {
+                my $grant_year = $grant->{EndDate};
+                if ( length $grant_year ) {
+                    $grant_year =~ s/-.*$//;
+                }
+                push @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} },
+                    {
+                    Title            => $grant->{Title},
+                    NIHFiscalYear    => $grant_year,
+                    NIHProjectNumber => $grant->{SponsorAwardID},
+                    api_notes =>
+                        'Deprecated, use Grants instead. Fiscal year may be off.',
+                    };
+            }
+        }
+    }
+
+    # if we have old NIHGrants_beta data, but not the new Grants, then
+    # we do our best to forward-port to NIHGrants_beta to Grants
+    if (     $final_data
+         and $final_data->{Profiles}->[0]->{NIHGrants_beta}
+         and !eval { @{ $final_data->{Profiles}->[0]->{Grants} } } ) {
+
+        foreach
+            my $grant ( @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} } ) {
+            push @{ $final_data->{Profiles}->[0]->{Grants} },
+                {
+                Role      => 'Principal Investigator',
+                StartDate => undef,
+                EndDate   => (
+                             $grant->{NIHFiscalYear}
+                             ? "$grant->{NIHFiscalYear}-01-01"
+                             : undef
+                ),
+                Title   => $grant->{Title},
+                Sponsor => 'NIH',
+                api_notes =>
+                    'Generated from NIHGrants_beta for testing. Dates and role may be wrong.'
+                };
+        }
+    }
 
     foreach my $person_data ( @{ $final_data->{Profiles} } ) {
         foreach my $key (qw( Publications MediaLinks MediaLinks_beta )) {
