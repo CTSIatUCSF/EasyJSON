@@ -811,7 +811,8 @@ sub canonical_url_to_json {
 
                            $award->{Summary}
                                = join( ', ',
-                                       grep { defined and length } (
+                                       map { trim($_) }
+                                           grep { defined and length } (
                                            $award->{AwardLabel},
                                            $award->{AwardConferredBy},
                                            join(
@@ -822,8 +823,9 @@ sub canonical_url_to_json {
                                                    $award->{AwardEndDate}
                                                )
                                            )
-                                       )
+                                           )
                                );
+
                            push @awards, $award;
                        }
                    }
