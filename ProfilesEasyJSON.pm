@@ -1113,14 +1113,15 @@ sub canonical_url_to_json {
                                my $raw_grant  = $items_by_url_id{$grant_id};
 
                                if ($raw_grant) {
-
                                    my $grant
-                                       = { Role      => $grant_role,
-                                           StartDate => $raw_grant->{startDate},
-                                           EndDate   => $raw_grant->{endDate},
-                                           Title     => $raw_grant->{label},
-                                           SponsorAwardID =>
-                                               $raw_grant->{sponsorAwardId},
+                                       = {
+                                        Role      => $grant_role,
+                                        StartDate => $raw_grant->{startDate},
+                                        EndDate   => $raw_grant->{endDate},
+                                        Title     => $raw_grant->{label},
+                                        Sponsor => $raw_grant->{grantAwardedBy},
+                                        SponsorAwardID =>
+                                            $raw_grant->{sponsorAwardId},
                                        };
 
                                    # no sponsor? check to see if award
@@ -1173,35 +1174,6 @@ sub canonical_url_to_json {
                    }
                ],
 
-               NIHGrants_beta => [
-                   eval {
-                       return ()
-                           unless $orng_data{'hasNIHGrantList'};
-                       my @grants;
-                       my %seen_project_number;
-                       for my $i ( 0 .. 199 ) {
-                           if ( my $grant
-                                = $orng_data{'hasNIHGrantList'}->{"nih_$i"} ) {
-
-                               # remove dupes
-                               next
-                                   if $seen_project_number{ $grant->{fpn} }++;
-                               push @grants,
-                                   { Title            => $grant->{t},
-                                     NIHFiscalYear    => $grant->{fy},
-                                     NIHProjectNumber => $grant->{fpn}
-                                   };
-                           }
-                       }
-
-                       # sort grants by date
-                       @grants
-                           = sort { $b->{NIHFiscalYear} <=> $a->{NIHFiscalYear} }
-                           @grants;
-                       return @grants;
-                   }
-               ],
-
             }
         ]
     };
@@ -1230,36 +1202,6 @@ sub canonical_url_to_json {
                         'Deprecated, use ResearchActivitiesAndFunding instead. The fiscal year may be off.',
                     };
             }
-        }
-    }
-
-    # if we have old NIHGrants_beta data, but not the new
-    # ResearchActivitiesAndFunding, then we do our best to
-    # forward-port to NIHGrants_beta to ResearchActivitiesAndFunding
-    if (    $final_data
-        and $final_data->{Profiles}->[0]->{NIHGrants_beta}
-        and !eval {
-            @{ $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding} };
-        }
-        ) {
-
-        foreach
-            my $grant ( @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} } ) {
-            push @{ $final_data->{Profiles}->[0]->{ResearchActivitiesAndFunding}
-                },
-                {
-                Role      => 'Principal Investigator',
-                StartDate => undef,
-                EndDate   => (
-                             $grant->{NIHFiscalYear}
-                             ? "$grant->{NIHFiscalYear}-01-01"
-                             : undef
-                ),
-                Title   => $grant->{Title},
-                Sponsor => 'NIH',
-                api_notes =>
-                    'Auto-converted from NIHGrants_beta for testing purposes. The dates and role may be temporarily wrong.'
-                };
         }
     }
 
