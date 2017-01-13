@@ -701,11 +701,20 @@ sub canonical_url_to_json {
                Titles => [
                    eval {
                        my @titles = map { $_->{'label'} } @sorted_positions;
+                       @titles = grep { defined and m/\w/ } @titles;
 
                        # multiple titles sometimes concatenated "A; B"
                        @titles = map { split /; / } @titles;
 
                        @titles = grep {m/\w/} @titles;
+
+                       # If we don't have positions, but we do have
+                       # the main title, fall back to main title. This
+                       # was a bug we hit on 1/13/2017.
+                       if ( !@titles and $person->{'preferredTitle'} ) {
+                           @titles = $person->{'preferredTitle'};
+                       }
+
                        return @titles;
                    }
                ],
