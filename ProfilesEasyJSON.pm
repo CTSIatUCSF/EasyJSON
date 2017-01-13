@@ -786,17 +786,19 @@ sub canonical_url_to_json {
                    eval {
                        if ( defined $person->{'freetextKeyword'} ) {
 
-			   # split on comma, semicolon, or return
-			   #   (optionally followed by " and ")
-			   my $split_re = qr/(?:\s*,\s*|\s*;\s*|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
-			   my @parts = split qr/$split_re/, $person->{'freetextKeyword'};
+                           # split on comma, semicolon, or return
+                           #   (optionally followed by " and ")
+                           my $split_re
+                               = qr/(?:\s*,\s*|\s*;\s*|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
+                           my @parts = split qr/$split_re/,
+                               $person->{'freetextKeyword'};
 
-			   # remove whitespace at start and end
-			   # keep only keywords with alphanumeric content
-			   @parts = map { trim($_) } @parts;
-			   @parts = grep { defined and m/\w/ } @parts;
+                           # remove whitespace at start and end
+                           # keep only keywords with alphanumeric content
+                           @parts = map { trim($_) } @parts;
+                           @parts = grep { defined and m/\w/ } @parts;
 
-			   return @parts;
+                           return @parts;
                        } else {
                            return ();
                        }
