@@ -74,9 +74,6 @@ my $app = sub {
     if ( $identifier_type and $identifier and !$error ) {
 
         my $options = {};
-        if ( $params->{mobile} and $params->{mobile} =~ m/^(1|on)$/i ) {
-            $options->{mobile} = 1;
-        }
 
         if ( $params->{cache} and $params->{cache} =~ m/^(always|never)$/ ) {
             $options->{cache} = lc $1;
