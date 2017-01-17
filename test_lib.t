@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 74;
+plan tests => 75;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -174,6 +174,7 @@ SKIP: {
 
     my $canonical_url
         = identifier_to_canonical_url( 'FNO', 'daniel.lowenstein@ucsf.edu' );
+    like( $canonical_url, qr/^http/, "$test_name: got a canonical URL" );
     my $json = canonical_url_to_json($canonical_url);
     ok( $json, "$test_name: got back JSON" );
 
