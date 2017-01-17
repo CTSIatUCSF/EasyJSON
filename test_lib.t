@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 75;
+plan tests => 76;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -138,6 +138,9 @@ SKIP: {
               qr/^Jenn/i, "$test_name: first name" );
         like( $data->{Profiles}->[0]->{LastName},
               qr/^Grandis$/i, "$test_name: last name" );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^jennifer\.grandis\@ucsf\.edu$/i,
+              "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 50, "$test_name: got 50+ publications" );
 
