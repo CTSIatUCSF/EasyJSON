@@ -1256,7 +1256,6 @@ sub canonical_url_to_json {
     $v->visit($final_data);
 
     my $out = $json_obj->encode($final_data);
-    utf8::upgrade($out);
     return $out;
 }
 
