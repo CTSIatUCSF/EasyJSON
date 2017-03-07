@@ -127,6 +127,17 @@ sub identifier_to_canonical_url {
             }
         }
 
+        # translate Person IDs, for processing convenience
+        if (     $identifier_type eq 'Person'
+             and $identifier =~ m/^\d+$/
+             and $identifier >= 1_000_000 ) {
+            my $new_identifier = substr( ( $identifier - 569307 ), 1, 6 );
+            if ( $new_identifier >= 100000 ) {
+                $identifier_type = 'UserName';
+                $identifier      = "$new_identifier\@ucsf.edu";
+            }
+        }
+
         my $url
             = "${profiles_native_api_root_url}CustomAPI/v2/Default.aspx?"
             . uri_escape($identifier_type) . '='
@@ -135,7 +146,7 @@ sub identifier_to_canonical_url {
         _init_ua() unless $ua;
         my $response = $ua->get($url);
 
-     # if there was an error loading the content, figure out an error message...
+        # if there was an error loading the content, figure out an error message
 
         my $error_warning;
         if ( $response->is_success ) {

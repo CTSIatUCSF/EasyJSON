@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 76;
+plan tests => 77;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -64,6 +64,12 @@ is( identifier_to_canonical_url( 'URL',
     ),
     'http://profiles.ucsf.edu/profile/369982',
     'identifier_to_canonical_url profile with pretty URL with number'
+);
+is( identifier_to_canonical_url( 'Person',
+                                 '5195436'
+    ),
+    'http://profiles.ucsf.edu/profile/141411399',
+    'identifier_to_canonical_url Person among broken set',
 );
 
 {
