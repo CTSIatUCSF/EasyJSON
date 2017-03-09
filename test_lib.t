@@ -467,7 +467,7 @@ SKIP: {
         is( $data->{Address}->{Longitude},
             undef, 'Address longitude should be undef' );
         is( $data->{Address}->{Latitude},
-            undef, 'Address longitude should be undef' );
+            undef, 'Address latitude should be undef' );
     }
 }
 
