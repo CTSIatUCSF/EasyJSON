@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 77;
+plan tests => 79;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -65,9 +65,7 @@ is( identifier_to_canonical_url( 'URL',
     'http://profiles.ucsf.edu/profile/369982',
     'identifier_to_canonical_url profile with pretty URL with number'
 );
-is( identifier_to_canonical_url( 'Person',
-                                 '5195436'
-    ),
+is( identifier_to_canonical_url( 'Person', '5195436' ),
     'http://profiles.ucsf.edu/profile/141411399',
     'identifier_to_canonical_url Person among broken set',
 );
@@ -370,6 +368,27 @@ SKIP: {
         );
 
     }
+}
+
+{
+    my $test_name = 'Eric Meeks';
+    my $json = identifier_to_json( 'PrettyURL', 'eric.meeks' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+
+        my @claimed_pubs = grep { $_->{Claimed} }
+            @{ $data->{Profiles}->[0]->{Publications} };
+        cmp_ok( @claimed_pubs,
+                '>=',
+                2,
+                "$test_name: found at least 2 claimed publications ("
+                    . scalar(@claimed_pubs) . ')'
+        );
+    }
+
 }
 
 {

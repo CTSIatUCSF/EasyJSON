@@ -370,9 +370,16 @@ sub canonical_url_to_json {
                     if (     $item->{'linkedAuthor'}
                          and $item->{'linkedInformationResource'} ) {
 
+                        my $pub_id = $item->{'linkedInformationResource'};
+                        my $pub_is_claimed = undef;
+                        if ( defined $item->{hasClaimedPublication}
+                             and $item->{hasClaimedPublication} == 1 ) {
+                            $pub_is_claimed = JSON::true;
+                        }
+
                         push @{ $publications_by_author{ $item->{'linkedAuthor'}
                                 } },
-                            $item->{'linkedInformationResource'};
+                            { id => $pub_id, is_claimed => $pub_is_claimed };
                     }
                 } elsif ( $type eq 'vivo:ResearcherRole' ) {    # grants
                     if (     $item->{'researcherRoleOf'}
@@ -552,8 +559,9 @@ sub canonical_url_to_json {
                     # PMID, and use the corresponding ID. This is
                     # inefficient, but not worth speeding up.
 
-                    foreach my $candidate_pub_id (
+                    foreach my $candidate_pub_data (
                             @{ $publications_by_author{ $person->{'@id'} } } ) {
+                        my $candidate_pub_id = $candidate_pub_data->{id};
                         my $candidate_pmid
                             = $items_by_url_id{$candidate_pub_id}->{'pmid'};
                         if ( $candidate_pmid and $candidate_pmid == $pmid ) {
@@ -872,9 +880,11 @@ sub canonical_url_to_json {
                    my @publications;
                    unless ( $options->{no_publications} ) {
 
-                       foreach my $pub_id (
+                       foreach my $pub_data (
                             @{ $publications_by_author{ $person->{'@id'} } } ) {
-                           my $pub = $items_by_url_id{$pub_id};
+
+                           my $pub_id = $pub_data->{id};
+                           my $pub    = $items_by_url_id{$pub_id};
 
                            # In January 2016, Profiles RDF stopped
                            #   including the list of authors in the
@@ -943,6 +953,11 @@ sub canonical_url_to_json {
                                Featured => (
                                       $featured_publication_order_by_id{$pub_id}
                                           || undef
+                               ),
+
+                               Claimed => ( defined $pub_data->{is_claimed}
+                                            ? $pub_data->{is_claimed}
+                                            : undef
                                ),
                            };
                        }    # end foreach publication
