@@ -12,7 +12,7 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 79;
+plan tests => 81;
 
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
@@ -306,6 +306,23 @@ SKIP: {
               qr{^https?://profiles.ucsf.edu/},
               "$test_name: Got photo, as expected"
         );
+    }
+}
+
+# regression
+{
+    my $test_name = 'Aaloke Mody';
+    my $json      = identifier_to_json( 'URL',
+                                   'http://profiles.ucsf.edu/aaloke.mody',
+                                   { cache => 'never' } );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 1 unless $json;
+        my $data = decode_json($json);
+        is_deeply( $data->{Profiles}->[0]->{Address}->{Latitude},
+                   undef,
+                   "$test_name: Latitude is undef as expected [regression]" );
     }
 }
 

@@ -617,7 +617,7 @@ sub canonical_url_to_json {
     }
 
     # make sure lat/lon is numeric -- and that it's never [0,0]
-    my @lat_lon = [ undef, undef ];
+    my @lat_lon = ( undef, undef );
     if (     defined $person->{'latitude'}
          and $person->{'latitude'} =~ m/\d/
          and defined $person->{'longitude'}
