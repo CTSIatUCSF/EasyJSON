@@ -801,14 +801,24 @@ sub canonical_url_to_json {
                            my %date_to_year;
                            foreach my $item (@education_training) {
                                my $end_date = $item->{end_date};
-                               if ( $end_date =~ m{\b(\d\d\d\d)$} ) {
+                               next unless $end_date;
+                               if ( $end_date =~ m{\b((?:19|20)\d\d)$} ) {
+                                   $date_to_year{$end_date} = $1;
+                               } elsif ( $end_date =~ m/((?:19|20)\d\d)-\d+$/ )
+                               {
+                                   $date_to_year{$end_date} = $1;
+                               } elsif ( $end_date =~ m/\b((?:19|20)\d\d)\b/ ) {
                                    $date_to_year{$end_date} = $1;
                                }
                            }
 
                            @education_training = sort {
-                               ( $date_to_year{ $b->{end_date} } || '' )
-                                   cmp( $date_to_year{ $a->{end_date} } || '' )
+                               (  ( $date_to_year{ $b->{end_date} } || '' )
+                                      cmp( $date_to_year{ $a->{end_date} } || ''
+                                      )
+                                   )
+                                   || ( ( $b->{end_date} || '' )
+                                        cmp( $a->{end_date} || '' ) )
                            } @education_training;
 
                            return @education_training;
