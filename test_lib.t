@@ -471,20 +471,25 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Melinda Bender';
+    my $test_name = 'Erin Van Blarigan';
     my $json
-        = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/melinda.bender' );
+        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/erin.richman' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
 
-        is( $data->{Address}->{Longitude},
-            undef, 'Address longitude should be undef' );
-        is( $data->{Address}->{Latitude},
-            undef, 'Address latitude should be undef' );
+        is( ref( $data->{Profiles}->[0]->{ResearchActivitiesAndFunding} ),
+            'ARRAY', "$test_name: Grants list should be an array" );
+
+        cmp_ok( scalar(
+                     @{ $data->{Profiles}->[0]->{ResearchActivitiesAndFunding} }
+                ),
+                '<=', 4,
+                "$test_name: No more than 4 grants"
+        );
+
     }
 }
 

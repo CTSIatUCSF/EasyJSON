@@ -1246,6 +1246,16 @@ sub canonical_url_to_json {
                            }
                        }
 
+                       # remove any duplicate grants
+                       {
+                           my %serialized_grants;
+                           foreach my $grant (@grants) {
+                               my $serialized = dump($grant);
+                               $serialized_grants{$serialized} = $grant;
+                           }
+                           @grants = values %serialized_grants;
+                       }
+
                        # sort grants by date
 
                        {
