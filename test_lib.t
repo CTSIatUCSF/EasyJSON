@@ -471,7 +471,7 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Dawn Benton';
+    my $test_name = 'Melinda Bender';
     my $json
         = identifier_to_json( 'URL',
                               'http://profiles.ucsf.edu/melinda.bender' );
