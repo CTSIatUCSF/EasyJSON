@@ -800,15 +800,31 @@ sub canonical_url_to_json {
 
                            my %date_to_year;
                            foreach my $item (@education_training) {
-                               my $end_date = $item->{end_date};
-                               next unless $end_date;
-                               if ( $end_date =~ m{\b((?:19|20)\d\d)$} ) {
-                                   $date_to_year{$end_date} = $1;
-                               } elsif ( $end_date =~ m/((?:19|20)\d\d)-\d+$/ )
-                               {
-                                   $date_to_year{$end_date} = $1;
-                               } elsif ( $end_date =~ m/\b((?:19|20)\d\d)\b/ ) {
-                                   $date_to_year{$end_date} = $1;
+                               my $start_date = $item->{start_date};
+                               my $end_date   = $item->{end_date};
+
+                           DateFieldName:
+                               foreach my $date_field_name ( 'start_date',
+                                                             'end_date' ) {
+
+                                   unless ( defined $item->{$date_field_name}
+                                        and $item->{$date_field_name} =~ m/\d/ )
+                                   {
+                                       $item->{$date_field_name} = '';
+                                       next DateFieldName;
+                                   }
+
+                                   my $date = $item->{$date_field_name};
+
+                                   if ( $date =~ m{\b((?:19|20)\d\d)$} ) {
+                                       $date_to_year{$date} = $1;
+                                   } elsif ( $date =~ m/((?:19|20)\d\d)-\d+$/ )
+                                   {
+                                       $date_to_year{$date} = $1;
+                                   } elsif (
+                                         $end_date =~ m/\b((?:19|20)\d\d)\b/ ) {
+                                       $date_to_year{$end_date} = $1;
+                                   }
                                }
                            }
 
@@ -819,6 +835,13 @@ sub canonical_url_to_json {
                                    )
                                    || ( ( $b->{end_date} || '' )
                                         cmp( $a->{end_date} || '' ) )
+                                   || (
+                                     ( $date_to_year{ $b->{start_date} } || '' )
+                                     cmp($date_to_year{ $a->{start_date} } || ''
+                                     )
+                                   )
+                                   || ( ( $b->{start_date} || '' )
+                                        cmp( $a->{start_date} || '' ) )
                            } @education_training;
 
                            return @education_training;
