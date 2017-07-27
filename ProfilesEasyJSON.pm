@@ -13,6 +13,7 @@ use JSON;
 use List::MoreUtils qw( uniq );
 use LWP::UserAgent 6.0;
 use String::Util qw( trim );
+use URI;
 use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
 use parent qw( Exporter );
@@ -1054,6 +1055,11 @@ sub canonical_url_to_json {
                                }
                            }
                        }
+
+                       # only keep links that are a valid URI with a valid host
+                       @links = grep {
+                           eval { URI->new( $_->{link_url} )->host =~ m/\w/; }
+                       } @links;
 
                        return @links;
                    }
