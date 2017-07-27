@@ -1367,7 +1367,7 @@ sub _init_ua {
 # returns true if usable, false otherwise
 sub verify_cache_object_policy {
 
-    my $how_may_days_old_cached_data_can_we_return = 14;
+    my $how_many_days_old_cached_data_can_we_return = 14;
 
     my $cache_object = shift;
     my $cached_time = eval { $cache_object->created_at() };
@@ -1377,9 +1377,9 @@ sub verify_cache_object_policy {
 
     my $seconds_per_day = 60 * 60 * 24;
     if ( $cached_time >= (
-              time - (
-                  $how_may_days_old_cached_data_can_we_return * $seconds_per_day
-              )
+             time - (
+                 $how_many_days_old_cached_data_can_we_return * $seconds_per_day
+             )
          )
         ) {
         return 1;
