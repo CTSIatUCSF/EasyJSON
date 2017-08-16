@@ -1058,7 +1058,7 @@ sub canonical_url_to_json {
 
                        # only keep links that are a valid URI with a valid host
                        @links = grep {
-                           eval { URI->new( $_->{link_url} )->host =~ m/\w/; }
+                           eval { URI->new( $_->{URL} )->host =~ m/\w/; }
                        } @links;
 
                        return @links;
