@@ -1,6 +1,6 @@
 #!perl
 
-use lib '.';
+use lib '.', '..';
 use HTTP::Request::Common;
 use JSON qw( decode_json );
 use Plack::Test;
@@ -10,7 +10,12 @@ binmode STDOUT, ':utf8';
 use strict;
 use warnings;
 
-my $app = Plack::Util::load_psgi 'app.psgi';
+my $app;
+if ( -r 'app.psgi' ) {
+    $app = Plack::Util::load_psgi 'app.psgi';
+} elsif ( -r '../app.psgi' ) {
+    $app = Plack::Util::load_psgi '../app.psgi';
+}
 
 test_psgi $app, sub {
     my $cb = shift;

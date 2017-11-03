@@ -1,5 +1,6 @@
 #!perl
 
+use lib '.', '..';
 use Data::Dump;
 use String::Util qw( trim );
 use Test::More;

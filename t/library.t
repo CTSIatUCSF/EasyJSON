@@ -1,6 +1,6 @@
 #!perl
 
-use lib '.';
+use lib '.', '..';
 use Data::Dump;
 use JSON qw( decode_json );
 use ProfilesEasyJSON
