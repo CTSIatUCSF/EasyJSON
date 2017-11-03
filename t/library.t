@@ -14,60 +14,66 @@ use warnings;
 
 plan tests => 81;
 
+# looking up users by different identifiers
+
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url ProfilesNodeID' );
+    'identifier_to_canonical_url, using ProfilesNodeID'
+);
 is( identifier_to_canonical_url( 'FNO', 'anirvan.chatterjee@ucsf.edu' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url FNO' );
-{
-    local $SIG{__WARN__} = sub { };    # override warnings
-    is( identifier_to_canonical_url( 'Person', '4617024' ),
-        undef, 'identifier_to_canonical_url Outdated' );
-}
-is( identifier_to_canonical_url( 'Person', '5396511' ),
-    'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url Person'
+    'identifier_to_canonical_url, using FNO'
 );
 is( identifier_to_canonical_url( 'EmployeeID', '028272045' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url EmployeeID' );
+    'identifier_to_canonical_url, using EmployeeID'
+);
+is( identifier_to_canonical_url( 'Person', '5396511' ),
+    'http://profiles.ucsf.edu/profile/370974',
+    'identifier_to_canonical_url, using Person ID'
+);
 is( identifier_to_canonical_url( 'PrettyURL', 'anirvan.chatterjee' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url PrettyURL'
+    'identifier_to_canonical_url, using standalone pretty URL name'
 );
 is( identifier_to_canonical_url( 'PrettyURL', 'Anirvan.Chatterjee' ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url PrettyURL bad case'
+    'identifier_to_canonical_url, using standalone pretty URL name (incorrect case)'
 );
 is( identifier_to_canonical_url( 'URL',
                                  'http://profiles.ucsf.edu/anirvan.chatterjee'
     ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url profile with pretty URL'
+    'identifier_to_canonical_url, using URL (pretty)'
+);
+is( identifier_to_canonical_url( 'URL',
+                                 'http://profiles.ucsf.edu/michael.reyes.2'
+    ),
+    'http://profiles.ucsf.edu/profile/369982',
+    'identifier_to_canonical_url, using URL (pretty, with number)'
 );
 is( identifier_to_canonical_url( 'URL',
                                  'http://profiles.ucsf.edu/profile/370974'
     ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url canonical URL'
+    'identifier_to_canonical_url, using URL (canonical)'
 );
 is( identifier_to_canonical_url(
                    'URL',
                    'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
     ),
     'http://profiles.ucsf.edu/profile/370974',
-    'identifier_to_canonical_url old ProfileDetails URL'
+    'identifier_to_canonical_url, using URL (historical)'
 );
-is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/michael.reyes.2'
-    ),
-    'http://profiles.ucsf.edu/profile/369982',
-    'identifier_to_canonical_url profile with pretty URL with number'
-);
+
+{
+    local $SIG{__WARN__} = sub { };    # override warnings
+    is( identifier_to_canonical_url( 'Person', '4617024' ),
+        undef, 'identifier_to_canonical_url, with an outdated person' );
+}
 is( identifier_to_canonical_url( 'Person', '5195436' ),
     'http://profiles.ucsf.edu/profile/141411399',
-    'identifier_to_canonical_url Person among broken set',
+    'identifier_to_canonical_url, regression testing person among formerly broken set',
 );
 
 {
