@@ -24,7 +24,7 @@ use warnings;
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
-my ( $i2c_cache, $c2j_cache, $url_cache, $ua );
+my ( $i2c_cache, $c2j_cache, $url_cache, $c2positions_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
 
 my $profiles_native_api_root_url = 'http://profiles.ucsf.edu/';
@@ -674,6 +674,16 @@ sub canonical_url_to_json {
         }
     }
 
+    # Every once in a while, Profiles craps out and loses all
+    # school/department/title data. In that case, we'll try to use
+    # cached data.
+    $c2positions_cache ||= CHI->new(
+                    driver    => 'File',
+                    namespace => 'Profiles JSON API canonical_url_to_positions',
+                    expires_in       => '5 days',
+                    expires_variance => 0.25,
+    );
+
     my $final_data = {
         Profiles => [
             {  Name        => $person->{'fullName'},
@@ -695,24 +705,42 @@ sub canonical_url_to_json {
 
                # only handling primary department at this time
                Department => eval {
+                   my $dept_name;
+                   my $cache_key = "$expanded_jsonld_url -> Department";
+
                    if ( $sorted_positions[0]->{'positionInDepartment'} ) {
                        my $dept_id
                            = $sorted_positions[0]->{'positionInDepartment'};
-                       return $items_by_url_id{$dept_id}->{'label'};
-                   } else {
-                       return undef;
+                       $dept_name = $items_by_url_id{$dept_id}->{'label'};
+                       if ($dept_name) {
+                           eval {
+                               $c2positions_cache->set( $cache_key,
+                                                        $dept_name );
+                           };
+                       }
                    }
+                   $dept_name ||= eval { $url_cache->get($cache_key) };
+                   return $dept_name;
                },
 
                # only handling primary school at this time
                School => eval {
+                   my $school_name;
+                   my $cache_key = "$expanded_jsonld_url -> School";
+
                    if ( $sorted_positions[0]->{'positionInOrganization'} ) {
                        my $school_id
                            = $sorted_positions[0]->{'positionInOrganization'};
-                       return $items_by_url_id{$school_id}->{'label'};
-                   } else {
-                       return undef;
+                       $school_name = $items_by_url_id{$school_id}->{'label'};
+                       if ($school_name) {
+                           eval {
+                               $c2positions_cache->set( $cache_key,
+                                                        $school_name );
+                           };
+                       }
                    }
+                   $school_name ||= eval { $url_cache->get($cache_key) };
+                   return $school_name;
                },
 
                # can handle multiple titles
