@@ -719,7 +719,7 @@ sub canonical_url_to_json {
                            };
                        }
                    }
-                   $dept_name ||= eval { $url_cache->get($cache_key) };
+                   $dept_name ||= eval { $c2positions_cache->get($cache_key) };
                    return $dept_name;
                },
 
@@ -739,7 +739,8 @@ sub canonical_url_to_json {
                            };
                        }
                    }
-                   $school_name ||= eval { $url_cache->get($cache_key) };
+                   $school_name
+                       ||= eval { $c2positions_cache->get($cache_key) };
                    return $school_name;
                },
 
