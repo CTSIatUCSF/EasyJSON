@@ -12,7 +12,6 @@ use warnings;
 
 my @input = ( ['Larry, Moe, and Curly'],
               [ 'Larry',   'Moe',   'and Curly' ],
-              [ 'Larry',   'Moe',   'and Curly' ],
               [ ' Larry ', ' Moe ', ' and Curly ' ],
               ["Larry\r\nMoe\r\nCurly\r\n"],
               ["Larry; Moe; Curly"],
