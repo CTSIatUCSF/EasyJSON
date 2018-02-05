@@ -7,12 +7,13 @@ use ProfilesEasyJSON
     qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 use Test::More;
 use Test::NoWarnings;
+use Test::Warn;
 binmode STDOUT, ':utf8';
 use utf8;
 use strict;
 use warnings;
 
-plan tests => 82;
+plan tests => 88;
 
 # looking up users by different identifiers
 
@@ -529,6 +530,39 @@ SKIP: {
         );
 
     }
+}
+
+{
+    my $test_name = 'Bad identifier_to_json identifier should fail';
+    warnings_exist( sub { identifier_to_json( 'Fail', { cache => 'never' } ) },
+                    [qr/\w/], "$test_name: Failed?" );
+}
+{
+    my $test_name
+        = 'Bad identifier_to_canonical_url identifier type should fail';
+    warnings_exist( sub { identifier_to_canonical_url( 'Fail', 'eric.meeks' ) },
+                    [qr/\w/], "$test_name: Failed?" );
+}
+
+{
+    my $test_name = 'Bad identifier_to_canonical_url identifier should fail';
+    warnings_exist( sub { identifier_to_canonical_url( 'PrettyURL', undef ) },
+                    [qr/\w/], "$test_name: Failed?" );
+}
+{
+    my $test_name = 'Bad identifier_to_canonical_url Person should fail';
+    warnings_exist( sub { identifier_to_canonical_url( 'Person', undef ) },
+                    [qr/\w/], "$test_name: Failed?" );
+}
+{
+    my $test_name = 'Gone identifier_to_canonical_url Person should fail';
+    warnings_exist( sub { identifier_to_canonical_url( 'Person', 4617024 ) },
+                    [qr/\w/], "$test_name: Failed?" );
+}
+{
+    my $test_name = 'Bad canonical_url_to_json should fail';
+    warnings_exist( sub { canonical_url_to_json('http://foo/') },
+                    [qr/\w/], "$test_name: Failed?" );
 }
 
 # Local Variables:
