@@ -12,6 +12,7 @@ use HTTP::Message 6.06;
 use JSON;
 use List::MoreUtils qw( uniq );
 use LWP::UserAgent 6.0;
+use Regexp::Assemble;
 use String::Util qw( trim );
 use URI;
 use URI::Escape qw( uri_escape );
@@ -20,15 +21,33 @@ use parent qw( Exporter );
 use strict;
 use utf8;
 use warnings;
-
 our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
+# configurable constants
+my $profiles_native_api_root_url = URI->new('http://profiles.ucsf.edu/');
+my @legacy_profiles_root_urls    = ();
+
+###############################################################################
+
+# derived
+my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp );
+{
+    $profiles_profile_root_url = $profiles_native_api_root_url->clone;
+    $profiles_profile_root_url->path('/profile/');
+
+    $current_or_legacy_profiles_root_url_regexp = (
+           qr{https?://}
+               . Regexp::Assemble->new->add(
+               map { quotemeta( $_->host ) }
+                   ( $profiles_native_api_root_url, @legacy_profiles_root_urls )
+               )->re
+               . qr{(?:/|\Z|(?=/))}
+    );
+}
+
 my ( $i2c_cache, $c2j_cache, $url_cache, $c2positions_cache, $ua );
 my $json_obj = JSON->new->utf8->pretty(1);
-
-my $profiles_native_api_root_url = 'http://profiles.ucsf.edu/';
-my $profiles_profile_root_url    = 'http://profiles.ucsf.edu/profile/';
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
@@ -106,16 +125,18 @@ sub identifier_to_canonical_url {
             $identifier = lc $identifier;
         } elsif ( $identifier_type eq 'URL' ) {
             if ( $identifier
-                =~ m{^https?://profiles.ucsf.edu/ProfileDetails\.aspx\?Person=(\d+)$}
+                =~ m{$current_or_legacy_profiles_root_url_regexp/ProfileDetails\.aspx\?Person=(\d+)$}
                 ) {
                 $identifier      = $1;
                 $identifier_type = 'Person';
             } elsif ( $identifier
-                   =~ m{^https?://profiles.ucsf.edu/([a-zA-Z][a-z-\.]+\d*)$} ) {
+                =~ m{^$current_or_legacy_profiles_root_url_regexp/([a-zA-Z][a-z-\.]+\d*)$}
+                ) {
                 $identifier      = lc $1;
                 $identifier_type = 'PrettyURL';
-            } elsif (
-                $identifier =~ m{^https?://profiles.ucsf.edu/profile/(\d+)$} ) {
+            } elsif ( $identifier
+                =~ m{^$current_or_legacy_profiles_root_url_regexp/profile/(\d+)$}
+                ) {
                 return $identifier;    # if passed a canonical URL, return it
             } elsif ( $identifier =~ m{^\Q$profiles_profile_root_url\E(\d+)$} )
             {
@@ -634,7 +655,7 @@ sub canonical_url_to_json {
     # no email? see if it's publicly accessible via the vCard
     if ( !defined $person->{'email'} ) {
         my $vcard_url
-            = "http://profiles.ucsf.edu/profile/modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id";
+            = "${profiles_profile_root_url}modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id";
 
         # grab from cache, if available
         my $raw_vcard = $url_cache->get($vcard_url);
