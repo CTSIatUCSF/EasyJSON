@@ -17,6 +17,7 @@ use String::Util qw( trim );
 use URI;
 use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
+use 5.10.0;
 use parent qw( Exporter );
 use strict;
 use utf8;
@@ -25,33 +26,49 @@ our @EXPORT_OK
     = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
 # configurable constants
-my $profiles_native_api_root_url = URI->new('http://profiles.ucsf.edu/');
-my @legacy_profiles_root_urls    = ();
+our ( $profiles_native_api_root_url, $legacy_profiles_root_urls );
 
-###############################################################################
+# globals
+my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp,
+     $i2c_cache, $c2j_cache, $url_cache, $c2positions_cache, $ua, $json_obj );
 
-# derived
-my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp );
-{
-    $profiles_profile_root_url = $profiles_native_api_root_url->clone;
-    $profiles_profile_root_url->path('/profile/');
+sub initialize {
+    state $init_has_been_run = 0;
+    return if $init_has_been_run;
 
-    $current_or_legacy_profiles_root_url_regexp = (
-           qr{https?://}
-               . Regexp::Assemble->new->add(
-               map { quotemeta( $_->host ) }
-                   ( $profiles_native_api_root_url, @legacy_profiles_root_urls )
-               )->re
-               . qr{(?:/|\Z|(?=/))}
-    );
+    $profiles_native_api_root_url ||= URI->new('http://profiles.ucsf.edu/');
+    $legacy_profiles_root_urls //= [];
+
+    # derived
+    {
+        $profiles_profile_root_url = $profiles_native_api_root_url->clone;
+        $profiles_profile_root_url->path('/profile/');
+
+        $current_or_legacy_profiles_root_url_regexp = (
+                                        qr{https?://}
+                                            . Regexp::Assemble->new->add(
+                                            map { quotemeta( $_->host ) } (
+                                                  $profiles_native_api_root_url,
+                                                  @{$legacy_profiles_root_urls}
+                                            )
+                                            )->re
+                                            . qr{(?:/|\Z|(?=/))}
+        );
+    }
+
+    $json_obj = JSON->new->utf8->pretty(1);
+
+    $init_has_been_run = 1;
+    return 1;
 }
 
-my ( $i2c_cache, $c2j_cache, $url_cache, $c2positions_cache, $ua );
-my $json_obj = JSON->new->utf8->pretty(1);
+###############################################################################
 
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
+
+    initialize();
 
     my $canonical_url
         = identifier_to_canonical_url( $identifier_type, $identifier,
@@ -70,6 +87,8 @@ sub identifier_to_json {
 sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
+
+    initialize();
 
     unless ( defined $identifier and $identifier =~ m/\w/ ) {
         warn 'Unknown identifier: ' . dump($identifier), "\n";
