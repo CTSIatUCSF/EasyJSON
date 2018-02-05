@@ -12,66 +12,92 @@ use utf8;
 use strict;
 use warnings;
 
-plan tests => 81;
+plan tests => 82;
 
 # looking up users by different identifiers
 
-is( identifier_to_canonical_url( 'ProfilesNodeID', '370974' ),
+is( identifier_to_canonical_url( 'ProfilesNodeID', '370974',
+                                 { cache => 'never' }
+    ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using ProfilesNodeID'
 );
-is( identifier_to_canonical_url( 'FNO', 'anirvan.chatterjee@ucsf.edu' ),
+is( identifier_to_canonical_url( 'FNO',
+                                 'anirvan.chatterjee@ucsf.edu',
+                                 { cache => 'never' }
+    ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using FNO'
 );
-is( identifier_to_canonical_url( 'EmployeeID', '028272045' ),
+is( identifier_to_canonical_url( 'EmployeeID', '028272045',
+                                 { cache => 'never' }
+    ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using EmployeeID'
 );
-is( identifier_to_canonical_url( 'Person', '5396511' ),
+is( identifier_to_canonical_url( 'Person', '5396511', { cache => 'never' } ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using Person ID'
 );
-is( identifier_to_canonical_url( 'PrettyURL', 'anirvan.chatterjee' ),
+is( identifier_to_canonical_url( 'PrettyURL', 'anirvan.chatterjee',
+                                 { cache => 'never' }
+    ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using standalone pretty URL name'
 );
-is( identifier_to_canonical_url( 'PrettyURL', 'Anirvan.Chatterjee' ),
+is( identifier_to_canonical_url( 'PrettyURL', 'Anirvan.Chatterjee',
+                                 { cache => 'never' }
+    ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using standalone pretty URL name (incorrect case)'
 );
 is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/anirvan.chatterjee'
+                                 'http://profiles.ucsf.edu/anirvan.chatterjee',
+                                 { cache => 'never' }
     ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using URL (pretty)'
 );
 is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/michael.reyes.2'
+                                 'http://profiles.ucsf.edu/michael.reyes.2',
+                                 { cache => 'never' }
     ),
     'http://profiles.ucsf.edu/profile/369982',
     'identifier_to_canonical_url, using URL (pretty, with number)'
 );
 is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/profile/370974'
+                                 'http://profiles.ucsf.edu/profile/370974',
+                                 { cache => 'never' }
     ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using URL (canonical)'
 );
 is( identifier_to_canonical_url(
-                   'URL',
-                   'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
+                  'URL',
+                  'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
+                  { cache => 'never' },
     ),
     'http://profiles.ucsf.edu/profile/370974',
     'identifier_to_canonical_url, using URL (historical)'
 );
+is( identifier_to_canonical_url(
+                 'URL',
+                 'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
+                 { cache => 'never' },
+    ),
+    'http://profiles.ucsf.edu/profile/370974',
+    'identifier_to_canonical_url, using URL (historical+SSL)'
+);
 
 {
     local $SIG{__WARN__} = sub { };    # override warnings
-    is( identifier_to_canonical_url( 'Person', '4617024' ),
-        undef, 'identifier_to_canonical_url, with an outdated person' );
+    is( identifier_to_canonical_url( 'Person', '4617024', { cache => 'never' }
+        ),
+        undef,
+        'identifier_to_canonical_url, with an outdated person'
+    );
 }
-is( identifier_to_canonical_url( 'Person', '5195436' ),
+is( identifier_to_canonical_url( 'Person', '5195436', { cache => 'never' } ),
     'http://profiles.ucsf.edu/profile/141411399',
     'identifier_to_canonical_url, regression testing person among formerly broken set',
 );
