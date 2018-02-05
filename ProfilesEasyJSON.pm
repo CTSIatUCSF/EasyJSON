@@ -126,17 +126,17 @@ sub identifier_to_canonical_url {
         } elsif ( $identifier_type eq 'URL' ) {
             if ( $identifier
                 =~ m{$current_or_legacy_profiles_root_url_regexp/ProfileDetails\.aspx\?Person=(\d+)$}
-                ) {
+            ) {
                 $identifier      = $1;
                 $identifier_type = 'Person';
             } elsif ( $identifier
                 =~ m{^$current_or_legacy_profiles_root_url_regexp/([a-zA-Z][a-z-\.]+\d*)$}
-                ) {
+            ) {
                 $identifier      = lc $1;
                 $identifier_type = 'PrettyURL';
             } elsif ( $identifier
                 =~ m{^$current_or_legacy_profiles_root_url_regexp/profile/(\d+)$}
-                ) {
+            ) {
                 return $identifier;    # if passed a canonical URL, return it
             } elsif ( $identifier =~ m{^\Q$profiles_profile_root_url\E(\d+)$} )
             {
@@ -255,7 +255,7 @@ sub canonical_url_to_json {
     unless ( defined $canonical_url
         and $canonical_url
         =~ m{^(?:http://profiles.ucsf.edu/profile/|\Q$profiles_profile_root_url\E)(\d+)$}
-        ) {
+    ) {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
@@ -433,7 +433,7 @@ sub canonical_url_to_json {
                         'faxNumber',      'latitude',
                         'longitude',      'mainImage',
                         'preferredTitle', 'personInPrimaryPosition'
-        ) {
+    ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = $person->{$field}->[0];
         }
@@ -450,7 +450,7 @@ sub canonical_url_to_json {
     foreach my $field ( 'hasResearchArea',  'awardOrHonor',
                         'personInPosition', 'educationalTraining',
                         'hasResearcherRole'
-        ) {
+    ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
         } elsif ( !ref $person->{$field} or ref $person->{$field} ne 'ARRAY' ) {
@@ -471,7 +471,7 @@ sub canonical_url_to_json {
                         'hasNIHGrantList',         'hasTwitter',
                         'hasSlideShare',           'hasMediaLinks',
                         'hasVideos',
-        ) {
+    ) {
 
         if (     $person->{$field}
              and $person->{$field}
@@ -526,7 +526,7 @@ sub canonical_url_to_json {
                         if ( defined $item->{'applicationInstanceDataValue'}
                              and (    defined $item->{'label'}
                                    or defined $item->{'rdfs:label'} )
-                            ) {
+                        ) {
 
                             my $item_data
                                 = $item->{'applicationInstanceDataValue'};
@@ -648,7 +648,7 @@ sub canonical_url_to_json {
                   and ( $person->{'longitude'} == 0 )
                )
          )
-        ) {
+    ) {
         @lat_lon = ( $person->{'latitude'} + 0, $person->{'longitude'} + 0 );
     }
 
@@ -1135,7 +1135,7 @@ sub canonical_url_to_json {
                            eval {
                                $orng_data{'hasMediaLinks'}->{links};
                            }
-                           ) {
+                       ) {
                            my $raw_json = $orng_data{'hasMediaLinks'}->{links};
                            if ( utf8::is_utf8($raw_json) ) {
                                $raw_json = Encode::encode_utf8($raw_json);
@@ -1279,7 +1279,7 @@ sub canonical_url_to_json {
                                                or ( $award_id
                                                    =~ m/\d[A-Z]\d+[A-Z][A-Z]-\d+/
                                                )
-                                               ) {
+                                           ) {
                                                $grant->{Sponsor} = 'NIH';
                                                $grant->{api_notes}
                                                    = "we're not 100% sure of sponsor, but NIH is likely";
@@ -1431,7 +1431,7 @@ sub verify_cache_object_policy {
                  $how_many_days_old_cached_data_can_we_return * $seconds_per_day
              )
          )
-        ) {
+    ) {
         return 1;
     }
 
