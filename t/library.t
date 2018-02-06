@@ -13,6 +13,8 @@ use utf8;
 use strict;
 use warnings;
 
+my $anirvans_profile_node_url = 'http://profiles.ucsf.edu/profile/370974';
+
 plan tests => 88;
 
 # looking up users by different identifiers
@@ -20,43 +22,43 @@ plan tests => 88;
 is( identifier_to_canonical_url( 'ProfilesNodeID', '370974',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using ProfilesNodeID'
 );
 is( identifier_to_canonical_url( 'FNO',
                                  'anirvan.chatterjee@ucsf.edu',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using FNO'
 );
 is( identifier_to_canonical_url( 'EmployeeID', '028272045',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EmployeeID'
 );
 is( identifier_to_canonical_url( 'Person', '5396511', { cache => 'never' } ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using Person ID'
 );
 is( identifier_to_canonical_url( 'PrettyURL', 'anirvan.chatterjee',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name'
 );
 is( identifier_to_canonical_url( 'PrettyURL', 'Anirvan.Chatterjee',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name (incorrect case)'
 );
 is( identifier_to_canonical_url( 'URL',
                                  'http://profiles.ucsf.edu/anirvan.chatterjee',
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (pretty)'
 );
 is( identifier_to_canonical_url( 'URL',
@@ -67,10 +69,10 @@ is( identifier_to_canonical_url( 'URL',
     'identifier_to_canonical_url, using URL (pretty, with number)'
 );
 is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/profile/370974',
+                                 $anirvans_profile_node_url,
                                  { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (canonical)'
 );
 is( identifier_to_canonical_url(
@@ -78,7 +80,7 @@ is( identifier_to_canonical_url(
                   'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
                   { cache => 'never' },
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (historical)'
 );
 is( identifier_to_canonical_url(
@@ -86,7 +88,7 @@ is( identifier_to_canonical_url(
                  'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
                  { cache => 'never' },
     ),
-    'http://profiles.ucsf.edu/profile/370974',
+    $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (historical+SSL)'
 );
 
@@ -105,7 +107,7 @@ is( identifier_to_canonical_url( 'Person', '5195436', { cache => 'never' } ),
 
 {
     my $test_name = 'Anirvan Chatterjee';
-    my $json = canonical_url_to_json('http://profiles.ucsf.edu/profile/370974');
+    my $json      = canonical_url_to_json($anirvans_profile_node_url);
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -137,7 +139,7 @@ SKIP: {
 {
     my $test_name = 'Anirvan Chatterjee, force cache';
     my $json =
-        canonical_url_to_json( 'http://profiles.ucsf.edu/profile/370974',
+        canonical_url_to_json( $anirvans_profile_node_url,
                                { cache => 'always' } );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
@@ -427,8 +429,8 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Eric Meeks';
-    my $json = identifier_to_json( 'PrettyURL', 'eric.meeks' );
+    my $test_name = 'Brian Turner';
+    my $json = identifier_to_json( 'PrettyURL', 'brian.turner' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
