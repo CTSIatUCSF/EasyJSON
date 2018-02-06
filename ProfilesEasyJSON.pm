@@ -30,11 +30,9 @@ our ( $profiles_native_api_root_url, $legacy_profiles_root_urls );
 
 # globals
 my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp,
-     $i2c_cache, $c2j_cache, $url_cache, $c2positions_cache, $ua, $json_obj );
+     $ua );
 
-sub initialize {
-    state $init_has_been_run = 0;
-    return if $init_has_been_run;
+BEGIN {
 
     $profiles_native_api_root_url ||= URI->new('http://profiles.ucsf.edu/');
     $legacy_profiles_root_urls //= [];
@@ -56,10 +54,17 @@ sub initialize {
         );
     }
 
-    $json_obj = JSON->new->utf8->pretty(1);
+    $ua = LWP::UserAgent->new;
+    $ua->timeout(5);
 
-    $init_has_been_run = 1;
-    return 1;
+    # Profiles has bot detection that interferes with some
+    # downloads so we're trying to add some random spaces to the
+    # useragent.
+    my $agent_string
+        = 'UCSF Profiles EasyJSON Interface 1.3; anirvan dot chatterjee at ucsf dot edu)';
+    1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
+    $agent_string = "Mozilla/5.0 ($agent_string)";
+    $ua->agent($agent_string);
 }
 
 ###############################################################################
@@ -67,8 +72,6 @@ sub initialize {
 sub identifier_to_json {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
-
-    initialize();
 
     my $canonical_url
         = identifier_to_canonical_url( $identifier_type, $identifier,
@@ -88,15 +91,13 @@ sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
 
-    initialize();
-
     unless ( defined $identifier and $identifier =~ m/\w/ ) {
         warn 'Unknown identifier: ' . dump($identifier), "\n";
         return;
     }
 
     # Identifier to Canonical URL cache
-    $i2c_cache ||= CHI->new(
+    state $i2c_cache ||= CHI->new(
                    driver    => 'File',
                    namespace => 'Profiles JSON API identifier_to_canonical_url',
                    expires_variance => 0.25,
@@ -184,7 +185,6 @@ sub identifier_to_canonical_url {
             . uri_escape($identifier_type) . '='
             . uri_escape($identifier);
 
-        _init_ua() unless $ua;
         my $response = $ua->get($url);
 
         # if there was an error loading the content, figure out an error message
@@ -272,16 +272,15 @@ sub canonical_url_to_json {
     }
 
     unless ( defined $canonical_url
-        and $canonical_url
-        =~ m{^(?:http://profiles.ucsf.edu/profile/|\Q$profiles_profile_root_url\E)(\d+)$}
-    ) {
+           and $canonical_url
+           =~ m{$current_or_legacy_profiles_root_url_regexp/?profile/(\d+)$} ) {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
     my $node_id = $1;
 
     # Canonical URL to JSON cache
-    $c2j_cache ||= CHI->new(
+    state $c2j_cache ||= CHI->new(
                driver    => 'File',
                namespace => 'Profiles JSON API canonical_url_to_json URL cache',
                expires_variance => 0.25,
@@ -292,6 +291,7 @@ sub canonical_url_to_json {
         . 'ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
         . $node_id;
 
+    state $json_obj = JSON->new->utf8->pretty(1);
     my $raw_json;
     my $decoded_json;
 
@@ -324,7 +324,6 @@ sub canonical_url_to_json {
     # allowed to do an HTTP lookup, then go do it
 
     if ( !$decoded_json and $options->{cache} ne 'always' ) {
-        _init_ua() unless $ua;
         my $response = $ua->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
@@ -478,7 +477,7 @@ sub canonical_url_to_json {
     }
 
     my %orng_data;
-    $url_cache ||= CHI->new(
+    state $url_cache ||= CHI->new(
                 driver    => 'File',
                 namespace => 'Profiles JSON API cache of raw Profiles API URLs',
                 expires_variance => 0.25,
@@ -494,7 +493,8 @@ sub canonical_url_to_json {
 
         if (     $person->{$field}
              and $person->{$field}
-             =~ m{^http://profiles.ucsf.edu/profile/(\d+)$} ) {
+             =~ m{$current_or_legacy_profiles_root_url_regexp/?profile/(\d+)$} )
+        {
 
             my $field_jsonld_url
                 = $profiles_native_api_root_url
@@ -506,7 +506,6 @@ sub canonical_url_to_json {
 
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
-                _init_ua() unless $ua;
                 my $field_jsonld_response = $ua->get($field_jsonld_url);
                 if ( $field_jsonld_response->is_success ) {
                     $raw_json_for_field
@@ -681,7 +680,6 @@ sub canonical_url_to_json {
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
-            _init_ua() unless $ua;
             my $vcard_response = $ua->get($vcard_url);
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
@@ -717,12 +715,12 @@ sub canonical_url_to_json {
     # Every once in a while, Profiles craps out and loses all
     # school/department/title data. In that case, we'll try to use
     # cached data.
-    $c2positions_cache ||= CHI->new(
-                    driver    => 'File',
-                    namespace => 'Profiles JSON API canonical_url_to_positions',
-                    expires_in       => '5 days',
-                    expires_variance => 0.25,
-    );
+    state $c2positions_cache ||=
+        CHI->new( driver     => 'File',
+                  namespace  => 'Profiles JSON API canonical_url_to_positions',
+                  expires_in => '5 days',
+                  expires_variance => 0.25,
+        );
 
     my $final_data = {
         Profiles => [
@@ -1409,25 +1407,6 @@ sub canonical_url_to_json {
 
     my $out = $json_obj->encode($final_data);
     return $out;
-}
-
-###############################################################################
-
-sub _init_ua {
-    unless ($ua) {
-        $ua = LWP::UserAgent->new;
-        $ua->timeout(5);
-
-        # Profiles has bot detection that interferes with some
-        # downloads so we're trying to add some random spaces to the
-        # useragent.
-        my $agent_string
-            = 'UCSF Profiles EasyJSON Interface 1.3; anirvan dot chatterjee at ucsf dot edu)';
-        1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
-        $agent_string = "Mozilla/5.0 ($agent_string)";
-
-        $ua->agent($agent_string);
-    }
 }
 
 ###############################################################################
