@@ -32,7 +32,10 @@ our ( $profiles_native_api_root_url, $legacy_profiles_root_urls );
 my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp,
      $ua );
 
-BEGIN {
+sub init {
+
+    state $init_run = 0;
+    return if $init_run;
 
     $profiles_native_api_root_url ||= URI->new('http://profiles.ucsf.edu/');
     $legacy_profiles_root_urls //= [];
@@ -57,14 +60,15 @@ BEGIN {
     $ua = LWP::UserAgent->new;
     $ua->timeout(5);
 
-    # Profiles has bot detection that interferes with some
-    # downloads so we're trying to add some random spaces to the
-    # useragent.
+    # Profiles has bot detection that interferes with some downloads
+    # so we're trying to add some random spaces to the useragent.
     my $agent_string
         = 'UCSF Profiles EasyJSON Interface 1.3; anirvan dot chatterjee at ucsf dot edu)';
     1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
     $agent_string = "Mozilla/5.0 ($agent_string)";
     $ua->agent($agent_string);
+
+    $init_run = 1;
 }
 
 ###############################################################################
@@ -90,6 +94,8 @@ sub identifier_to_json {
 sub identifier_to_canonical_url {
     my ( $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
+
+    init();
 
     unless ( defined $identifier and $identifier =~ m/\w/ ) {
         warn 'Unknown identifier: ' . dump($identifier), "\n";
@@ -185,6 +191,8 @@ sub identifier_to_canonical_url {
             . uri_escape($identifier_type) . '='
             . uri_escape($identifier);
 
+        warn $url;
+
         my $response = $ua->get($url);
 
         # if there was an error loading the content, figure out an error message
@@ -270,6 +278,8 @@ sub canonical_url_to_json {
              and $options->{cache} =~ m/^(fallback|always|never)$/ ) {
         $options->{cache} = 'fallback';
     }
+
+    init();
 
     unless ( defined $canonical_url
            and $canonical_url
