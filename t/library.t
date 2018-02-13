@@ -171,7 +171,7 @@ SKIP: {
                               'http://profiles.ucsf.edu/jennifer.grandis' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
-        skip "$test_name: got back no JSON", 3 unless $json;
+        skip "$test_name: got back no JSON", 12 unless $json;
         my $data = decode_json($json);
         like( $data->{Profiles}->[0]->{Name}, qr/Grandis/, 'Jenny name' );
         like( $data->{Profiles}->[0]->{Department},
@@ -256,7 +256,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 6 unless $json;
+        skip "$test_name: got back no JSON", 7 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Name},
@@ -326,7 +326,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 3 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 10, "$test_name: Got enough publications" );
@@ -369,12 +369,14 @@ SKIP: {
 
 {
     my $test_name = 'Leslie Yuan';
-    my $json
-        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/leslie.yuan' );
+    my $json =
+        identifier_to_json( 'URL',
+                            'http://profiles.ucsf.edu/leslie.yuan',
+                            { cache => 'never' } );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 5, "$test_name: Got enough publications" );
@@ -391,7 +393,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 5, "$test_name: Got enough publications" );
@@ -518,7 +520,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
 
         is( ref( $data->{Profiles}->[0]->{ResearchActivitiesAndFunding} ),
@@ -536,8 +538,13 @@ SKIP: {
 
 {
     my $test_name = 'Bad identifier_to_json identifier should fail';
-    warnings_exist( sub { identifier_to_json( 'Fail', { cache => 'never' } ) },
-                    [qr/\w/], "$test_name: Failed?" );
+    warnings_exist(
+        sub {
+            identifier_to_json( 'Fail', 99, { cache => 'never' } );
+        },
+        [ qr/Fail/i, qr/99/ ],
+        "$test_name: Failed?"
+    );
 }
 {
     my $test_name
