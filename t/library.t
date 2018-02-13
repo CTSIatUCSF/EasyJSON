@@ -7,7 +7,7 @@ use ProfilesEasyJSON
     qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 use Test::More;
 use Test::NoWarnings;
-use Test::Warn;
+use Test::Warn 0.31;
 binmode STDOUT, ':utf8';
 use utf8;
 use strict;
