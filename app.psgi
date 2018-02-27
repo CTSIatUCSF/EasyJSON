@@ -1,11 +1,11 @@
 #!/usr/bin/perl
 
-use lib '.';
+use lib 'lib';
 use CGI::PSGI;
 use Data::Dump qw( dump );
 use Encode qw( decode_utf8 );
 use JSON qw( encode_json );
-use ProfilesEasyJSON qw( identifier_to_json );
+use ProfilesEasyJSON::ClassicUCSF;
 use 5.8.8;
 use utf8;
 use strict;
@@ -18,6 +18,8 @@ my %valid_types = ( FNO             => 'FNO',
                     ProfilesNodeID  => 'ProfilesNodeID',
                     URL             => 'URL'
 );
+
+my $api = ProfilesEasyJSON::ClassicUCSF->new;
 
 my $app = sub {
     my $env = shift;
@@ -81,13 +83,15 @@ my $app = sub {
 
         my $error_string = '';
         $SIG{__WARN__} = sub { $error_string = $_[0]; chomp $error_string; };
-        $json = identifier_to_json( $identifier_type, $identifier, $options );
+        $json = $api->identifier_to_json( $identifier_type, $identifier,
+                                          $options );
         delete $SIG{__WARN__};
 
         unless ($json) {
             $error = { error => $error_string || 'Unknown error' };
-            if ($error_string =~ m/Tried to look up user.*but got no results/i )
-            {
+            if ( $error_string
+                =~ m/Tried to look up user.*but got no results|Could not look up identifier/i
+            ) {
                 $http_status = "404 Could not find user";
             }
         }

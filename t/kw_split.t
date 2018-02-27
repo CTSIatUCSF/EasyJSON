@@ -1,6 +1,6 @@
 #!perl
 
-use lib '.', '..';
+use lib 'lib', '../lib';
 use Data::Dump;
 use String::Util qw( trim );
 use Test::More;

@@ -1,6 +1,6 @@
 #!perl
 
-use lib '.', '..';
+use lib 'lib', '../lib';
 use HTTP::Request::Common;
 use JSON qw( decode_json );
 use Plack::Test;

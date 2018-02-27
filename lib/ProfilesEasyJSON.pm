@@ -7,84 +7,135 @@ package ProfilesEasyJSON;
 use CHI;
 use Data::Dump qw( dump );
 use Data::Visitor::Callback;
+use Digest::MD5 qw( md5_base64 );
 use Encode qw( encode );
 use HTTP::Message 6.06;
 use JSON;
 use List::MoreUtils qw( uniq );
 use LWP::UserAgent 6.0;
+use Moo;
 use Regexp::Assemble;
 use String::Util qw( trim );
+use Types::Standard 1.002001
+    qw( ArrayRef ClassName InstanceOf Maybe RegexpRef );
 use URI;
 use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
 use 5.10.0;
-use parent qw( Exporter );
-use strict;
+use namespace::clean;
 use utf8;
-use warnings;
-our @EXPORT_OK
-    = qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
 
-# configurable constants
-our ( $profiles_native_api_root_url, $legacy_profiles_root_urls );
+###############################################################################
 
-# globals
-my ( $profiles_profile_root_url, $current_or_legacy_profiles_root_url_regexp,
-     $ua );
+# This is the domain that runs the site, where centralized URIs are
+# based off of, e.g. base.researchprofiles.org
+has 'root_domain' => ( is       => 'ro',
+                       required => 1,
+                       isa      => InstanceOf ['URI']
+);
 
-sub init {
+# This is the domain that users see, and that we hit for API calls.
+has 'themed_base_domain' => ( is  => 'lazy',
+                              isa => InstanceOf ['URI'] );
 
-    state $init_run = 0;
-    return if $init_run;
+sub _build_themed_base_domain {
+    my $self = shift;
+    return $self->root_domain;
+}
 
-    $profiles_native_api_root_url ||= URI->new('http://profiles.ucsf.edu/');
-    $legacy_profiles_root_urls //= [];
+# We use this if there are one or more old domains that were
+# previously used. We look at these hosts to see if a URL is ours.
+has 'legacy_root_domains' => ( is  => 'ro',
+                               isa => ArrayRef [ InstanceOf ['URI'] ],
+                               default => sub { [] },
+);
 
-    # derived
-    {
-        $profiles_profile_root_url = $profiles_native_api_root_url->clone;
-        $profiles_profile_root_url->path('/profile/');
+# We use this as the root to construct example URLs during error
+# messages, etc. In most cases, this should be the same as the
+# themed_base_domain, but that doesn't always make sense. If this is
+# customized, we should almost always make sure that this is included
+# in the list of legacy_root_domains.
+has 'example_url_domain' => ( is => 'lazy', isa => InstanceOf ['URI'] );
 
-        $current_or_legacy_profiles_root_url_regexp = (
-                                        qr{https?://}
-                                            . Regexp::Assemble->new->add(
-                                            map { quotemeta( $_->host ) } (
-                                                  $profiles_native_api_root_url,
-                                                  @{$legacy_profiles_root_urls}
-                                            )
-                                            )->re
-                                            . qr{(?:/|\Z|(?=/))}
-        );
-    }
+sub _build_example_url_domain {
+    my $self = shift;
+    return $self->themed_base_domain;
+}
 
-    $ua = LWP::UserAgent->new;
+has 'id' => ( is => 'lazy' );
+
+sub _build_id {
+    my $self   = shift;
+    my $string = join( ' - ',
+                       $self->root_domain->canonical,
+                       $self->themed_base_domain->canonical,
+                       $self->example_url_domain->canonical,
+                       ( ref $self ),
+    );
+    return md5_base64($string);
+}
+
+has 'themed_base_domain_profile_root' =>
+    ( is => 'lazy', isa => InstanceOf ['URI'] );
+
+sub _build_themed_base_domain_profile_root {
+    my $self = shift;
+    my $url  = $self->themed_base_domain->clone;
+    $url->path('/profile/');
+    return $url;
+}
+
+has _ua => ( is  => 'lazy',
+             isa => InstanceOf ['LWP::UserAgent'] );
+
+sub _build__ua {
+    my $ua = LWP::UserAgent->new;
     $ua->timeout(5);
 
     # Profiles has bot detection that interferes with some downloads
     # so we're trying to add some random spaces to the useragent.
-    my $agent_string
-        = 'UCSF Profiles EasyJSON Interface 1.3; anirvan dot chatterjee at ucsf dot edu)';
+    my $agent_string = 'Profiles EasyJSON Interface 2.0';
     1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
     $agent_string = "Mozilla/5.0 ($agent_string)";
     $ua->agent($agent_string);
 
-    $init_run = 1;
+    return $ua;
+}
+
+###############################################################################
+
+# globals
+has 'current_or_legacy_profiles_root_url_regexp' => ( is  => 'lazy',
+                                                      isa => RegexpRef );
+
+sub _build_current_or_legacy_profiles_root_url_regexp {
+    my $self     = shift;
+    my $hosts_re = Regexp::Assemble->new;
+    for my $url ( $self->root_domain, $self->themed_base_domain,
+                  @{ $self->legacy_root_domains } ) {
+        $hosts_re->add( $url->host );
+    }
+    return qr{^https?://$hosts_re};
 }
 
 ###############################################################################
 
 sub identifier_to_json {
-    my ( $identifier_type, $identifier, $options ) = @_;
+    my ( $self, $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
 
-    my $canonical_url
-        = identifier_to_canonical_url( $identifier_type, $identifier,
-                                       $options );
+    my $canonical_url =
+        $self->identifier_to_canonical_url( $identifier_type, $identifier,
+                                            $options );
     if ($canonical_url) {
-        my $json = canonical_url_to_json( $canonical_url, $options );
+        my $json = $self->canonical_url_to_json( $canonical_url, $options );
         if ($json) {
             return $json;
+        } else {
+            warn 'Could not retrieve JSON for: ' . dump($identifier), "\n";
         }
+    } else {
+        warn 'Could not look up identifier: ' . dump($identifier), "\n";
     }
     return;
 }
@@ -92,10 +143,8 @@ sub identifier_to_json {
 # given an identifier (like an FNO), returns the canonical Profiles URL
 # (may return old cached results)
 sub identifier_to_canonical_url {
-    my ( $identifier_type, $identifier, $options ) = @_;
+    my ( $self, $identifier_type, $identifier, $options ) = @_;
     $options ||= {};
-
-    init();
 
     unless ( defined $identifier and $identifier =~ m/\w/ ) {
         warn 'Unknown identifier: ' . dump($identifier), "\n";
@@ -110,13 +159,13 @@ sub identifier_to_canonical_url {
     );
 
     my $cache_key = join "\t", ( $identifier_type || '' ),
-        ( $identifier || '' );
+        ( $identifier || '' ), $self->id;
 
     # cache_key should usually work, but in case the identifier is
     # something like "John.Smith" we actually want to check to see if
     # we can match that against "john.smith"
     my $cache_key_alt = join "\t", ( $identifier_type || '' ),
-        lc( $identifier || '' );
+        lc( $identifier || '' ), $self->id;
 
     unless ( $options->{cache} and $options->{cache} eq 'never' ) {
         my $canonical_url = $i2c_cache->get($cache_key);
@@ -124,12 +173,12 @@ sub identifier_to_canonical_url {
             $canonical_url = $i2c_cache->get($cache_key_alt);
         }
         if ($canonical_url) {
-            return $canonical_url;
+            return URI->new($canonical_url);
         }
     }
 
-    # Canonical URL was not a valid cache entry
-    # Need to retrieve from server
+    # couldn't find the canonical URL via the cache,
+    # so we need to retrieve from the server
 
     my $node_uri;
 
@@ -138,11 +187,12 @@ sub identifier_to_canonical_url {
          or $identifier_type eq 'EmployeeID'
          or $identifier_type eq 'PrettyURL'
          or $identifier_type eq 'ProfilesNodeID'
+         or $identifier_type eq 'UserName'
          or $identifier_type eq 'URL' ) {
 
         if ( $identifier_type eq 'ProfilesNodeID' ) {
             if ( $identifier =~ m/^(\d\d+)$/ ) {
-                return "$profiles_profile_root_url$1";
+                return URI->new( $self->root_domain . 'profile/' . $1 );
             } else {
                 warn "Expected to see an all-numeric ProfilesNodeID\n";
                 return;
@@ -150,6 +200,11 @@ sub identifier_to_canonical_url {
         } elsif ( $identifier_type eq 'PrettyURL' ) {
             $identifier = lc $identifier;
         } elsif ( $identifier_type eq 'URL' ) {
+
+            my $profile_root_url = $self->themed_base_domain_profile_root;
+            my $current_or_legacy_profiles_root_url_regexp
+                = $self->current_or_legacy_profiles_root_url_regexp;
+
             if ( $identifier
                 =~ m{$current_or_legacy_profiles_root_url_regexp/ProfileDetails\.aspx\?Person=(\d+)$}
             ) {
@@ -163,13 +218,15 @@ sub identifier_to_canonical_url {
             } elsif ( $identifier
                 =~ m{^$current_or_legacy_profiles_root_url_regexp/profile/(\d+)$}
             ) {
-                return $identifier;    # if passed a canonical URL, return it
-            } elsif ( $identifier =~ m{^\Q$profiles_profile_root_url\E(\d+)$} )
-            {
-                return $identifier;    # if passed a canonical URL, return it
+                return URI->new($identifier)
+                    ;    # if passed a canonical URL, return it
+            } elsif ( $identifier =~ m{$profile_root_url(\d+)$} ) {
+                return URI->new($identifier)
+                    ;    # if passed a canonical URL, return it
             } else {
+                my $example_root = $self->example_url_domain;
                 warn 'Unrecognized URL ', dump($identifier),
-                    ' (was expecting something like "http://profiles.ucsf.edu/clay.johnston" or "http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5036574")',
+                    ' (was expecting something like "${example_root}clay.johnston" or "${example_root}ProfileDetails.aspx?Person=5036574")',
                     "\n";
                 return;
             }
@@ -186,14 +243,10 @@ sub identifier_to_canonical_url {
             }
         }
 
-        my $url
-            = "${profiles_native_api_root_url}CustomAPI/v2/Default.aspx?"
-            . uri_escape($identifier_type) . '='
-            . uri_escape($identifier);
-
-        warn $url;
-
-        my $response = $ua->get($url);
+        my $url = $self->themed_base_domain->clone;
+        $url->path('CustomAPI/v2/Default.aspx');
+        $url->query_form( { $identifier_type => $identifier } );
+        my $response = $self->_ua->get($url);
 
         # if there was an error loading the content, figure out an error message
 
@@ -231,7 +284,7 @@ sub identifier_to_canonical_url {
                         $node_uri = $potential_expired_cache_object->value();
                         if ($node_uri) {
                             $error_warning = undef;
-                            return $node_uri;
+                            return URI->new($node_uri);
                         }
                     }
                 }
@@ -249,7 +302,7 @@ sub identifier_to_canonical_url {
         if ( $raw =~ m{rdf:about="(http.*?)"} ) {
             $node_uri = $1;
             eval { $i2c_cache->set( $cache_key, $node_uri, '3 months' ) };
-            return $node_uri;
+            return URI->new($node_uri);
         } else {
             my $http_code = $response->code;
             my $excerpt = substr( ( $raw || '[UNDEF]' ), 0, 20 );
@@ -270,8 +323,9 @@ sub identifier_to_canonical_url {
 # (may return recent-ish cached results)
 sub canonical_url_to_json {
 
+    my $self          = shift;
     my $canonical_url = shift;
-    my $options = shift || {};
+    my $options       = shift || {};
     my @api_notes;
 
     unless (     $options->{cache}
@@ -279,11 +333,12 @@ sub canonical_url_to_json {
         $options->{cache} = 'fallback';
     }
 
-    init();
+    my $current_or_legacy_profiles_root_url_regexp
+        = $self->current_or_legacy_profiles_root_url_regexp;
 
     unless ( defined $canonical_url
-           and $canonical_url
-           =~ m{$current_or_legacy_profiles_root_url_regexp/?profile/(\d+)$} ) {
+             and $canonical_url
+             =~ m{$current_or_legacy_profiles_root_url_regexp/profile/(\d+)} ) {
         warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
@@ -296,10 +351,13 @@ sub canonical_url_to_json {
                expires_variance => 0.25,
     );
 
-    my $expanded_jsonld_url
-        = $profiles_native_api_root_url
-        . 'ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
-        . $node_id;
+    my $expanded_jsonld_url = $self->themed_base_domain->clone;
+    $expanded_jsonld_url->path('/ORNG/JSONLD/Default.aspx');
+    $expanded_jsonld_url->query_form( { expand      => 'true',
+                                        showdetails => 'true',
+                                        subject     => $node_id
+                                      }
+    );
 
     state $json_obj = JSON->new->utf8->pretty(1);
     my $raw_json;
@@ -307,8 +365,10 @@ sub canonical_url_to_json {
 
     # attempt to get it from the cache, if possible
     unless ( $options->{cache} eq 'never' ) {
-        my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
-        if ( $cache_object and verify_cache_object_policy($cache_object) ) {
+        my $cache_object
+            = $c2j_cache->get_object( $expanded_jsonld_url->as_string );
+
+        if ( $cache_object and _verify_cache_object_policy($cache_object) ) {
 
             $raw_json = $cache_object->value;
             $decoded_json = eval { $json_obj->decode($raw_json) };
@@ -334,7 +394,7 @@ sub canonical_url_to_json {
     # allowed to do an HTTP lookup, then go do it
 
     if ( !$decoded_json and $options->{cache} ne 'always' ) {
-        my $response = $ua->get($expanded_jsonld_url);
+        my $response = $self->_ua->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
             $raw_json = $response->decoded_content;
@@ -346,16 +406,16 @@ sub canonical_url_to_json {
                     . scalar(localtime);
 
                 eval {
-                    $c2j_cache->set( $expanded_jsonld_url, $raw_json,
-                                     '24 hours' );
+                    $c2j_cache->set( $expanded_jsonld_url->as_string,
+                                     $raw_json, '24 hours' );
                 };
             } else {
                 warn 'Loaded URL ', dump($expanded_jsonld_url),
                     " to look up JSON-LD, but JSON was either missing or invalid\n";
             }
         } else {    # if we got an error message from upstream
-            warn 'Could not load URL ', dump($expanded_jsonld_url),
-                ' to look up JSON-LD (', $response->status_line, ")\n";
+            warn "Could not load URL $expanded_jsonld_url to look up JSON-LD (",
+                $response->status_line, ")\n";
         }
     }
 
@@ -364,12 +424,16 @@ sub canonical_url_to_json {
 
     unless ( $raw_json and $decoded_json ) {
         if ( $options->{cache} ne 'never' ) {
-            if ( $c2j_cache->exists_and_is_expired($expanded_jsonld_url) ) {
+            if ( $c2j_cache->exists_and_is_expired(
+                                                 $expanded_jsonld_url->as_string
+                 )
+            ) {
 
-                my $cache_object = $c2j_cache->get_object($expanded_jsonld_url);
+                my $cache_object
+                    = $c2j_cache->get_object( $expanded_jsonld_url->as_string );
 
                 if ( $cache_object
-                     and verify_cache_object_policy($cache_object) ) {
+                     and _verify_cache_object_policy($cache_object) ) {
 
                     $raw_json = $cache_object->value || undef;
                     if ($raw_json) {
@@ -505,18 +569,22 @@ sub canonical_url_to_json {
              and $person->{$field}
              =~ m{$current_or_legacy_profiles_root_url_regexp/?profile/(\d+)$} )
         {
+            my $subject = $1;
 
-            my $field_jsonld_url
-                = $profiles_native_api_root_url
-                . 'ORNG/JSONLD/Default.aspx?expand=true&showdetails=true&subject='
-                . $1;
+            my $field_jsonld_url = $self->themed_base_domain->clone;
+            $field_jsonld_url->path('/ORNG/JSONLD/Default.aspx');
+            $field_jsonld_url->query_form( { expand      => 'true',
+                                             showdetails => 'true',
+                                             subject     => $subject
+                                           }
+            );
 
             # grab from cache, if available
             my $raw_json_for_field = $url_cache->get($field_jsonld_url);
 
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
-                my $field_jsonld_response = $ua->get($field_jsonld_url);
+                my $field_jsonld_response = $self->_ua->get($field_jsonld_url);
                 if ( $field_jsonld_response->is_success ) {
                     $raw_json_for_field
                         = $field_jsonld_response->decoded_content;
@@ -529,9 +597,12 @@ sub canonical_url_to_json {
 
             # ...or try to get from expired cache
             unless ($raw_json_for_field) {
-                if ( $url_cache->exists_and_is_expired($field_jsonld_url) ) {
+                if ( $url_cache->exists_and_is_expired(
+                                                    $field_jsonld_url->as_string
+                     )
+                ) {
                     my $potential_expired_cache_object
-                        = $url_cache->get_object($field_jsonld_url);
+                        = $url_cache->get_object($field_jsonld_url->as_string );
                     if ($potential_expired_cache_object) {
                         if ( $potential_expired_cache_object->value() ) {
                             $raw_json_for_field
@@ -598,9 +669,9 @@ sub canonical_url_to_json {
 
                 if ( defined $id and $id =~ m/^\d+$/ ) {
 
-                    $featured_publication_order_by_id{
-                        $profiles_profile_root_url . $id
-                    } = $featured_num;
+                    $featured_publication_order_by_id{ $self
+                            ->themed_base_domain_profile_root . $id }
+                        = $featured_num;
 
                 } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
 
@@ -683,25 +754,30 @@ sub canonical_url_to_json {
     # no email? see if it's publicly accessible via the vCard
     if ( !defined $person->{'email'} ) {
         my $vcard_url
-            = "${profiles_profile_root_url}modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id";
+            = URI->new( $self->themed_base_domain_profile_root
+             . "modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id"
+            );
 
         # grab from cache, if available
         my $raw_vcard = $url_cache->get($vcard_url);
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
-            my $vcard_response = $ua->get($vcard_url);
+            my $vcard_response = $self->_ua->get($vcard_url);
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
-                eval { $url_cache->set( $vcard_url, $raw_vcard, '1 week' ); };
+                eval {
+                    $url_cache->set( $vcard_url->as_string, $raw_vcard,
+                                     '1 week' );
+                };
             }
         }
 
         # ...or try to get from expired cache
         unless ($raw_vcard) {
-            if ( $url_cache->exists_and_is_expired($vcard_url) ) {
+            if ( $url_cache->exists_and_is_expired( $vcard_url->as_string ) ) {
                 my $potential_expired_cache_object
-                    = $url_cache->get_object($vcard_url);
+                    = $url_cache->get_object( $vcard_url->as_string );
                 if ($potential_expired_cache_object) {
                     if ( $potential_expired_cache_object->value() ) {
                         $raw_vcard = $potential_expired_cache_object->value();
@@ -737,8 +813,9 @@ sub canonical_url_to_json {
             {  Name        => $person->{'fullName'},
                FirstName   => $person->{'firstName'},
                LastName    => $person->{'lastName'},
-               ProfilesURL => ( $person->{'workplaceHomepage'}
-                                    || "$profiles_profile_root_url$node_id"
+               ProfilesURL => (
+                               $person->{'workplaceHomepage'}
+                            || $self->themed_base_domain_profile_root . $node_id
                ),
                Email   => $person->{'email'},
                Address => { Address1  => $address[0],
@@ -824,7 +901,8 @@ sub canonical_url_to_json {
                        if ( $img_url_segment =~ m/^http/ ) {
                            return $img_url_segment;
                        } else {
-                           return "$profiles_profile_root_url$img_url_segment";
+                           return $self->themed_base_domain_profile_root
+                               . $img_url_segment;
                        }
                    } else {
                        return undef;
@@ -1423,7 +1501,7 @@ sub canonical_url_to_json {
 
 # ensure that a cached object, expired or not, is never more than 14 days old
 # returns true if usable, false otherwise
-sub verify_cache_object_policy {
+sub _verify_cache_object_policy {
 
     my $how_many_days_old_cached_data_can_we_return = 14;
 

@@ -1,10 +1,9 @@
 #!perl
 
-use lib '.', '..';
+use lib 'lib', '../lib';
 use Data::Dump;
 use JSON qw( decode_json );
-use ProfilesEasyJSON
-    qw( identifier_to_json identifier_to_canonical_url canonical_url_to_json );
+use ProfilesEasyJSON::MegaUCSF;
 use Test::More;
 use Test::NoWarnings;
 use Test::Warn 0.31;
@@ -13,69 +12,80 @@ use utf8;
 use strict;
 use warnings;
 
-my $anirvans_profile_node_url = 'http://profiles.ucsf.edu/profile/370974';
+my $api = new ProfilesEasyJSON::MegaUCSF;
 
-plan tests => 88;
+my $anirvans_profile_node_url
+    = 'https://stage.researcherprofiles.org/profile/216065';
+my $patrick_philips_node_url
+    = 'https://stage.researcherprofiles.org/profile/6117617';
+
+plan tests => 115;
 
 # looking up users by different identifiers
 
-is( identifier_to_canonical_url( 'ProfilesNodeID', '370974',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'ProfilesNodeID', '370974',
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using ProfilesNodeID'
 );
-is( identifier_to_canonical_url( 'FNO',
-                                 'anirvan.chatterjee@ucsf.edu',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'FNO',
+                                       'anirvan.chatterjee@ucsf.edu',
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using FNO'
 );
-is( identifier_to_canonical_url( 'EmployeeID', '028272045',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'EmployeeID', '028272045',
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EmployeeID'
 );
-is( identifier_to_canonical_url( 'Person', '5396511', { cache => 'never' } ),
+is( $api->identifier_to_canonical_url( 'Person', '5396511',
+                                       { cache => 'never' }
+    ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using Person ID'
 );
-is( identifier_to_canonical_url( 'PrettyURL', 'anirvan.chatterjee',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'PrettyURL',
+                                       'anirvan.chatterjee',
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name'
 );
-is( identifier_to_canonical_url( 'PrettyURL', 'Anirvan.Chatterjee',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'PrettyURL',
+                                       'Anirvan.Chatterjee',
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name (incorrect case)'
 );
-is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/anirvan.chatterjee',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                                  'URL',
+                                  'http://profiles.ucsf.edu/anirvan.chatterjee',
+                                  { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (pretty)'
 );
-is( identifier_to_canonical_url( 'URL',
-                                 'http://profiles.ucsf.edu/michael.reyes.2',
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                                     'URL',
+                                     'http://profiles.ucsf.edu/michael.reyes.2',
+                                     { cache => 'never' }
     ),
     'http://profiles.ucsf.edu/profile/369982',
     'identifier_to_canonical_url, using URL (pretty, with number)'
 );
-is( identifier_to_canonical_url( 'URL',
-                                 $anirvans_profile_node_url,
-                                 { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'URL',
+                                       $anirvans_profile_node_url,
+                                       { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (canonical)'
 );
-is( identifier_to_canonical_url(
+is( $api->identifier_to_canonical_url(
                   'URL',
                   'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
                   { cache => 'never' },
@@ -83,7 +93,7 @@ is( identifier_to_canonical_url(
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (historical)'
 );
-is( identifier_to_canonical_url(
+is( $api->identifier_to_canonical_url(
                  'URL',
                  'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511',
                  { cache => 'never' },
@@ -94,20 +104,23 @@ is( identifier_to_canonical_url(
 
 {
     local $SIG{__WARN__} = sub { };    # override warnings
-    is( identifier_to_canonical_url( 'Person', '4617024', { cache => 'never' }
+    is( $api->identifier_to_canonical_url(
+                                       'Person', '4617024', { cache => 'never' }
         ),
         undef,
         'identifier_to_canonical_url, with an outdated person'
     );
 }
-is( identifier_to_canonical_url( 'Person', '5195436', { cache => 'never' } ),
-    'http://profiles.ucsf.edu/profile/141411399',
+is( $api->identifier_to_canonical_url( 'Person', '5195436',
+                                       { cache => 'never' }
+    ),
+    $patrick_philips_node_url,
     'identifier_to_canonical_url, regression testing person among formerly broken set',
 );
 
 {
     my $test_name = 'Anirvan Chatterjee';
-    my $json      = canonical_url_to_json($anirvans_profile_node_url);
+    my $json      = $api->canonical_url_to_json($anirvans_profile_node_url);
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -128,7 +141,7 @@ SKIP: {
 
         like(
             $data->{Profiles}->[0]->{ProfilesURL},
-            qr{^(http://profiles.ucsf.edu/profile/370974|http://profiles.ucsf.edu/anirvan.chatterjee)$},
+            qr{^(http://profiles.ucsf.edu/profile/370974|https?://(profiles.ucsf.edu|stage-ucsf\.researcherprofiles\.org)/anirvan.chatterjee)$},
             'Anirvan URL'
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
@@ -139,8 +152,8 @@ SKIP: {
 {
     my $test_name = 'Anirvan Chatterjee, force cache';
     my $json =
-        canonical_url_to_json( $anirvans_profile_node_url,
-                               { cache => 'always' } );
+        $api->canonical_url_to_json( $anirvans_profile_node_url,
+                                     { cache => 'always' } );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 2 unless $json;
@@ -158,7 +171,7 @@ SKIP: {
                       || ''
                ) =~ m/Chatterjee/
             ),
-            "$test_name: Anirvan's pub PublicationTitle includes his own names [regression]"
+            "$test_name: Anirvan's pub PublicationTitle includes his own name [regression]"
         );
 
     }
@@ -166,9 +179,8 @@ SKIP: {
 
 {
     my $test_name = 'Jennifer Grandis';
-    my $json
-        = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/jennifer.grandis' );
+    my $json      = $api->identifier_to_json( 'URL',
+                                  'http://profiles.ucsf.edu/jennifer.grandis' );
     ok( $json, "$test_name: got back JSON" );
 SKIP: {
         skip "$test_name: got back no JSON", 12 unless $json;
@@ -221,9 +233,10 @@ SKIP: {
     my $test_name = 'Daniel Lowenstein';
 
     my $canonical_url
-        = identifier_to_canonical_url( 'FNO', 'daniel.lowenstein@ucsf.edu' );
+        = $api->identifier_to_canonical_url( 'FNO',
+                                             'daniel.lowenstein@ucsf.edu' );
     like( $canonical_url, qr/^http/, "$test_name: got a canonical URL" );
-    my $json = canonical_url_to_json($canonical_url);
+    my $json = $api->canonical_url_to_json($canonical_url);
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -252,7 +265,8 @@ SKIP: {
 {
     my $test_name = 'Kirsten Bibbins-Domingo';
 
-    my $json = identifier_to_json( 'FNO', 'Kirsten.Bibbins-Domingo@ucsf.edu' );
+    my $json
+        = $api->identifier_to_json( 'FNO', 'Kirsten.Bibbins-Domingo@ucsf.edu' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -270,7 +284,7 @@ SKIP: {
 
         $data->{Profiles}->[0]->{FreetextKeywords} ||= [];
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
-              qr/Health disparities/i,
+              qr/health disparities/i,
               "$test_name: matching freetext keyword" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
                 '>=', 90, "$test_name: Got enough publications" );
@@ -287,9 +301,9 @@ SKIP: {
 {
     my $test_name = 'Kirsten Bibbins-Domingo no publications';
     my $json =
-        identifier_to_json( 'FNO',
-                            'Kirsten.Bibbins-Domingo@ucsf.edu',
-                            { no_publications => 1 } );
+        $api->identifier_to_json( 'FNO',
+                                  'Kirsten.Bibbins-Domingo@ucsf.edu',
+                                  { no_publications => 1 } );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -304,9 +318,9 @@ SKIP: {
 {
     my $test_name = 'Kirsten Bibbins-Domingo no publications';
     my $json =
-        identifier_to_json( 'FNO',
-                            'Kirsten.Bibbins-Domingo@ucsf.edu',
-                            { no_publications => 1 } );
+        $api->identifier_to_json( 'FNO',
+                                  'Kirsten.Bibbins-Domingo@ucsf.edu',
+                                  { no_publications => 1 } );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -322,7 +336,7 @@ SKIP: {
 # regression
 {
     my $test_name = 'Steve Shiboski';
-    my $json = identifier_to_json( 'Person', '5329027' );
+    my $json = $api->identifier_to_json( 'Person', '5329027' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -344,18 +358,16 @@ SKIP: {
         );
 
         like( $data->{Profiles}->[0]->{PhotoURL},
-              qr{^https?://profiles.ucsf.edu/},
-              "$test_name: Got photo, as expected"
-        );
+              qr{PhotoHandler\.ashx}, "$test_name: Got photo, as expected" );
     }
 }
 
 # regression
 {
     my $test_name = 'Aaloke Mody';
-    my $json      = identifier_to_json( 'URL',
-                                   'http://profiles.ucsf.edu/aaloke.mody',
-                                   { cache => 'never' } );
+    my $json      = $api->identifier_to_json( 'URL',
+                                         'http://profiles.ucsf.edu/aaloke.mody',
+                                         { cache => 'never' } );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -370,16 +382,16 @@ SKIP: {
 {
     my $test_name = 'Leslie Yuan';
     my $json =
-        identifier_to_json( 'URL',
-                            'http://profiles.ucsf.edu/leslie.yuan',
-                            { cache => 'never' } );
+        $api->identifier_to_json( 'URL',
+                                  'http://profiles.ucsf.edu/leslie.yuan',
+                                  { cache => 'never' } );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
-                '>=', 5, "$test_name: Got enough publications" );
+                '>=', 4, "$test_name: Got enough publications" );
 
         is_deeply( $data->{Profiles}->[0]->{GlobalHealth_beta},
                    {}, "$test_name: no global health experience" );
@@ -388,7 +400,7 @@ SKIP: {
 
 {
     my $test_name = 'George Rutherford';
-    my $json      = identifier_to_json( 'URL',
+    my $json      = $api->identifier_to_json( 'URL',
                                  'http://profiles.ucsf.edu/george.rutherford' );
     ok( $json, "$test_name: got back JSON" );
 
@@ -415,7 +427,7 @@ SKIP: {
 
 {
     my $test_name = 'Shinya Yamanaka';
-    my $json      = identifier_to_json( 'URL',
+    my $json      = $api->identifier_to_json( 'URL',
                                    'http://profiles.ucsf.edu/shinya.yamanaka' );
     ok( $json, "$test_name: got back JSON" );
 
@@ -432,7 +444,7 @@ SKIP: {
 
 {
     my $test_name = 'Brian Turner';
-    my $json = identifier_to_json( 'PrettyURL', 'brian.turner' );
+    my $json = $api->identifier_to_json( 'PrettyURL', 'brian.turner' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -453,9 +465,8 @@ SKIP: {
 
 {
     my $test_name = 'Harold Chapman';
-    my $json
-        = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/harold.chapman' );
+    my $json      = $api->identifier_to_json( 'URL',
+                                    'http://profiles.ucsf.edu/harold.chapman' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -469,7 +480,7 @@ SKIP: {
 
 {
     my $test_name = 'Andrew Auerbach';
-    my $json      = identifier_to_json( 'URL',
+    my $json      = $api->identifier_to_json( 'URL',
                                    'http://profiles.ucsf.edu/andrew.auerbach' );
     ok( $json, "$test_name: got back JSON" );
 
@@ -489,9 +500,8 @@ SKIP: {
 
 {
     my $test_name = 'Melinda Bender';
-    my $json
-        = identifier_to_json( 'URL',
-                              'http://profiles.ucsf.edu/melinda.bender' );
+    my $json      = $api->identifier_to_json( 'URL',
+                                    'http://profiles.ucsf.edu/melinda.bender' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -515,8 +525,8 @@ SKIP: {
 
 {
     my $test_name = 'Erin Van Blarigan';
-    my $json
-        = identifier_to_json( 'URL', 'http://profiles.ucsf.edu/erin.richman' );
+    my $json      = $api->identifier_to_json( 'URL',
+                                      'http://profiles.ucsf.edu/erin.richman' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -537,41 +547,148 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Bad identifier_to_json identifier should fail';
-    warnings_exist(
-        sub {
-            identifier_to_json( 'Fail', 99, { cache => 'never' } );
-        },
-        [ qr/Fail/i, qr/99/ ],
+    my $test_name = 'Min-Lin Fang';
+    my $json      = $api->identifier_to_json( 'URL',
+                                      'http://profiles.ucsf.edu/min-lin.fang' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 5 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},
+              qr/librar/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{Department},
+              qr/library/i, "$test_name: department" );
+        like( $data->{Profiles}->[0]->{Address}->{Telephone},
+              qr/^415-/i, "$test_name: telephone" );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^min-lin\.fang\@ucsf\.edu$/i,
+              "$test_name: email"
+        );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
+                '>=', 2, "$test_name: got 2+ publications" );
+    }
+}
+
+{
+    my $test_name = 'Michael Schembri';
+    my $json      = $api->identifier_to_json( 'URL',
+                                  'http://profiles.ucsf.edu/michael.schembri' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 8 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},
+              qr/analyst/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{Department},
+              qr/gyn/i, "$test_name: department" );
+        like( $data->{Profiles}->[0]->{Address}->{Telephone},
+              qr/^415-/i, "$test_name: telephone" );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^michael\.schembri\@ucsf\.edu$/i,
+              "$test_name: email" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
+                '>=', 2, "$test_name: got 2+ publications" );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
+            "$test_name: has 1+ web links" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
+                '>=', 1, "$test_name: got 1+ education items" );
+        like(
+            (  eval {
+                   $data->{Profiles}->[0]->{Education_Training}->[0]
+                       ->{organization};
+               } // ''
+            ),
+            qr/Davis/,
+            "$test_name: was educated at Davis"
+        );
+    }
+}
+
+{
+    my $test_name = 'Rupa Marya';
+    my $json      = $api->identifier_to_json( 'URL',
+                'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5389189' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 11 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},
+              qr/professor/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{School},
+              qr/Medicine/, "$test_name: school" );
+        like( $data->{Profiles}->[0]->{Department},
+              qr/Medicine/, "$test_name: department" );
+        like( $data->{Profiles}->[0]->{Address}->{Telephone},
+              qr/^415-/i, "$test_name: telephone" );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^rupa\.marya\@ucsf\.edu$/i, "$test_name: email" );
+        like( $data->{Profiles}->[0]->{Narrative},
+              qr/Do No Harm/, "$test_name: narrative" );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
+            "$test_name: has 1+ web links" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
+                '>=', 2, "$test_name: got 2+ education items" );
+        ok( eval {
+                grep { $_->{organization} =~ m/Georgetown/ }
+                    @{ $data->{Profiles}->[0]->{Education_Training} };
+            },
+            "$test_name: was educated at Georgetown"
+        );
+
+        like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
+              qr/racism|music/i, "$test_name: matching freetext keyword" );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
+                '>=', 3, "$test_name: Got enough in the news" );
+    }
+}
+
+{
+    my $test_name = 'Bad $api->identifier_to_json identifier should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->identifier_to_json( 'Fail', 99, { cache => 'never' } ),
+        undef, "$test_name: Failed?" );
+}
+{
+    my $test_name
+        = 'Bad $api->identifier_to_canonical_url identifier type should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->identifier_to_canonical_url( 'Fail', 'eric.meeks' ),
+        undef, "$test_name: Failed?" );
+}
+
+{
+    my $test_name
+        = 'Bad $api->identifier_to_canonical_url identifier should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->identifier_to_canonical_url( 'PrettyURL', undef ),
+        undef,
+
         "$test_name: Failed?"
     );
 }
 {
-    my $test_name
-        = 'Bad identifier_to_canonical_url identifier type should fail';
-    warnings_exist( sub { identifier_to_canonical_url( 'Fail', 'eric.meeks' ) },
-                    [qr/\w/], "$test_name: Failed?" );
-}
-
-{
-    my $test_name = 'Bad identifier_to_canonical_url identifier should fail';
-    warnings_exist( sub { identifier_to_canonical_url( 'PrettyURL', undef ) },
-                    [qr/\w/], "$test_name: Failed?" );
+    my $test_name = 'Bad $api->identifier_to_canonical_url Person should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->identifier_to_canonical_url( 'Person', undef ),
+        undef, "$test_name: Failed?" );
 }
 {
-    my $test_name = 'Bad identifier_to_canonical_url Person should fail';
-    warnings_exist( sub { identifier_to_canonical_url( 'Person', undef ) },
-                    [qr/\w/], "$test_name: Failed?" );
+    my $test_name = 'Gone $api->identifier_to_canonical_url Person should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->identifier_to_canonical_url( 'Person', 4617024 ),
+        undef, "$test_name: Failed?" );
 }
 {
-    my $test_name = 'Gone identifier_to_canonical_url Person should fail';
-    warnings_exist( sub { identifier_to_canonical_url( 'Person', 4617024 ) },
-                    [qr/\w/], "$test_name: Failed?" );
-}
-{
-    my $test_name = 'Bad canonical_url_to_json should fail';
-    warnings_exist( sub { canonical_url_to_json('http://foo/') },
-                    [qr/\w/], "$test_name: Failed?" );
+    my $test_name = 'Bad $api->canonical_url_to_json should fail';
+    local $SIG{__WARN__} = sub { };
+    is( $api->canonical_url_to_json('http://foo/'),
+        undef, "$test_name: Failed?" );
 }
 
 # Local Variables:
