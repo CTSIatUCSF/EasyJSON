@@ -8,10 +8,7 @@ use Test::NoWarnings;
 use strict;
 use warnings;
 
-plan tests => 13;
-
-# TODO:
-# - test a valid FNO
+plan tests => 14;
 
 *preprocess_ucsf_identifier
     = \&ProfilesEasyJSON::MegaUCSF::preprocess_ucsf_identifier;
@@ -23,6 +20,13 @@ is_deeply( [ preprocess_ucsf_identifier( 'PrettyURL', 'anirvan.chatterjee' ) ],
 is_deeply( [ preprocess_ucsf_identifier( 'Person', '5396511' ) ],
            [ 'PrettyURL', 'anirvan.chatterjee' ],
            'valid Person' );
+
+is_deeply( [  preprocess_ucsf_identifier( 'FNO', 'anirvan.chatterjee@ucsf.edu'
+              )
+           ],
+           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           'valid FNO'
+);
 
 is_deeply( [ preprocess_ucsf_identifier( 'EmployeeID', '028272045' ) ],
            [ 'UserName', '827204@ucsf.edu' ],
