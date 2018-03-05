@@ -50,6 +50,21 @@ test_psgi $app, sub {
         }
     }
 
+    # good req type and source
+    {
+        my $req
+            = GET(
+               'http://localhost/?source=Anirvan_script&EPPN=827204@ucsf.edu' );
+        my $res = $cb->($req);
+        is $res->code, 200, 'reasonable call should return 200';
+
+    SKIP: {
+            skip "invalid data, can't test", 1 unless $res->code == 200;
+            like( $res->decoded_content, qr/Anirvan/,
+                  'call for Anirvan [EPPN] should mention Anirvan' );
+        }
+    }
+
     # 404 for nonexistent user
     {
         my $req = GET(

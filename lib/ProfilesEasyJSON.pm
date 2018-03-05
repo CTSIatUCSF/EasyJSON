@@ -185,6 +185,7 @@ sub identifier_to_canonical_url {
     if (    $identifier_type eq 'FNO'
          or $identifier_type eq 'Person'
          or $identifier_type eq 'EmployeeID'
+         or $identifier_type eq 'EPPN'
          or $identifier_type eq 'PrettyURL'
          or $identifier_type eq 'ProfilesNodeID'
          or $identifier_type eq 'UserName'
@@ -241,6 +242,12 @@ sub identifier_to_canonical_url {
                 $identifier_type = 'UserName';
                 $identifier      = "$new_identifier\@ucsf.edu";
             }
+        }
+
+        # handle EPPNs, for processing convenience
+        if (     $identifier_type eq 'EPPN'
+             and $identifier =~ m/\w.*\@.*\w/ ) {
+            $identifier_type = 'UserName';
         }
 
         my $url = $self->themed_base_domain->clone;

@@ -14,6 +14,7 @@ use warnings;
 my %valid_types = ( FNO             => 'FNO',
                     Person          => 'Person',
                     EmployeeID      => 'EmployeeID',
+                    EPPN            => 'UserName',
                     ProfilesURLName => 'PrettyURL',
                     ProfilesNodeID  => 'ProfilesNodeID',
                     URL             => 'URL'

@@ -19,7 +19,7 @@ my $anirvans_profile_node_url
 my $patrick_philips_node_url
     = 'https://stage.researcherprofiles.org/profile/6117617';
 
-plan tests => 115;
+plan tests => 116;
 
 # looking up users by different identifiers
 
@@ -41,6 +41,13 @@ is( $api->identifier_to_canonical_url( 'EmployeeID', '028272045',
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EmployeeID'
+);
+is( $api->identifier_to_canonical_url( 'EPPN',
+                                       '827204@ucsf.edu',
+                                       { cache => 'never' }
+    ),
+    $anirvans_profile_node_url,
+    'identifier_to_canonical_url, using EPPN'
 );
 is( $api->identifier_to_canonical_url( 'Person', '5396511',
                                        { cache => 'never' }

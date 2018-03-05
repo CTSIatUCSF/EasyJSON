@@ -72,9 +72,10 @@ sub preprocess_ucsf_identifier {
 
     my $identifier_types = {
 
+        'EmployeeID'     => { lookup      => 1, translate   => 1 },
+        'EPPN'           => { passthrough => 1 },
         'FNO'            => { lookup      => 1 },
-        'Person'         => { lookup      => 1, translate => 1 },
-        'EmployeeID'     => { lookup      => 1, translate => 1 },
+        'Person'         => { lookup      => 1, translate   => 1 },
         'PrettyURL'      => { passthrough => 1 },
         'ProfilesNodeID' => { lookup      => 1, passthrough => 1 },
         'URL'            => { expand      => 1 },
@@ -176,6 +177,13 @@ sub preprocess_ucsf_identifier {
                 return ( $identifier_type, $identifier );
             } else {
                 warn "Invalid Profiles URL username format: '$identifier'";
+                return;
+            }
+        } elsif ( $identifier_type eq 'EPPN' ) {
+            if ( $identifier =~ m/\w.*\@.*\w/ ) {
+                return ( 'UserName', $identifier );
+            } else {
+                warn "Invalid EPPN format: '$identifier'";
                 return;
             }
         } elsif ( $identifier_type eq 'ProfilesNodeID' ) {
