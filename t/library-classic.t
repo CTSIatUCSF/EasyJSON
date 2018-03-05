@@ -18,7 +18,7 @@ my $anirvans_profile_node_url = 'http://profiles.ucsf.edu/profile/370974';
 my $patrick_philips_node_url  = 'http://profiles.ucsf.edu/profile/141411399';
 my $michael_reyes_node_url    = 'http://profiles.ucsf.edu/profile/369982';
 
-plan tests => 116;
+plan tests => 131;
 
 # looking up users by different identifiers
 
@@ -147,7 +147,7 @@ SKIP: {
 
         like(
             $data->{Profiles}->[0]->{ProfilesURL},
-            qr{^(http://profiles.ucsf.edu/profile/370974|https?://(profiles.ucsf.edu|stage-ucsf\.researcherprofiles\.org)/anirvan.chatterjee)$},
+            qr{^(http://profiles.ucsf.edu/profile/370974|https?://(profiles.ucsf.edu|(stage-)?ucsf\.researcherprofiles\.org)/anirvan.chatterjee)$},
             'Anirvan URL'
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
@@ -621,7 +621,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 11 unless $json;
+        skip "$test_name: got back no JSON", 13 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},
@@ -651,6 +651,74 @@ SKIP: {
               qr/racism|music/i, "$test_name: matching freetext keyword" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
                 '>=', 3, "$test_name: Got enough in the news" );
+    }
+}
+
+{
+    my $test_name = 'Robert Hiatt';
+    my $json      = $api->identifier_to_json( 'URL',
+                                      'http://profiles.ucsf.edu/robert.hiatt' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 12 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},
+              qr/^Professor$/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{School},
+              qr/Medicine/, "$test_name: school" );
+        like( $data->{Profiles}->[0]->{Department},
+              qr/Epidemiology.{1,5}Biostatistics/,
+              "$test_name: department"
+        );
+        like( $data->{Profiles}->[0]->{Address}->{Address1},
+              qr/550 16th.*St/,
+              "$test_name: address line 1" );
+        like( $data->{Profiles}->[0]->{Address}->{Address2},
+              qr/San Francisco/,
+              "$test_name: address line 2" );
+        like( $data->{Profiles}->[0]->{Address}->{Telephone},
+              qr/^415-514-8113$/i, "$test_name: telephone" );
+        like( $data->{Profiles}->[0]->{Email},
+              qr/^robert\.hiatt\@ucsf\.edu$/i,
+              "$test_name: email"
+        );
+        like( $data->{Profiles}->[0]->{Narrative},
+              qr/cancer epidemiology/,
+              "$test_name: narrative" );
+        like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
+              qr/implementation science/i,
+              "$test_name: matching freetext keyword"
+        );
+        like(
+            eval {
+                scalar $data->{Profiles}->[0]->{WebLinks_beta}->[0]->{URL};
+            } // '',
+            qr/epibiostat.ucsf.edu/i,
+            "$test_name: has an epi biostat web link"
+        );
+        ok( eval {
+                grep { $_->{degree} =~ m/residency/i }
+                    @{ $data->{Profiles}->[0]->{Education_Training} };
+            },
+            "$test_name: includes residency"
+        );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
+                '>=', 1, "$test_name: Was in the news" );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{Videos} } },
+                '>=', 1, "$test_name: at least 1 video" );
+        cmp_ok(
+            eval {
+                scalar(
+                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
+                    }
+                );
+            },
+            '>=',
+            3,
+            "$test_name: got 3+ global health countries"
+        );
     }
 }
 
