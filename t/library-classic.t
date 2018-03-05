@@ -16,6 +16,7 @@ my $api = new ProfilesEasyJSON::ClassicUCSF;
 
 my $anirvans_profile_node_url = 'http://profiles.ucsf.edu/profile/370974';
 my $patrick_philips_node_url  = 'http://profiles.ucsf.edu/profile/141411399';
+my $michael_reyes_node_url    = 'http://profiles.ucsf.edu/profile/369982';
 
 plan tests => 116;
 
@@ -80,7 +81,7 @@ is( $api->identifier_to_canonical_url(
                                      'http://profiles.ucsf.edu/michael.reyes.2',
                                      { cache => 'never' }
     ),
-    'http://profiles.ucsf.edu/profile/369982',
+    $michael_reyes_node_url,
     'identifier_to_canonical_url, using URL (pretty, with number)'
 );
 is( $api->identifier_to_canonical_url( 'URL',
