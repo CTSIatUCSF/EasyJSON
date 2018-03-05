@@ -14,13 +14,13 @@ extends 'ProfilesEasyJSON';
 
 has '+root_domain' => (
     default => sub {
-        URI->new('https://stage.researcherprofiles.org/');
+        URI->new('https://researcherprofiles.org/');
     }
 );
 
 has '+themed_base_domain' => (
     default => sub {
-        URI->new('https://stage-ucsf.researcherprofiles.org/');
+        URI->new('https://ucsf.researcherprofiles.org/');
     }
 );
 
