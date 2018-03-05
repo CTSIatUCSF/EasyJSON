@@ -674,31 +674,43 @@ sub canonical_url_to_json {
                 my $pmid = $pub->{pmid};
                 my $id   = $pub->{id};
 
+                my $matched_the_publication = 0;
                 if ( defined $id and $id =~ m/^\d+$/ ) {
+                    my $possible_id
+                        = $self->themed_base_domain_profile_root . $id;
+                    if ( $featured_publication_order_by_id{$possible_id} ) {
+                        $featured_publication_order_by_id{$possible_id}
+                            = $featured_num;
+                        $matched_the_publication = 1;
+                    }
+                }
 
-                    $featured_publication_order_by_id{ $self
-                            ->themed_base_domain_profile_root . $id }
-                        = $featured_num;
-
-                } elsif ( $pmid and $pmid =~ m/^\d+$/ ) {
+                if ( !$matched_the_publication and $pmid and $pmid =~ m/^\d+$/ )
+                {
 
                     # If no ID is given but we have a PMID, go through
                     # every publication to see which one matches that
                     # PMID, and use the corresponding ID. This is
                     # inefficient, but not worth speeding up.
 
+                EachPubToScanPMIDs:
                     foreach my $candidate_pub_data (
                             @{ $publications_by_author{ $person->{'@id'} } } ) {
                         my $candidate_pub_id = $candidate_pub_data->{id};
                         my $candidate_pmid
                             = $items_by_url_id{$candidate_pub_id}->{'pmid'};
+
                         if ( $candidate_pmid and $candidate_pmid == $pmid ) {
                             $featured_publication_order_by_id{$candidate_pub_id}
                                 = $featured_num;
+                            $matched_the_publication = 1;
+                            last EachPubToScanPMIDs;
                         }
                     }
+                }
 
                 }
+
             }
         }
     }
