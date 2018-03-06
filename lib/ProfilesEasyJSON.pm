@@ -346,7 +346,7 @@ sub canonical_url_to_json {
     unless ( defined $canonical_url
              and $canonical_url
              =~ m{$current_or_legacy_profiles_root_url_regexp/profile/(\d+)} ) {
-        warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
+        warn 'Invalid canonical URL: ', dump( $canonical_url->as_string ), "\n";
         return;
     }
     my $node_id = $1;
@@ -365,6 +365,7 @@ sub canonical_url_to_json {
                                         subject     => $node_id
                                       }
     );
+    my $expanded_jsonld_url_cache_key = $expanded_jsonld_url->as_string;
 
     state $json_obj = JSON->new->utf8->pretty(1);
     my $raw_json;
@@ -373,7 +374,7 @@ sub canonical_url_to_json {
     # attempt to get it from the cache, if possible
     unless ( $options->{cache} eq 'never' ) {
         my $cache_object
-            = $c2j_cache->get_object( $expanded_jsonld_url->as_string );
+            = $c2j_cache->get_object($expanded_jsonld_url_cache_key);
 
         if ( $cache_object and _verify_cache_object_policy($cache_object) ) {
 
@@ -413,11 +414,11 @@ sub canonical_url_to_json {
                     . scalar(localtime);
 
                 eval {
-                    $c2j_cache->set( $expanded_jsonld_url->as_string,
+                    $c2j_cache->set( $expanded_jsonld_url_cache_key,
                                      $raw_json, '24 hours' );
                 };
             } else {
-                warn 'Loaded URL ', dump($expanded_jsonld_url),
+                warn 'Loaded URL ', dump( $expanded_jsonld_url->as_string ),
                     " to look up JSON-LD, but JSON was either missing or invalid\n";
             }
         } else {    # if we got an error message from upstream
@@ -432,12 +433,12 @@ sub canonical_url_to_json {
     unless ( $raw_json and $decoded_json ) {
         if ( $options->{cache} ne 'never' ) {
             if ( $c2j_cache->exists_and_is_expired(
-                                                 $expanded_jsonld_url->as_string
+                                                  $expanded_jsonld_url_cache_key
                  )
             ) {
 
                 my $cache_object
-                    = $c2j_cache->get_object( $expanded_jsonld_url->as_string );
+                    = $c2j_cache->get_object($expanded_jsonld_url_cache_key);
 
                 if ( $cache_object
                      and _verify_cache_object_policy($cache_object) ) {
@@ -585,9 +586,11 @@ sub canonical_url_to_json {
                                              subject     => $subject
                                            }
             );
+            my $field_jsonld_url_cache_key = $field_jsonld_url->as_string;
 
             # grab from cache, if available
-            my $raw_json_for_field = $url_cache->get($field_jsonld_url);
+            my $raw_json_for_field
+                = $url_cache->get($field_jsonld_url_cache_key);
 
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
@@ -596,7 +599,7 @@ sub canonical_url_to_json {
                     $raw_json_for_field
                         = $field_jsonld_response->decoded_content;
                     eval {
-                        $url_cache->set( $field_jsonld_url,
+                        $url_cache->set( $field_jsonld_url_cache_key,
                                          $raw_json_for_field, '24 hours' );
                     };
                 }
@@ -605,11 +608,11 @@ sub canonical_url_to_json {
             # ...or try to get from expired cache
             unless ($raw_json_for_field) {
                 if ( $url_cache->exists_and_is_expired(
-                                                    $field_jsonld_url->as_string
+                                                     $field_jsonld_url_cache_key
                      )
                 ) {
                     my $potential_expired_cache_object
-                        = $url_cache->get_object($field_jsonld_url->as_string );
+                        = $url_cache->get_object($field_jsonld_url_cache_key);
                     if ($potential_expired_cache_object) {
                         if ( $potential_expired_cache_object->value() ) {
                             $raw_json_for_field
@@ -708,9 +711,6 @@ sub canonical_url_to_json {
                         }
                     }
                 }
-
-                }
-
             }
         }
     }
@@ -776,9 +776,10 @@ sub canonical_url_to_json {
             = URI->new( $self->themed_base_domain_profile_root
              . "modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id"
             );
+        my $vcard_url_cache_key = $vcard_url->as_string;
 
         # grab from cache, if available
-        my $raw_vcard = $url_cache->get($vcard_url);
+        my $raw_vcard = $url_cache->get($vcard_url_cache_key);
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
@@ -786,7 +787,7 @@ sub canonical_url_to_json {
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
                 eval {
-                    $url_cache->set( $vcard_url->as_string, $raw_vcard,
+                    $url_cache->set( $vcard_url_cache_key, $raw_vcard,
                                      '1 week' );
                 };
             }
@@ -794,9 +795,9 @@ sub canonical_url_to_json {
 
         # ...or try to get from expired cache
         unless ($raw_vcard) {
-            if ( $url_cache->exists_and_is_expired( $vcard_url->as_string ) ) {
+            if ( $url_cache->exists_and_is_expired($vcard_url_cache_key) ) {
                 my $potential_expired_cache_object
-                    = $url_cache->get_object( $vcard_url->as_string );
+                    = $url_cache->get_object($vcard_url_cache_key);
                 if ($potential_expired_cache_object) {
                     if ( $potential_expired_cache_object->value() ) {
                         $raw_vcard = $potential_expired_cache_object->value();
