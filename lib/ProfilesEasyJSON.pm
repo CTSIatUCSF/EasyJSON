@@ -877,9 +877,14 @@ sub canonical_url_to_json {
                    my $school_name;
                    my $cache_key = "$expanded_jsonld_url -> School";
 
-                   if ( $sorted_positions[0]->{'positionInOrganization'} ) {
-                       my $school_id
-                           = $sorted_positions[0]->{'positionInOrganization'};
+                   my $key = 'positionInOrganization';
+
+                   if ( $sorted_positions[0]->{'positionInDivision'} ) {
+                       $key = 'positionInDivision';
+                   }
+
+                   if ( $sorted_positions[0]->{$key} ) {
+                       my $school_id = $sorted_positions[0]->{$key};
                        $school_name = $items_by_url_id{$school_id}->{'label'};
                        if ($school_name) {
                            eval {
