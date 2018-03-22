@@ -1283,7 +1283,7 @@ sub canonical_url_to_json {
 
                        # $orng_data{'hasMediaLinks'}->{links} is
                        # sometimes accidentally double-encoded as
-                       # JSON. So user "wilson.liao" is corect but
+                       # JSON. So user "wilson.liao" is correct but
                        # user "anirvan.chatterjee" is wrong.
 
                        my @links;
