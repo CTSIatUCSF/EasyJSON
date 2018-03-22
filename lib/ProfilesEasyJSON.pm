@@ -1188,8 +1188,15 @@ sub canonical_url_to_json {
                                ],
 
                                Featured => (
-                                      $featured_publication_order_by_id{$pub_id}
-                                          || undef
+                                   (  (  $featured_publication_order_by_id{
+                                             $pub_id}
+                                             && $featured_publication_order_by_id{
+                                             $pub_id} =~ m/^\d+$/
+                                      )
+                                      ? $featured_publication_order_by_id{
+                                          $pub_id}
+                                      : undef
+                                   )
                                ),
 
                                Claimed => ( defined $pub_data->{is_claimed}
