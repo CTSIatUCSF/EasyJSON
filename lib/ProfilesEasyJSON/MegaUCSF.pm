@@ -38,10 +38,12 @@ around 'identifier_to_canonical_url' => sub {
     $options ||= {};
 
     my ( $final_identifier_type, $final_identifier )
-        = preprocess_ucsf_identifier( $identifier_type, $identifier );
+        = preprocess_ucsf_identifier( $identifier_type, $identifier, $options );
 
     if ( $final_identifier_type and $final_identifier ) {
-        return $orig->( $self, $final_identifier_type, $final_identifier );
+        return
+            $orig->( $self, $final_identifier_type, $final_identifier, $options
+            );
     }
 
     warn "Could not process this UCSF identifier (", dump($identifier_type),
@@ -98,7 +100,7 @@ sub preprocess_ucsf_identifier {
         if ( $identifier_type eq 'URL' ) {
 
             my $current_or_legacy_profiles_root_url_regexp
-                = qr{https?://(?:profiles.ucsf.edu|stage(?:-ucsf)?\.researcherprofiles\.org)}i;
+                = qr{https?://(?:profiles.ucsf.edu|(?:(?:stage|ucsf|stage-ucsf)\.)?researcherprofiles\.org)}i;
 
             if ( $identifier
                 =~ m{$current_or_legacy_profiles_root_url_regexp/ProfileDetails\.aspx\?Person=(\d+)$}i
@@ -145,7 +147,8 @@ sub preprocess_ucsf_identifier {
                 }
             ) {
                 return ( 'PrettyURL',
-                    $lookup_table->{$identifier_type}->{$possible_identifier} );
+                      $lookup_table->{$identifier_type}->{$possible_identifier},
+                      $options );
             }
         }
     }
@@ -156,12 +159,13 @@ sub preprocess_ucsf_identifier {
             if ( $identifier > 1_000_000 ) {
                 my $new_identifier = substr( ( $identifier - 569307 ), 1, 6 );
                 if ( $new_identifier >= 100000 ) {
-                    return ( 'UserName', "$new_identifier\@ucsf.edu" );
+                    return ( 'UserName', "$new_identifier\@ucsf.edu",
+                             $options );
                 }
             }
         } elsif ( $identifier_type eq 'EmployeeID' ) {
             if ( $identifier =~ m/^02(\d{3,})\d$/ ) {
-                return ( 'UserName', "$1\@ucsf.edu" );
+                return ( 'UserName', "$1\@ucsf.edu", $options );
             }
         } else {
             warn "Don't know how to expand identifier type $identifier_type";
@@ -174,21 +178,21 @@ sub preprocess_ucsf_identifier {
 
         if ( $identifier_type eq 'PrettyURL' ) {
             if ( $identifier =~ m/\./ and $identifier =~ m/[a-z]{2,}/i ) {
-                return ( $identifier_type, $identifier );
+                return ( $identifier_type, $identifier, $options );
             } else {
                 warn "Invalid Profiles URL username format: '$identifier'";
                 return;
             }
         } elsif ( $identifier_type eq 'EPPN' ) {
             if ( $identifier =~ m/\w.*\@.*\w/ ) {
-                return ( 'UserName', $identifier );
+                return ( 'UserName', $identifier, $options );
             } else {
                 warn "Invalid EPPN format: '$identifier'";
                 return;
             }
         } elsif ( $identifier_type eq 'ProfilesNodeID' ) {
             if ( $identifier =~ m/^\d\d+$/ ) {
-                return ( $identifier_type, $identifier );
+                return ( $identifier_type, $identifier, $options );
             } else {
                 warn "Invalid Profiles node ID format: '$identifier'";
                 return;
