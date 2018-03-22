@@ -594,7 +594,8 @@ sub canonical_url_to_json {
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
                 my $field_jsonld_response = $self->_ua->get($field_jsonld_url);
-                if ( $field_jsonld_response->is_success ) {
+                if (     $field_jsonld_response->is_success
+                     and $field_jsonld_response->base->path !~ m{^/Error/} ) {
                     $raw_json_for_field
                         = $field_jsonld_response->decoded_content;
                     eval {
@@ -654,7 +655,11 @@ sub canonical_url_to_json {
                         }
                     }
                 }
-            }    # end if we have JSON for an ORNG field
+
+                # end if we have JSON for an ORNG field
+            } else {
+                warn "Error downloading '$field' data for user";
+            }
         }    # end if we have node ID for ORNG field
     }    # end foreach ORNG field
 
