@@ -466,8 +466,6 @@ sub canonical_url_to_json {
 
     my $data = $decoded_json;
 
-    # print STDERR dump($data);
-
     my $person;
     my %items_by_url_id;
     my ( %publications_by_author, %research_activities_and_funding_by_role );
