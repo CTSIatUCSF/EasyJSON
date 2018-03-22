@@ -347,7 +347,7 @@ sub canonical_url_to_json {
     unless ( defined $canonical_url
              and $canonical_url
              =~ m{$current_or_legacy_profiles_root_url_regexp/profile/(\d+)} ) {
-        warn 'Invalid canonical URL: ', dump( $canonical_url->as_string ), "\n";
+        warn 'Invalid canonical URL: ', dump($canonical_url), "\n";
         return;
     }
     my $node_id = $1;
