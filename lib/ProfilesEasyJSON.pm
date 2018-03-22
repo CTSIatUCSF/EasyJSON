@@ -1,6 +1,7 @@
 #!/usr/bin/perl
 
 # TODO:
+# put cache in a different spot
 # add timeout support?
 
 package ProfilesEasyJSON;
