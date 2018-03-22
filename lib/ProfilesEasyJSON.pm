@@ -24,6 +24,7 @@ use URI::Escape qw( uri_escape );
 binmode STDOUT, ':utf8';
 use 5.10.0;
 use namespace::clean;
+use sort qw( stable );
 use utf8;
 
 ###############################################################################
@@ -1027,6 +1028,10 @@ sub canonical_url_to_json {
                                    )
                                    || ( ( $b->{start_date} || '' )
                                         cmp( $a->{start_date} || '' ) )
+                                   || ( ( $a->{organization} || '' )
+                                        cmp( $b->{organization} || '' ) )
+                                   || ( ( $a->{department_or_school} || '' )
+                                       cmp( $b->{department_or_school} || '' ) )
                            } @education_training;
 
                            return @education_training;
@@ -1096,8 +1101,14 @@ sub canonical_url_to_json {
                    }
 
                    @awards = sort {
-                       ( $b->{'AwardStartDate'} || '' )
-                           cmp( $a->{'AwardStartDate'} || '' )
+                       ( ( $b->{'AwardStartDate'} || '' )
+                          cmp( $a->{'AwardStartDate'} || '' ) )
+                           || ( ( $b->{AwardEndDate} || '' )
+                                cmp( $a->{AwardEndDate} || '' ) )
+                           || ( ( $a->{AwardConferredBy} || '' )
+                                cmp( $b->{AwardConferredBy} || '' ) )
+                           || ( ( $a->{AwardLabel} || '' )
+                                cmp( $b->{AwardLabel} || '' ) )
                    } @awards;
                    return \@awards;
                },
@@ -1188,6 +1199,14 @@ sub canonical_url_to_json {
                            };
                        }    # end foreach publication
                    }    # end if we should include pubs
+
+                   @publications = sort {
+                              ( ( $b->{Date} // '' ) cmp( $a->{Date} // '' ) )
+                           || ( ( $a->{Title} // '' ) cmp( $b->{Title} ) )
+                           || ( ( $a->{PublicationTitle} // '' )
+                                cmp( $b->{PublicationTitle} // '' ) )
+
+                   } @publications;
 
                    return \@publications;
                },
