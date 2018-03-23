@@ -1015,23 +1015,25 @@ sub canonical_url_to_json {
                            }
 
                            @education_training = sort {
-                               (  ( $date_to_year{ $b->{end_date} } || '' )
-                                      cmp( $date_to_year{ $a->{end_date} } || ''
+                               (  ( $date_to_year{ $b->{end_date} } // '' )
+                                      cmp( $date_to_year{ $a->{end_date} } // ''
                                       )
                                    )
-                                   || ( ( $b->{end_date} || '' )
-                                        cmp( $a->{end_date} || '' ) )
+                                   || ( ( $b->{end_date} // '' )
+                                        cmp( $a->{end_date} // '' ) )
                                    || (
-                                     ( $date_to_year{ $b->{start_date} } || '' )
-                                     cmp($date_to_year{ $a->{start_date} } || ''
+                                     ( $date_to_year{ $b->{start_date} } // '' )
+                                     cmp($date_to_year{ $a->{start_date} } // ''
                                      )
                                    )
-                                   || ( ( $b->{start_date} || '' )
-                                        cmp( $a->{start_date} || '' ) )
-                                   || ( ( $a->{organization} || '' )
-                                        cmp( $b->{organization} || '' ) )
-                                   || ( ( $a->{department_or_school} || '' )
-                                       cmp( $b->{department_or_school} || '' ) )
+                                   || ( ( $b->{start_date} // '' )
+                                        cmp( $a->{start_date} // '' ) )
+                                   || ( ( $a->{organization} // '' )
+                                        cmp( $b->{organization} // '' ) )
+                                   || ( ( $a->{department_or_school} // '' )
+                                       cmp( $b->{department_or_school} // '' ) )
+                                   || ( ( $a->{degree} // '' )
+                                        cmp( $b->{degree} // '' ) )
                            } @education_training;
 
                            return @education_training;
@@ -1101,14 +1103,14 @@ sub canonical_url_to_json {
                    }
 
                    @awards = sort {
-                       ( ( $b->{'AwardStartDate'} || '' )
-                          cmp( $a->{'AwardStartDate'} || '' ) )
-                           || ( ( $b->{AwardEndDate} || '' )
-                                cmp( $a->{AwardEndDate} || '' ) )
-                           || ( ( $a->{AwardConferredBy} || '' )
-                                cmp( $b->{AwardConferredBy} || '' ) )
-                           || ( ( $a->{AwardLabel} || '' )
-                                cmp( $b->{AwardLabel} || '' ) )
+                       ( ( $b->{'AwardStartDate'} // '' )
+                          cmp( $a->{'AwardStartDate'} // '' ) )
+                           || ( ( $b->{AwardEndDate} // '' )
+                                cmp( $a->{AwardEndDate} // '' ) )
+                           || ( ( $a->{AwardConferredBy} // '' )
+                                cmp( $b->{AwardConferredBy} // '' ) )
+                           || ( ( $a->{AwardLabel} // '' )
+                                cmp( $b->{AwardLabel} // '' ) )
                    } @awards;
                    return \@awards;
                },
@@ -1209,7 +1211,7 @@ sub canonical_url_to_json {
 
                    @publications = sort {
                               ( ( $b->{Date} // '' ) cmp( $a->{Date} // '' ) )
-                           || ( ( $a->{Title} // '' ) cmp( $b->{Title} ) )
+                           || ( ( $a->{Title} // '' ) cmp( $b->{Title} // '' ) )
                            || ( ( $a->{PublicationTitle} // '' )
                                 cmp( $b->{PublicationTitle} // '' ) )
 
