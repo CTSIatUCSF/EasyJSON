@@ -1,11 +1,9 @@
 #!/usr/bin/perl
 
 # TODO:
-# put cache in a different spot
 # add timeout support?
 
 package ProfilesEasyJSON;
-use CHI;
 use Data::Dump qw( dump );
 use Data::Visitor::Callback;
 use Digest::MD5 qw( md5_base64 );
@@ -15,6 +13,7 @@ use JSON;
 use List::MoreUtils qw( uniq );
 use LWP::UserAgent 6.0;
 use Moo;
+use ProfilesEasyJSON::CHI;
 use Regexp::Assemble;
 use String::Util qw( trim );
 use Types::Standard 1.002001
@@ -154,11 +153,8 @@ sub identifier_to_canonical_url {
     }
 
     # Identifier to Canonical URL cache
-    state $i2c_cache ||= CHI->new(
-                   driver    => 'File',
-                   namespace => 'Profiles JSON API identifier_to_canonical_url',
-                   expires_variance => 0.25,
-    );
+    state $i2c_cache ||= ProfilesEasyJSON::CHI->new(
+                 namespace => 'Profiles JSON API identifier_to_canonical_url' );
 
     my $cache_key = join "\t", ( $identifier_type || '' ),
         ( $identifier || '' ), $self->id;
@@ -354,11 +350,8 @@ sub canonical_url_to_json {
     my $node_id = $1;
 
     # Canonical URL to JSON cache
-    state $c2j_cache ||= CHI->new(
-               driver    => 'File',
-               namespace => 'Profiles JSON API canonical_url_to_json URL cache',
-               expires_variance => 0.25,
-    );
+    state $c2j_cache ||= ProfilesEasyJSON::CHI->new(
+             namespace => 'Profiles JSON API canonical_url_to_json URL cache' );
 
     my $expanded_jsonld_url = $self->themed_base_domain->clone;
     $expanded_jsonld_url->path('/ORNG/JSONLD/Default.aspx');
@@ -559,11 +552,8 @@ sub canonical_url_to_json {
     }
 
     my %orng_data;
-    state $url_cache ||= CHI->new(
-                driver    => 'File',
-                namespace => 'Profiles JSON API cache of raw Profiles API URLs',
-                expires_variance => 0.25,
-    );
+    state $url_cache ||= ProfilesEasyJSON::CHI->new(
+              namespace => 'Profiles JSON API cache of raw Profiles API URLs' );
 
     # load ORNG data
     foreach my $field ( 'hasFeaturedPublications', 'hasGlobalHealth',
@@ -827,11 +817,9 @@ sub canonical_url_to_json {
     # school/department/title data. In that case, we'll try to use
     # cached data.
     state $c2positions_cache ||=
-        CHI->new( driver     => 'File',
-                  namespace  => 'Profiles JSON API canonical_url_to_positions',
-                  expires_in => '5 days',
-                  expires_variance => 0.25,
-        );
+        ProfilesEasyJSON::CHI->new(
+                    namespace => 'Profiles JSON API canonical_url_to_positions',
+                    expires_in => '5 days', );
 
     my $final_data = {
         Profiles => [
