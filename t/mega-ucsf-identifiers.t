@@ -14,33 +14,33 @@ plan tests => 15;
     = \&ProfilesEasyJSON::MegaUCSF::preprocess_ucsf_identifier;
 
 is_deeply( [ preprocess_ucsf_identifier( 'PrettyURL', 'anirvan.chatterjee' ) ],
-           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           [ 'PrettyURL', 'anirvan.chatterjee', {} ],
            'valid PrettyURL' );
 
 is_deeply( [ preprocess_ucsf_identifier( 'Person', '5396511' ) ],
-           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           [ 'PrettyURL', 'anirvan.chatterjee', {} ],
            'valid Person' );
 
 is_deeply( [  preprocess_ucsf_identifier( 'FNO', 'anirvan.chatterjee@ucsf.edu'
               )
            ],
-           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           [ 'PrettyURL', 'anirvan.chatterjee', {} ],
            'valid FNO'
 );
 
 is_deeply( [ preprocess_ucsf_identifier( 'EmployeeID', '028272045' ) ],
-           [ 'UserName', '827204@ucsf.edu' ],
+           [ 'UserName', '827204@ucsf.edu', {} ],
            'valid EmployeeID' );
 
 is_deeply( [ preprocess_ucsf_identifier( 'EPPN', '827204@ucsf.edu' ) ],
-           [ 'UserName', '827204@ucsf.edu' ],
+           [ 'UserName', '827204@ucsf.edu', {} ],
            'valid EPPN' );
 
 is_deeply( [  preprocess_ucsf_identifier(
                            'URL', 'https://profiles.ucsf.edu/anirvan.chatterjee'
               )
            ],
-           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           [ 'PrettyURL', 'anirvan.chatterjee', {} ],
            'valid URL with PrettyURL'
 );
 
@@ -49,7 +49,7 @@ is_deeply( [ preprocess_ucsf_identifier(
                   'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
              )
            ],
-           [ 'PrettyURL', 'anirvan.chatterjee' ],
+           [ 'PrettyURL', 'anirvan.chatterjee', {} ],
            'valid URL with Person ID'
 );
 
@@ -57,7 +57,7 @@ is_deeply( [  preprocess_ucsf_identifier(
                               'URL', 'https://profiles.ucsf.edu/profile/1234567'
               )
            ],
-           [ 'ProfilesNodeID', '1234567' ],
+           [ 'ProfilesNodeID', '1234567', {} ],
            'valid URL with node ID'
 );
 
