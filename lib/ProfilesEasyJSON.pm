@@ -413,8 +413,13 @@ sub canonical_url_to_json {
                                      $raw_json, '24 hours' );
                 };
             } else {
-                warn 'Loaded URL ', dump( $expanded_jsonld_url->as_string ),
-                    " to look up JSON-LD, but JSON was either missing or invalid\n";
+                if ($raw_json) {
+                    warn 'Loaded URL ', dump( $expanded_jsonld_url->as_string ),
+                        " to look up JSON-LD, but JSON could not be decoded\n";
+                } else {
+                    warn 'Loaded URL ', dump( $expanded_jsonld_url->as_string ),
+                        " to look up JSON-LD, but JSON was missing\n";
+                }
             }
         } else {    # if we got an error message from upstream
             warn "Could not load URL $expanded_jsonld_url to look up JSON-LD (",
