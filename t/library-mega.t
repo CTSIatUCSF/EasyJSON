@@ -14,9 +14,9 @@ use warnings;
 
 my $api = new ProfilesEasyJSON::MegaUCSF;
 
-my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/162494';
-my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/159097';
-my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/160348';
+my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/952876';
+my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/942294';
+my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/943372';
 
 plan tests => 131;
 
