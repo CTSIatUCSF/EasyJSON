@@ -1040,10 +1040,10 @@ sub canonical_url_to_json {
                    eval {
                        if ( defined $person->{'freetextKeyword'} ) {
 
-                           # split on comma, semicolon, or return
+                           # split on comma, semicolon, bullet, or return
                            #   (optionally followed by " and ")
                            my $split_re
-                               = qr/(?:\s*,\s*|\s*;\s*|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
+                               = qr/(?:\s*,\s*|\s*;\s*|\s*•\s*|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
                            my @parts = split qr/$split_re/,
                                $person->{'freetextKeyword'};
 
