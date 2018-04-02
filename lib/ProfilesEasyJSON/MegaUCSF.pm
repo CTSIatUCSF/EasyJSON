@@ -212,7 +212,26 @@ sub _load_lookup_table {
 
     my $table = {};
 
-    my @files = io->dir("$ENV{HOME}/profiles-mega-mapping-tables")->all;
+    my @files;
+    my @dir_options = ( "$ENV{HOME}/profiles-mega-mapping-tables",
+                        "/srv/profiles-mega-mapping-tables",
+                        "/etc/profiles-mega-mapping-tables"
+    );
+    foreach my $dir_option (@dir_options) {
+        if ( -d $dir_option ) {
+            @files = io->dir("$ENV{HOME}/profiles-mega-mapping-tables")->all;
+            if (@files) {
+                last;
+            } else {
+                next;
+            }
+        }
+    }
+
+    unless (@files) {
+        warn "Could not find user mapping tables";
+        return $table;
+    }
 
     foreach my $file (@files) {
 
