@@ -1039,20 +1039,8 @@ sub canonical_url_to_json {
                FreetextKeywords => [
                    eval {
                        if ( defined $person->{'freetextKeyword'} ) {
-
-                           # split on comma, semicolon, bullet, or return
-                           #   (optionally followed by " and ")
-                           my $split_re
-                               = qr/(?:\s*,\s*|\s*;\s*|\s*•\s*|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
-                           my @parts = split qr/$split_re/,
-                               $person->{'freetextKeyword'};
-
-                           # remove whitespace at start and end
-                           # keep only keywords with alphanumeric content
-                           @parts = map { trim($_) } @parts;
-                           @parts = grep { defined and m/\w/ } @parts;
-
-                           return @parts;
+                           my @parts = _split_keyword_string(
+                                            @{ $person->{'freetextKeyword'} } );
                        } else {
                            return ();
                        }
@@ -1575,6 +1563,73 @@ sub _verify_cache_object_policy {
     }
 
     return 0;
+}
+
+###############################################################################
+
+sub _split_keyword_string {
+    my @strings = @_;
+
+    my $string = join "\n\n", @strings;
+
+    # split on comma, semicolon, bullet, asterisk, or return
+    #   (optionally followed by " and ")
+    my $split_re
+        = qr/(?:\s*,\s*|\s*;\s*|\s*•\s*|\s\*\s|\s*[\r\n]+\s*)(?:\s*\band\ )?/;
+    my @parts = split qr/$split_re/, $string;
+
+    # remove all kinds of junk
+    # run this twice to make sure order doesn't matter
+    # keep only keywords with alphanumeric content
+
+    for ( 1 .. 2 ) {
+        @parts = map {
+
+            # delete leading/trailing whitespace
+            $_ = trim($_);
+
+            # delete random leading 'and'
+            $_ =~ s/^and //;
+
+            # delete random trailing period
+            $_ =~ s/^([^\.]+)\.$/$1/;
+
+            # delete random leading open/close paren
+            $_ =~ s/^[()]([^()]+)$/$1/;
+
+            # delete random trailing open/close paren
+            $_ =~ s/^([^()]+)[()]$/$1/;
+
+            # delete random enclosing parens
+            $_ =~ s/^\s*\(\s*([^()]+)\s*\)\s*$/$1/;
+
+            # delete random leading asterisk
+            $_ =~ s/^\s*\*\s*//;
+
+            # delete leading explanations
+            $_
+                =~ s/^(my |main |areas of |clinical |research |scholarly |scientific |other )*interests?( include| relates to)?\s*:?\s*//i;
+
+            # delete leading or trailing 'e.g.'
+            $_ =~ s/^\s*e\.g\.\s*//;
+            $_ =~ s/\s*\be\.g\.\s*$//;
+
+            # delete leading and
+            $_ =~ s/^and //;
+
+            # delete leading the
+            $_ =~ s/^the //i;
+
+            # delete leading/trailing whitespace
+            $_ = trim($_);
+
+        } @parts;
+    }
+
+    @parts = grep { defined and m/\w/ } @parts;
+
+    return @parts;
+
 }
 
 1;
