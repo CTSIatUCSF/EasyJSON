@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 package ProfilesEasyJSON::ClassicUCSF;
-use lib '.', '..';
+use lib '..';
 use Data::Dump qw( dump );
 use Moo;
 use namespace::clean;

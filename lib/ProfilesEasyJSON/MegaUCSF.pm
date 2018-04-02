@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 package ProfilesEasyJSON::MegaUCSF;
-use lib '.', '..';
+use lib '..';
 use Data::Dump qw( dump );
 use IO::All;
 use Moo;

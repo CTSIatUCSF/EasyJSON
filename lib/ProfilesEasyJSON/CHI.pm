@@ -9,7 +9,7 @@
 # more details at https://metacpan.org/pod/CHI#SUBCLASSING-AND-CONFIGURING-CHI
 
 package ProfilesEasyJSON::CHI;
-use lib '.', '..';
+use lib '..';
 use CHI;
 use File::Path qw( mkpath );
 use File::Spec::Functions qw( catdir  tmpdir );
