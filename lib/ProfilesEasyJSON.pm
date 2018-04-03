@@ -225,7 +225,7 @@ sub identifier_to_canonical_url {
             } else {
                 my $example_root = $self->example_url_domain;
                 warn 'Unrecognized URL ', dump($identifier),
-                    ' (was expecting something like "${example_root}clay.johnston" or "${example_root}ProfileDetails.aspx?Person=5036574")',
+                    qq{ (was expecting something like "${example_root}clay.johnston" or "${example_root}ProfileDetails.aspx?Person=5036574")},
                     "\n";
                 return;
             }
