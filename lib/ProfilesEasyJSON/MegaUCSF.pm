@@ -120,7 +120,7 @@ sub preprocess_ucsf_identifier {
             } else {
                 my $example_root = "http://profiles.ucsf.edu";
                 warn 'Unrecognized URL ', dump($identifier),
-                    ' (was expecting something like "$example_root/clay.johnston" or "$example_root/ProfileDetails.aspx?Person=5036574")',
+                    qq{ (was expecting something like "$example_root/clay.johnston" or "$example_root/ProfileDetails.aspx?Person=5036574")},
                     "\n";
                 return;
             }
