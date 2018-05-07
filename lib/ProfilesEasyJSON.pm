@@ -1038,12 +1038,12 @@ sub canonical_url_to_json {
 
                FreetextKeywords => [
                    eval {
+                       my @parts;
                        if ( defined $person->{'freetextKeyword'} ) {
-                           my @parts = _split_keyword_string(
-                                            @{ $person->{'freetextKeyword'} } );
-                       } else {
-                           return ();
+                           @parts = _split_keyword_string(
+                                                 $person->{'freetextKeyword'} );
                        }
+                       return @parts;
                    }
                ],
 
