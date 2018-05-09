@@ -219,7 +219,7 @@ sub _load_lookup_table {
     );
     foreach my $dir_option (@dir_options) {
         if ( -d $dir_option ) {
-            @files = io->dir("$ENV{HOME}/profiles-mega-mapping-tables")->all;
+            @files = io->dir($dir_option)->all;
             if (@files) {
                 last;
             } else {
