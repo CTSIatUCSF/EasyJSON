@@ -59,7 +59,7 @@ around 'identifier_to_canonical_url' => sub {
 # - translates ProfilesNodeIDs via lookup table, or lets them through
 # - translates person IDs via lookup table
 # - translates employee IDs into EPPN/Username via either lookup table or algorithm
-# - translates FNO via lookup table
+# - translates FNO via lookup table, or attemots them as pretty URLs
 # - lets through EPPNs
 # - simplifies URL, then re-runs
 
@@ -76,7 +76,7 @@ sub preprocess_ucsf_identifier {
 
         'EmployeeID'     => { lookup      => 1, translate   => 1 },
         'EPPN'           => { passthrough => 1 },
-        'FNO'            => { lookup      => 1 },
+        'FNO'            => { lookup      => 1, translate   => 1 },
         'Person'         => { lookup      => 1, translate   => 1 },
         'PrettyURL'      => { passthrough => 1 },
         'ProfilesNodeID' => { lookup      => 1, passthrough => 1 },
@@ -166,6 +166,10 @@ sub preprocess_ucsf_identifier {
         } elsif ( $identifier_type eq 'EmployeeID' ) {
             if ( $identifier =~ m/^02(\d{3,})\d$/ ) {
                 return ( 'UserName', "$1\@ucsf.edu", $options );
+            }
+        } elsif ( $identifier_type eq 'FNO' ) {
+            if ( $identifier =~ m/^([a-z][a-z\.-]{3,})@/ ) {
+                return ( 'PrettyURL', $1, $options );
             }
         } else {
             warn "Don't know how to expand identifier type $identifier_type";

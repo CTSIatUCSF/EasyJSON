@@ -8,7 +8,7 @@ use Test::NoWarnings;
 use strict;
 use warnings;
 
-plan tests => 15;
+plan tests => 16;
 
 *preprocess_ucsf_identifier
     = \&ProfilesEasyJSON::MegaUCSF::preprocess_ucsf_identifier;
@@ -59,6 +59,11 @@ is_deeply( [  preprocess_ucsf_identifier(
            ],
            [ 'ProfilesNodeID', '1234567', {} ],
            'valid URL with node ID'
+);
+
+is_deeply( [ preprocess_ucsf_identifier( 'FNO', 'christina.yau@ucsf.edu' ) ],
+           [ 'PrettyURL', 'christina.yau', {} ],
+           'valid FNO not in lookup table'
 );
 
 {
