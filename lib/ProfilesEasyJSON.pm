@@ -5,6 +5,7 @@
 
 package ProfilesEasyJSON;
 use Data::Dump qw( dump );
+use Data::Validate::Domain 0.14 qw( is_domain );
 use Data::Visitor::Callback;
 use Digest::MD5 qw( md5_base64 );
 use Encode qw( encode );
@@ -1253,7 +1254,15 @@ sub canonical_url_to_json {
                        @links = grep {
                            eval {
                                no warnings;
-                               return URI->new( $_->{URL} )->host =~ m/\w/;
+                               my $raw_url = $_->{URL};
+                               my $uri     = URI->new($raw_url);
+                               return 0 unless $uri;
+                               return 0 unless defined $uri->host;
+                               return 0 unless $uri->host =~ m/\w/;
+                               return 0
+                                   unless is_domain( $uri->host,
+                                       { domain_disable_tld_validation => 1 } );
+                               return 1;
                                }
                        } @links;
 
