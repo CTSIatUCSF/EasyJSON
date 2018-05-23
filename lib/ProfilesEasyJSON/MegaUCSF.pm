@@ -20,7 +20,7 @@ has '+root_domain' => (
 
 has '+themed_base_domain' => (
     default => sub {
-        URI->new('https://ucsf.researcherprofiles.org/');
+        URI->new('https://profiles.ucsf.edu/');
     }
 );
 
