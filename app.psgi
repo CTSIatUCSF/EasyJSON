@@ -5,7 +5,6 @@ use CGI::PSGI;
 use Data::Dump qw( dump );
 use Encode qw( decode_utf8 );
 use JSON qw( encode_json );
-use ProfilesEasyJSON::ClassicUCSF;
 use ProfilesEasyJSON::MegaUCSF;
 use 5.8.8;
 use utf8;
@@ -21,31 +20,7 @@ my %valid_types = ( FNO             => 'FNO',
                     URL             => 'URL'
 );
 
-my $api = ProfilesEasyJSON::ClassicUCSF->new;
-
-# temporary hack to switch between old and new
-{
-    use LWP::UserAgent;
-    use Socket qw( inet_ntoa inet_aton );
-    my $ip = eval { inet_ntoa( inet_aton('profiles.ucsf.edu') ) } // '';
-    if ( $ip =~ m/^64.54/ ) {
-        $api = ProfilesEasyJSON::ClassicUCSF->new;
-    } elsif ( $ip =~ m/^169.229/ ) {
-        $api = ProfilesEasyJSON::MegaUCSF->new;
-    } elsif ( time <= 1525824000 ) {
-        $api = ProfilesEasyJSON::ClassicUCSF->new;
-    } else {
-        my $ua = LWP::UserAgent->new;
-        $ua->max_redirect(0);
-        my $response = $ua->head('http://profiles.ucsf.edu/');
-        if ( $response->is_redirect ) {
-            my $location = $response->header('Location');
-            if ( $location and $location =~ m/^https/ ) {
-                $api = ProfilesEasyJSON::MegaUCSF->new;
-            }
-        }
-    }
-}
+my $api = ProfilesEasyJSON::MegaUCSF->new;
 
 my $app = sub {
     my $env = shift;
