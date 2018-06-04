@@ -41,7 +41,7 @@ test_psgi $app, sub {
             'http://localhost/?source=Anirvan_script&FNO=anirvan.chatterjee@ucsf.edu'
             );
         my $res = $cb->($req);
-        is $res->code, 200, 'reasonable call should return 200';
+        is $res->code, 200, 'reasonable FNO call should return 200';
 
     SKIP: {
             skip "invalid data, can't test", 1 unless $res->code == 200;
@@ -54,9 +54,9 @@ test_psgi $app, sub {
     {
         my $req
             = GET(
-               'http://localhost/?source=Anirvan_script&EPPN=827204@ucsf.edu' );
+                'http://localhost/?source=Anirvan_script&EPPN=827204@ucsf.edu');
         my $res = $cb->($req);
-        is $res->code, 200, 'reasonable call should return 200';
+        is $res->code, 200, 'reasonable EPPN call should return 200';
 
     SKIP: {
             skip "invalid data, can't test", 1 unless $res->code == 200;
