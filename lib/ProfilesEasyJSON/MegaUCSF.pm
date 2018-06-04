@@ -81,6 +81,7 @@ sub preprocess_ucsf_identifier {
         'PrettyURL'      => { passthrough => 1 },
         'ProfilesNodeID' => { lookup      => 1, passthrough => 1 },
         'URL'            => { expand      => 1 },
+        'UserName'       => { passthrough => 1 },
 
     };
 
@@ -192,6 +193,13 @@ sub preprocess_ucsf_identifier {
                 return ( 'UserName', $identifier, $options );
             } else {
                 warn "Invalid EPPN format: '$identifier'";
+                return;
+            }
+        } elsif ( $identifier_type eq 'UserName' ) {
+            if ( $identifier =~ m/\w.*\@.*\w/ ) {
+                return ( 'UserName', $identifier, $options );
+            } else {
+                warn "Invalid EPPN/UserName format: '$identifier'";
                 return;
             }
         } elsif ( $identifier_type eq 'ProfilesNodeID' ) {
