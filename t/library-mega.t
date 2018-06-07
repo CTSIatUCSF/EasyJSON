@@ -18,7 +18,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 131;
+plan tests => 132;
 
 # looking up users by different identifiers
 
@@ -206,6 +206,9 @@ SKIP: {
               "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 50, "$test_name: got 50+ publications" );
+        is_deeply( $data->{Profiles}->[0]->{Twitter_beta},
+                 ['CTSIatUCSF'],
+                 "$test_name: got Twitter (from potentially broken username)" );
 
         my @publication_years
             = map { $_->{Year} } @{ $data->{Profiles}->[0]->{Publications} };

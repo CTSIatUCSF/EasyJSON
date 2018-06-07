@@ -1326,12 +1326,14 @@ sub canonical_url_to_json {
 
                Twitter_beta => (
                    eval {
-                               $orng_data{'hasTwitter'}->{twitter_username}
+                       if (    $orng_data{'hasTwitter'}
                            and $orng_data{'hasTwitter'}->{twitter_username}
-                           =~ /^([A-Za-z0-9_]+)$/;
+                           and $orng_data{'hasTwitter'}->{twitter_username}
+                           =~ m{^(?:https?://twitter.com/)?@?([A-Za-z0-9_]{2,})$}
+                       ) {
+                           return [$1];
                        }
-                   ? [ $orng_data{'hasTwitter'}->{twitter_username} ]
-                   : []
+                   }
                ),
 
                Videos => (
