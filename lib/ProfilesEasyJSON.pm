@@ -1682,7 +1682,7 @@ sub _ua_with_appropriate_timeout {
         # Does knowing we have a long timeout give us more time?
         # If so, let's give potentially ourselves a little extra time.
         $timeout_seconds
-            = max( $timeout_seconds, ( $seconds_left_till_timeout / 6 ) );
+            = max( $timeout_seconds, ( $seconds_left_till_timeout * 0.4 ) );
 
         # But what if this is longer than we have?
         # If so, decrease this.
@@ -1691,6 +1691,8 @@ sub _ua_with_appropriate_timeout {
         # Just to be safe, let's set some basic bounds
         if ( $timeout_seconds <= 0 ) {
             $timeout_seconds = 0;
+        } elsif ( $timeout_seconds > 120 ) {
+            $timeout_seconds = 120;
         }
 
     }
