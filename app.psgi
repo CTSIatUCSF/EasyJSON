@@ -82,6 +82,13 @@ my $app = sub {
             $options->{cache} = lc $1;
         }
 
+        if (     $params->{timeout}
+             and $params->{timeout} =~ m/^\d+$/
+             and $params->{timeout} > 0 ) {
+            $options->{finish_by_time_in_epoch_seconds}
+                = time + $params->{timeout};
+        }
+
         my $error_string = '';
         $SIG{__WARN__} = sub { $error_string = $_[0]; chomp $error_string; };
         $json = $api->identifier_to_json( $identifier_type, $identifier,

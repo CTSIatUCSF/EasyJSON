@@ -1,7 +1,7 @@
 #!/usr/bin/perl
 
 # TODO:
-# add timeout support?
+# always honor cache=always
 
 package ProfilesEasyJSON;
 use Data::Dump qw( dump );
@@ -11,7 +11,7 @@ use Digest::MD5 qw( md5_base64 );
 use Encode qw( encode );
 use HTTP::Message 6.06;
 use JSON;
-use List::MoreUtils qw( uniq );
+use List::AllUtils qw( min max uniq );
 use LWP::UserAgent 6.0;
 use Moo;
 use ProfilesEasyJSON::CHI;
@@ -252,7 +252,7 @@ sub identifier_to_canonical_url {
         my $url = $self->themed_base_domain->clone;
         $url->path('CustomAPI/v2/Default.aspx');
         $url->query_form( { $identifier_type => $identifier } );
-        my $response = $self->_ua->get($url);
+        my $response = $self->_ua_with_appropriate_timeout($options)->get($url);
 
         # if there was an error loading the content, figure out an error message
 
@@ -398,7 +398,8 @@ sub canonical_url_to_json {
     # allowed to do an HTTP lookup, then go do it
 
     if ( !$decoded_json and $options->{cache} ne 'always' ) {
-        my $response = $self->_ua->get($expanded_jsonld_url);
+        my $response = $self->_ua_with_appropriate_timeout($options)
+            ->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
             $raw_json = $response->decoded_content;
@@ -590,7 +591,9 @@ sub canonical_url_to_json {
 
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
-                my $field_jsonld_response = $self->_ua->get($field_jsonld_url);
+                my $field_jsonld_response
+                    = $self->_ua_with_appropriate_timeout($options)
+                    ->get($field_jsonld_url);
                 if (     $field_jsonld_response->is_success
                      and $field_jsonld_response->base->path !~ m{^/Error/} ) {
                     $raw_json_for_field
@@ -784,7 +787,8 @@ sub canonical_url_to_json {
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
-            my $vcard_response = $self->_ua->get($vcard_url);
+            my $vcard_response = $self->_ua_with_appropriate_timeout($options)
+                ->get($vcard_url);
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
                 eval {
@@ -1639,6 +1643,59 @@ sub _split_keyword_string {
 
     return @parts;
 
+}
+
+sub _ua_with_appropriate_timeout {
+    my ( $self, $options ) = @_;
+    my $ua = $self->_ua;
+
+    # If we want to never cache, set timeout to 10 seconds.
+    #
+    # Otherwise, set timeout to 5s.
+    #
+    # BUT if we want to finish by a certain time, shorten as needed
+
+    # 5 seconds by default
+    my $timeout_seconds = 5;
+
+    # but 10 seconds if we want to never cache
+    if ( eval { no warnings; return ( $options->{cache} eq 'never' ) } ) {
+        $timeout_seconds = 10;
+    }
+
+    # and 0 if we never want to search
+    if ( eval { no warnings; return ( $options->{cache} eq 'always' ) } ) {
+        $timeout_seconds = 0;
+    }
+
+    if (     $options
+         and $options->{finish_by_time_in_epoch_seconds}
+         and eval { $options->{finish_by_time_in_epoch_seconds} > 0 } ) {
+
+        my $current_time = time;
+
+        my $seconds_left_till_timeout
+            = $options->{finish_by_time_in_epoch_seconds} - $current_time;
+
+        # Does knowing we have a long timeout give us more time?
+        # If so, let's give potentially ourselves a little extra time.
+        $timeout_seconds
+            = max( $timeout_seconds, ( $seconds_left_till_timeout / 6 ) );
+
+        # But what if this is longer than we have?
+        # If so, decrease this.
+        $timeout_seconds = min( $timeout_seconds, $seconds_left_till_timeout );
+
+        # Just to be safe, let's set some basic bounds
+        if ( $timeout_seconds <= 0 ) {
+            $timeout_seconds = 0;
+        }
+
+    }
+
+    $ua->timeout($timeout_seconds);
+
+    return $ua;
 }
 
 1;
