@@ -6,6 +6,7 @@ use JSON qw( decode_json );
 use Plack::Test;
 use Plack::Util;
 use Test::More;
+use Time::HiRes qw( time );
 binmode STDOUT, ':utf8';
 use strict;
 use warnings;
@@ -100,6 +101,37 @@ test_psgi $app, sub {
         }
     }
 
+    # no timeout should take a few seconds
+    {
+        my $start_time = time;
+        my $req
+            = GET(
+            'http://localhost/?source=Anirvan_script&ProfilesURLName=kirsten.bibbins-domingo&cache=never'
+            );
+        my $res        = $cb->($req);
+        my $end_time   = time;
+        my $time_taken = sprintf '%0.1f', ( $end_time - $start_time );
+        cmp_ok(
+            $time_taken,
+            '>=',
+            0.7,
+            "uncached search without timeout takes a little time ($time_taken sec)"
+        );
+    }
+
+    # timeout works
+    {
+        my $start_time = time;
+        my $req
+            = GET(
+            'http://localhost/?source=Anirvan_script&ProfilesURLName=kirsten.bibbins-domingo&cache=never&timeout=1'
+            );
+        my $res        = $cb->($req);
+        my $end_time   = time;
+        my $time_taken = sprintf '%0.1f', ( $end_time - $start_time );
+        cmp_ok( $time_taken, '<', 0.8,
+                "uncached search with timeout is fast ($time_taken sec)" );
+    }
 };
 
 done_testing;
