@@ -93,14 +93,6 @@ has _ua => ( is  => 'lazy',
 sub _build__ua {
     my $ua = LWP::UserAgent->new;
     $ua->timeout(5);
-
-    # Profiles has bot detection that interferes with some downloads
-    # so we're trying to add some random spaces to the useragent.
-    my $agent_string = 'Profiles EasyJSON Interface 2.0';
-    1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
-    $agent_string = "Mozilla/5.0 ($agent_string)";
-    $ua->agent($agent_string);
-
     return $ua;
 }
 
@@ -252,7 +244,7 @@ sub identifier_to_canonical_url {
         my $url = $self->themed_base_domain->clone;
         $url->path('CustomAPI/v2/Default.aspx');
         $url->query_form( { $identifier_type => $identifier } );
-        my $response = $self->_ua_with_appropriate_timeout($options)->get($url);
+        my $response = $self->_ua_with_updated_settings($options)->get($url);
 
         # if there was an error loading the content, figure out an error message
 
@@ -398,7 +390,7 @@ sub canonical_url_to_json {
     # allowed to do an HTTP lookup, then go do it
 
     if ( !$decoded_json and $options->{cache} ne 'always' ) {
-        my $response = $self->_ua_with_appropriate_timeout($options)
+        my $response = $self->_ua_with_updated_settings($options)
             ->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
@@ -592,7 +584,7 @@ sub canonical_url_to_json {
             # ...or get from server, and cache if found
             unless ($raw_json_for_field) {
                 my $field_jsonld_response
-                    = $self->_ua_with_appropriate_timeout($options)
+                    = $self->_ua_with_updated_settings($options)
                     ->get($field_jsonld_url);
                 if (     $field_jsonld_response->is_success
                      and $field_jsonld_response->base->path !~ m{^/Error/} ) {
@@ -787,7 +779,7 @@ sub canonical_url_to_json {
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
-            my $vcard_response = $self->_ua_with_appropriate_timeout($options)
+            my $vcard_response = $self->_ua_with_updated_settings($options)
                 ->get($vcard_url);
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
@@ -1647,9 +1639,18 @@ sub _split_keyword_string {
 
 }
 
-sub _ua_with_appropriate_timeout {
+sub _ua_with_updated_settings {
     my ( $self, $options ) = @_;
     my $ua = $self->_ua;
+
+    # Profiles has bot detection that interferes with some downloads
+    # so we're trying to add some random spaces to the useragent.
+
+    my $agent_string = 'Profiles EasyJSON Interface 2.0';
+    1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
+    $agent_string = "Mozilla/5.0 ($agent_string)";
+    $agent_string .= ' [' . int(rand 10000) . ']';
+    $ua->agent($agent_string);
 
     # If we want to never cache, set timeout to 10 seconds.
     #
