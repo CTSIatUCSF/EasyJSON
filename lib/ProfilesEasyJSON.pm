@@ -779,8 +779,8 @@ sub canonical_url_to_json {
 
         # ...or get from server, and cache if found
         unless ($raw_vcard) {
-            my $vcard_response = $self->_ua_with_updated_settings($options)
-                ->get($vcard_url);
+            my $vcard_response
+                = $self->_ua_with_updated_settings($options)->get($vcard_url);
             if ( $vcard_response->is_success ) {
                 $raw_vcard = $vcard_response->decoded_content;
                 eval {
@@ -1649,7 +1649,7 @@ sub _ua_with_updated_settings {
     my $agent_string = 'Profiles EasyJSON Interface 2.0';
     1 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
     $agent_string = "Mozilla/5.0 ($agent_string)";
-    $agent_string .= ' [' . int(rand 10000) . ']';
+    $agent_string .= ' [' . int( rand 10000 ) . ']';
     $ua->agent($agent_string);
 
     # If we want to never cache, set timeout to 10 seconds.
