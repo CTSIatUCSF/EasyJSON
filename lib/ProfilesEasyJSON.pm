@@ -1357,10 +1357,15 @@ sub canonical_url_to_json {
 
                SlideShare_beta => (
                    eval {
-                       $orng_data{'hasSlideShare'}->{username};
+                       if (     $orng_data{'hasSlideShare'}
+                            and $orng_data{'hasSlideShare'}->{username}
+                            and $orng_data{'hasSlideShare'}->{username}
+                            =~ m/^\w{2,}$/ ) {
+                           return [ $orng_data{'hasSlideShare'}->{username} ];
+                       } else {
+                           return [];
                        }
-                   ? [ $orng_data{'hasSlideShare'}->{username} ]
-                   : []
+                   }
                ),
 
                GlobalHealth_beta => (
