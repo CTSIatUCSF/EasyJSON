@@ -47,8 +47,8 @@ sub _build_themed_base_domain {
 
 # We use this if there are one or more old domains that were
 # previously used. We look at these hosts to see if a URL is ours.
-has 'legacy_root_domains' => ( is  => 'ro',
-                               isa => ArrayRef [ InstanceOf ['URI'] ],
+has 'legacy_root_domains' => ( is      => 'ro',
+                               isa     => ArrayRef [ InstanceOf ['URI'] ],
                                default => sub { [] },
 );
 
@@ -303,7 +303,7 @@ sub identifier_to_canonical_url {
             return URI->new($node_uri);
         } else {
             my $http_code = $response->code;
-            my $excerpt = substr( ( $raw || '[UNDEF]' ), 0, 20 );
+            my $excerpt   = substr( ( $raw || '[UNDEF]' ), 0, 20 );
             warn
                 "Scanned URL $url for the original rdf:about node URI, but couldn't find it (got HTTP $http_code, '$excerpt...')\n";
             return;
@@ -366,7 +366,7 @@ sub canonical_url_to_json {
 
         if ( $cache_object and _verify_cache_object_policy($cache_object) ) {
 
-            $raw_json = $cache_object->value;
+            $raw_json     = $cache_object->value;
             $decoded_json = eval { $json_obj->decode($raw_json) };
 
             if ( $raw_json and $decoded_json ) {
@@ -394,7 +394,7 @@ sub canonical_url_to_json {
             ->get($expanded_jsonld_url);
 
         if ( $response->is_success ) {
-            $raw_json = $response->decoded_content;
+            $raw_json     = $response->decoded_content;
             $decoded_json = eval { $json_obj->decode($raw_json) };
 
             if ( $raw_json and $decoded_json ) {
@@ -427,8 +427,7 @@ sub canonical_url_to_json {
     unless ( $raw_json and $decoded_json ) {
         if ( $options->{cache} ne 'never' ) {
             if ( $c2j_cache->exists_and_is_expired(
-                                                  $expanded_jsonld_url_cache_key
-                 )
+                                                 $expanded_jsonld_url_cache_key)
             ) {
 
                 my $cache_object
@@ -600,8 +599,7 @@ sub canonical_url_to_json {
             # ...or try to get from expired cache
             unless ($raw_json_for_field) {
                 if ( $url_cache->exists_and_is_expired(
-                                                     $field_jsonld_url_cache_key
-                     )
+                                                    $field_jsonld_url_cache_key)
                 ) {
                     my $potential_expired_cache_object
                         = $url_cache->get_object($field_jsonld_url_cache_key);
@@ -646,6 +644,41 @@ sub canonical_url_to_json {
                             $orng_data{$field}->{$item_label} = $item_data;
                         }
                     }
+
+# Sometimes a weird chunking is implemented! We
+# need to decode it at time of data access.
+# https://github.com/CTSIatUCSF/shindigorng/blob/master/src/main/java/edu/ucsf/orng/shindig/spi/OrngAppDataService.java
+                    foreach my $key ( keys %{ $orng_data{$field} } ) {
+                        if (     $orng_data{$field}->{$key}
+                             and !ref $orng_data{$field}->{$key}
+                             and $orng_data{$field}->{$key} eq
+                             '---DATA CHUNKED BY ORNG SYSTEM---' ) {
+                            if (     $orng_data{$field}->{"$key.count"}
+                                 and $orng_data{$field}->{"$key.count"}
+                                 =~ m/^(\d+)$/ ) {
+                                my $max_items = $1;
+                                delete $orng_data{$field}->{"$key.count"};
+                                my $json_string = '';
+                                for my $i ( 0 .. $max_items ) {
+                                    if ( $orng_data{$field}->{"$key.$i"} ) {
+                                        $json_string
+                                            .= $orng_data{$field}->{"$key.$i"};
+                                        delete $orng_data{$field}->{"$key.$i"};
+                                    }
+                                }
+                                my $decoded = eval {
+                                    no warnings;
+                                    $json_string
+                                        = Encode::encode_utf8($json_string);
+                                    $json_obj->decode($json_string);
+                                };
+                                if ( !$@ and $decoded ) {
+                                    $orng_data{$field}->{$key} = $decoded;
+                                }
+                            }
+                        }
+                    }
+
                 }
 
                 # end if we have JSON for an ORNG field
@@ -770,7 +803,7 @@ sub canonical_url_to_json {
     if ( !defined $person->{'email'} ) {
         my $vcard_url
             = URI->new( $self->themed_base_domain_profile_root
-             . "modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id"
+                . "modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id"
             );
         my $vcard_url_cache_key = $vcard_url->as_string;
 
@@ -1136,7 +1169,7 @@ sub canonical_url_to_json {
                                PublicationMedlineTA =>
                                    ( $pub->{'medlineTA'} || undef ),
                                Title => ( $pub->{'label'} || undef ),
-                               Date => (
+                               Date  => (
                                    eval {
                                               $pub->{'publicationDate'}
                                            && $pub->{'publicationDate'}
@@ -1240,7 +1273,7 @@ sub canonical_url_to_json {
                                if ( $link and $link->{link_url} ) {
                                    push @links,
                                        { Label => $link->{link_name} || undef,
-                                         URL => $link->{link_url}
+                                         URL   => $link->{link_url}
                                        };
                                }
                            }
@@ -1259,7 +1292,7 @@ sub canonical_url_to_json {
                                    unless is_domain( $uri->host,
                                        { domain_disable_tld_validation => 1 } );
                                return 1;
-                               }
+                           }
                        } @links;
 
                        return @links;
@@ -1282,10 +1315,7 @@ sub canonical_url_to_json {
                             'ARRAY' ) {
                            @raw_links
                                = @{ $orng_data{'hasMediaLinks'}->{links} };
-                       } elsif (
-                           eval {
-                               $orng_data{'hasMediaLinks'}->{links};
-                           }
+                       } elsif ( eval { $orng_data{'hasMediaLinks'}->{links}; }
                        ) {
                            my $raw_json = $orng_data{'hasMediaLinks'}->{links};
                            if ( utf8::is_utf8($raw_json) ) {
@@ -1559,7 +1589,7 @@ sub _verify_cache_object_policy {
     my $how_many_days_old_cached_data_can_we_return = 14;
 
     my $cache_object = shift;
-    my $cached_time = eval { $cache_object->created_at() };
+    my $cached_time  = eval { $cache_object->created_at() };
     unless ($cached_time) {
         return 0;
     }
