@@ -7,6 +7,7 @@ use ProfilesEasyJSON::MegaUCSF;
 use Test::More;
 use Test::NoWarnings;
 use Test::Warn 0.31;
+binmode STDERR, ':utf8';
 binmode STDOUT, ':utf8';
 use utf8;
 use strict;
@@ -22,71 +23,63 @@ plan tests => 132;
 
 # looking up users by different identifiers
 
-is( $api->identifier_to_canonical_url( 'ProfilesNodeID', '370974',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                                'ProfilesNodeID', '370974', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using ProfilesNodeID'
 );
-is( $api->identifier_to_canonical_url( 'FNO',
-                                       'anirvan.chatterjee@ucsf.edu',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                      'FNO', 'anirvan.chatterjee@ucsf.edu', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using FNO'
 );
-is( $api->identifier_to_canonical_url( 'EmployeeID', '028272045',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                                 'EmployeeID', '028272045', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EmployeeID'
 );
-is( $api->identifier_to_canonical_url( 'EPPN',
-                                       '827204@ucsf.edu',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                                 'EPPN', '827204@ucsf.edu', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EPPN'
 );
-is( $api->identifier_to_canonical_url( 'Person', '5396511',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'Person', '5396511', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using Person ID'
 );
-is( $api->identifier_to_canonical_url( 'PrettyURL',
-                                       'anirvan.chatterjee',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                         'PrettyURL', 'anirvan.chatterjee', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name'
 );
-is( $api->identifier_to_canonical_url( 'PrettyURL',
-                                       'Anirvan.Chatterjee',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                         'PrettyURL', 'Anirvan.Chatterjee', { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using standalone pretty URL name (incorrect case)'
 );
 is( $api->identifier_to_canonical_url(
-                                  'URL',
-                                  'http://profiles.ucsf.edu/anirvan.chatterjee',
-                                  { cache => 'never' }
+                           'URL', 'http://profiles.ucsf.edu/anirvan.chatterjee',
+                           { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (pretty)'
 );
 is( $api->identifier_to_canonical_url(
-                                     'URL',
-                                     'http://profiles.ucsf.edu/michael.reyes.2',
-                                     { cache => 'never' }
+                              'URL', 'http://profiles.ucsf.edu/michael.reyes.2',
+                              { cache => 'never' }
     ),
     $michael_reyes_node_url,
     'identifier_to_canonical_url, using URL (pretty, with number)'
 );
-is( $api->identifier_to_canonical_url( 'URL',
-                                       $anirvans_profile_node_url,
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url(
+                         'URL', $anirvans_profile_node_url, { cache => 'never' }
     ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using URL (canonical)'
@@ -117,8 +110,7 @@ is( $api->identifier_to_canonical_url(
         'identifier_to_canonical_url, with an outdated person'
     );
 }
-is( $api->identifier_to_canonical_url( 'Person', '5195436',
-                                       { cache => 'never' }
+is( $api->identifier_to_canonical_url( 'Person', '5195436', { cache => 'never' }
     ),
     $patrick_philips_node_url,
     'identifier_to_canonical_url, regression testing person among formerly broken set',
@@ -219,12 +211,10 @@ SKIP: {
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
 
-        cmp_ok( @featured_pubs,
-                '>=',
-                2,
-                "$test_name: found at least 2 featured publications ("
-                    . scalar(@featured_pubs) . ')'
-        );
+        cmp_ok( @featured_pubs, '>=', 2,
+                      "$test_name: found at least 2 featured publications ("
+                    . scalar(@featured_pubs)
+                    . ')' );
 
         isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
                 'ARRAY', "$test_name: got back list of awards" );
@@ -345,7 +335,7 @@ SKIP: {
 # regression
 {
     my $test_name = 'Steve Shiboski';
-    my $json = $api->identifier_to_json( 'Person', '5329027' );
+    my $json      = $api->identifier_to_json( 'Person', '5329027' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -453,7 +443,7 @@ SKIP: {
 
 {
     my $test_name = 'Brian Turner';
-    my $json = $api->identifier_to_json( 'PrettyURL', 'brian.turner' );
+    my $json      = $api->identifier_to_json( 'PrettyURL', 'brian.turner' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -462,12 +452,10 @@ SKIP: {
 
         my @claimed_pubs = grep { $_->{Claimed} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @claimed_pubs,
-                '>=',
-                2,
-                "$test_name: found at least 2 claimed publications ("
-                    . scalar(@claimed_pubs) . ')'
-        );
+        cmp_ok( @claimed_pubs, '>=', 2,
+                      "$test_name: found at least 2 claimed publications ("
+                    . scalar(@claimed_pubs)
+                    . ')' );
     }
 
 }
@@ -495,15 +483,13 @@ SKIP: {
 
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
-        my $data = decode_json($json);
+        my $data          = decode_json($json);
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @featured_pubs,
-                '>=',
-                5,
-                "$test_name: found at least 5 featured publications ("
-                    . scalar(@featured_pubs) . ')'
-        );
+        cmp_ok( @featured_pubs, '>=', 5,
+                      "$test_name: found at least 5 featured publications ("
+                    . scalar(@featured_pubs)
+                    . ')' );
     }
 }
 
@@ -573,8 +559,7 @@ SKIP: {
               qr/^415-/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^min-lin\.fang\@ucsf\.edu$/i,
-              "$test_name: email"
-        );
+              "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 2, "$test_name: got 2+ publications" );
     }
@@ -685,15 +670,13 @@ SKIP: {
               qr/^415-514-8113$/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^robert\.hiatt\@ucsf\.edu$/i,
-              "$test_name: email"
-        );
+              "$test_name: email" );
         like( $data->{Profiles}->[0]->{Narrative},
               qr/cancer epidemiology/,
               "$test_name: narrative" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
               qr/implementation science/i,
-              "$test_name: matching freetext keyword"
-        );
+              "$test_name: matching freetext keyword" );
         like(
             eval {
                 scalar $data->{Profiles}->[0]->{WebLinks_beta}->[0]->{URL};
