@@ -783,6 +783,14 @@ sub canonical_url_to_json {
 
             push @address, $last_line;
         }
+
+        # handles a weird edge case with UCSF data
+        if ( grep {m/Varies, CA 00000/} @address ) {
+            @address = ();
+            delete $person->{'latitude'};
+            delete $person->{'longitude'};
+        }
+
     }
 
     # make sure lat/lon is numeric -- and that it's never [0,0]
