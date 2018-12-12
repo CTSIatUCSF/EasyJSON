@@ -558,7 +558,7 @@ sub canonical_url_to_json {
                         'hasLinks',                'hasMentor',
                         'hasNIHGrantList',         'hasTwitter',
                         'hasSlideShare',           'hasMediaLinks',
-                        'hasVideos',
+                        'hasVideos',               'hasClinicalTrials',
     ) {
 
         if (     $person->{$field}
@@ -799,54 +799,82 @@ sub canonical_url_to_json {
         @lat_lon = ( $person->{'latitude'} + 0, $person->{'longitude'} + 0 );
     }
 
+    my %additional_fields_to_look_up;
+
     # no email? see if it's publicly accessible via the vCard
     if ( !defined $person->{'email'} ) {
         my $vcard_url
             = URI->new( $self->themed_base_domain_profile_root
                 . "modules/CustomViewPersonGeneralInfo/vcard.aspx?subject=$node_id"
             );
-        my $vcard_url_cache_key = $vcard_url->as_string;
+        $additional_fields_to_look_up{'email_vcard'} = $vcard_url;
+    }
+
+    if ( $person->{'hasClinicalTrials'} ) {
+        if (     $self->root_domain eq 'https://researcherprofiles.org/'
+             and $person->{'workplaceHomepage'} ) {
+            $additional_fields_to_look_up{'clinical_trials'}
+                = URI->new(
+                'https://api.researcherprofiles.org/ClinicalTrialsApi/api/clinicaltrial/'
+                );
+            $additional_fields_to_look_up{'clinical_trials'}->query_form(
+                             { person_url => $person->{'workplaceHomepage'} } );
+        }
+    }
+
+    foreach my $field_to_look_up_key ( keys %additional_fields_to_look_up ) {
+
+        my $url = $additional_fields_to_look_up{$field_to_look_up_key};
+        my $url_cache_key = $url->as_string;
 
         # grab from cache, if available
-        my $raw_vcard = $url_cache->get($vcard_url_cache_key);
+        my $raw = $url_cache->get($url_cache_key);
 
         # ...or get from server, and cache if found
-        unless ($raw_vcard) {
-            my $vcard_response
-                = $self->_ua_with_updated_settings($options)->get($vcard_url);
-            if ( $vcard_response->is_success ) {
-                $raw_vcard = $vcard_response->decoded_content;
-                eval {
-                    $url_cache->set( $vcard_url_cache_key, $raw_vcard,
-                                     '1 week' );
-                };
+        unless ($raw) {
+            my $response
+                = $self->_ua_with_updated_settings($options)->get($url);
+            if ( $response->is_success ) {
+                $raw = $response->decoded_content;
+                eval { $url_cache->set( $url_cache_key, $raw, '1 week' ); };
             }
         }
 
         # ...or try to get from expired cache
-        unless ($raw_vcard) {
-            if ( $url_cache->exists_and_is_expired($vcard_url_cache_key) ) {
+        unless ($raw) {
+            if ( $url_cache->exists_and_is_expired($url_cache_key) ) {
                 my $potential_expired_cache_object
-                    = $url_cache->get_object($vcard_url_cache_key);
+                    = $url_cache->get_object($url_cache_key);
                 if ($potential_expired_cache_object) {
                     if ( $potential_expired_cache_object->value() ) {
-                        $raw_vcard = $potential_expired_cache_object->value();
+                        $raw = $potential_expired_cache_object->value();
                     }
                 }
             }
         }
 
-        # got some raw JSON? start using it
-        if ($raw_vcard) {
-            if ( $raw_vcard =~ m/[\r\n]EMAIL\S*?:(.*?)[\r\n]/s ) {
-                my $likely_email = $1;
-                if ( $likely_email
-                     =~ m/^([\w+\-].?)+\@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+$/i ) {
-                    $person->{'email'} = $likely_email;
+        # got some raw content? start using it
+        if ($raw) {
+
+            if ( $field_to_look_up_key eq 'email_vcard' ) {
+                if ( $raw =~ m/[\r\n]EMAIL\S*?:(.*?)[\r\n]/s ) {
+                    my $likely_email = $1;
+                    if ( $likely_email
+                        =~ m/^([\w+\-].?)+\@[a-z\d\-]+(\.[a-z]+)*\.[a-z]+$/i ) {
+                        $person->{'email'} = $likely_email;
+                    }
                 }
-            }
-        }
-    }
+            } elsif ( $field_to_look_up_key eq 'clinical_trials' ) {
+                if ( $raw =~ m/\{/ ) {
+                    my $trials = eval { no warnings; return decode_json($raw) };
+                    if ( $trials and ref $trials and ref $trials eq 'ARRAY' ) {
+                        $person->{clinical_trials} = $trials;
+                    }
+                }
+            }    # end if trial
+
+        }    # if we got back content from this API lookup
+    }    # for each special URL to look up
 
     # Every once in a while, Profiles craps out and loses all
     # school/department/title data. In that case, we'll try to use
@@ -1063,6 +1091,62 @@ sub canonical_url_to_json {
                        } else {
                            return ();
                        }
+                   }
+               ],
+
+               ClinicalTrials => [
+                   eval {
+                       my @trials;
+                       if ( $person->{clinical_trials} ) {
+                           foreach
+                               my $raw_trial ( @{ $person->{clinical_trials} } )
+                           {
+                               my %trial;
+
+                               if ( $raw_trial->{Title} ) {
+                                   $trial{Title} = $raw_trial->{Title};
+                               }
+
+                               if (     $raw_trial->{Id}
+                                    and $raw_trial->{Id} =~ m/^NCT/ ) {
+                                   $trial{ID} = $raw_trial->{Id};
+                               }
+
+                               if ( $raw_trial->{Conditions} ) {
+                                   my @conditions = split /\s+,\s+/,
+                                       $raw_trial->{Conditions};
+                                   $trial{Conditions} = \@conditions;
+                               }
+
+                               if (     $raw_trial->{SourceUrl}
+                                    and $raw_trial->{SourceUrl} =~ m/http/ ) {
+                                   $trial{URL} = $raw_trial->{SourceUrl};
+                               }
+
+                               if (     $raw_trial->{StartDate}
+                                    and $raw_trial->{StartDate}
+                                    =~ m/^(\d\d\d\d-\d\d-\d\d)(?=T|$)/ ) {
+                                   $trial{StartDate} = $1;
+                               }
+
+                               if ((      $raw_trial->{CompletionDate}
+                                      and $raw_trial->{CompletionDate}
+                                      =~ m/^(\d\d\d\d-\d\d-\d\d)(?=T|$)/
+                                   )
+                                   or (    $raw_trial->{EstimatedCompletionDate}
+                                       and $raw_trial->{EstimatedCompletionDate}
+                                       =~ m/^(\d\d\d\d-\d\d-\d\d)(?=T|$)/ )
+                               ) {
+                                   $trial{EndDate} = $1;
+                               }
+
+                               if (%trial) {
+                                   push @trials, \%trial;
+                               }
+                           }
+
+                       }
+                       return @trials;
                    }
                ],
 

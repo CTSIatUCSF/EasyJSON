@@ -19,7 +19,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 132;
+plan tests => 134;
 
 # looking up users by different identifiers
 
@@ -211,10 +211,12 @@ SKIP: {
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
 
-        cmp_ok( @featured_pubs, '>=', 2,
-                      "$test_name: found at least 2 featured publications ("
-                    . scalar(@featured_pubs)
-                    . ')' );
+        cmp_ok( @featured_pubs,
+                '>=',
+                2,
+                "$test_name: found at least 2 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
 
         isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
                 'ARRAY', "$test_name: got back list of awards" );
@@ -315,20 +317,17 @@ SKIP: {
     }
 }
 {
-    my $test_name = 'Kirsten Bibbins-Domingo no publications';
-    my $json =
-        $api->identifier_to_json( 'FNO',
-                                  'Kirsten.Bibbins-Domingo@ucsf.edu',
-                                  { no_publications => 1 } );
+    my $test_name = 'Hope Rugo';
+    my $json      = $api->identifier_to_json( 'PrettyURL', 'hope.rugo' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
-        ok( eval { !@{ $data->{Profiles}->[0]->{Publications} } },
-            'Disabling publications works' );
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
-                '>=', 90, "$test_name: Got enough publications" );
+                '>=', 100, "$test_name: Got enough publications" );
+        cmp_ok( $data->{Profiles}->[0]->{ClinicalTrials},
+                '>=', 2, "$test_name: Got enough clinical trials" );
     }
 }
 
@@ -343,19 +342,11 @@ SKIP: {
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 10, "$test_name: Got enough publications" );
-
-        cmp_ok(
-            eval {
-                scalar(
-                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
-                    }
-                );
-            },
-            '>=',
-            1,
-            "$test_name: got 1+ global health countries"
-        );
-
+        my $countries
+            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} }
+            || [];
+        cmp_ok( scalar(@$countries), '>=', 1,
+                "$test_name: got 1+ global health countries" );
         like( $data->{Profiles}->[0]->{PhotoURL},
               qr{PhotoHandler\.ashx}, "$test_name: Got photo, as expected" );
     }
@@ -372,9 +363,13 @@ SKIP: {
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
-        is_deeply( $data->{Profiles}->[0]->{Address}->{Latitude},
-                   undef,
-                   "$test_name: Latitude is undef as expected [regression]" );
+
+        if (    ( !defined $data->{Profiles}->[0]->{Address}->{Latitude} )
+             or
+             ( abs( $data->{Profiles}->[0]->{Address}->{Latitude} - 37.7 ) < 1 )
+        ) {
+            ok("$test_name: Latitude is either undef, or around SF");
+        }
     }
 }
 
@@ -408,19 +403,13 @@ SKIP: {
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 5, "$test_name: Got enough publications" );
-
-        cmp_ok(
-            eval {
-                scalar(
-                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
-                    }
-                );
-            },
-            '>=',
-            3,
-            "$test_name: got 3+ global health countries"
-        );
-
+        is_deeply( $data->{Profiles}->[0]->{ClinicalTrials},
+                   [], "$test_name: Got no clinical trials" );
+        my $countries
+            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} }
+            || [];
+        cmp_ok( scalar(@$countries), '>=', 3,
+                "$test_name: got 3+ global health countries" );
     }
 }
 
@@ -452,10 +441,12 @@ SKIP: {
 
         my @claimed_pubs = grep { $_->{Claimed} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @claimed_pubs, '>=', 2,
-                      "$test_name: found at least 2 claimed publications ("
-                    . scalar(@claimed_pubs)
-                    . ')' );
+        cmp_ok( @claimed_pubs,
+                '>=',
+                2,
+                "$test_name: found at least 2 claimed publications ("
+                    . scalar(@claimed_pubs) . ')'
+        );
     }
 
 }
@@ -486,10 +477,12 @@ SKIP: {
         my $data          = decode_json($json);
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @featured_pubs, '>=', 5,
-                      "$test_name: found at least 5 featured publications ("
-                    . scalar(@featured_pubs)
-                    . ')' );
+        cmp_ok( @featured_pubs,
+                '>=',
+                5,
+                "$test_name: found at least 5 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
     }
 }
 
@@ -559,7 +552,8 @@ SKIP: {
               qr/^415-/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^min-lin\.fang\@ucsf\.edu$/i,
-              "$test_name: email" );
+              "$test_name: email"
+        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 2, "$test_name: got 2+ publications" );
     }
@@ -585,7 +579,7 @@ SKIP: {
               qr/^michael\.schembri\@ucsf\.edu$/i,
               "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
-                '>=', 2, "$test_name: got 2+ publications" );
+                '>=', 1, "$test_name: got 1+ publications" );
         ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
             "$test_name: has 1+ web links" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
@@ -599,6 +593,9 @@ SKIP: {
             qr/Davis/,
             "$test_name: was educated at Davis"
         );
+        is_deeply( $data->{Profiles}->[0]->{ClinicalTrials},
+                   [], "$test_name: Got no clinical trials" );
+
     }
 }
 
@@ -670,13 +667,15 @@ SKIP: {
               qr/^415-514-8113$/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^robert\.hiatt\@ucsf\.edu$/i,
-              "$test_name: email" );
+              "$test_name: email"
+        );
         like( $data->{Profiles}->[0]->{Narrative},
               qr/cancer epidemiology/,
               "$test_name: narrative" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
               qr/implementation science/i,
-              "$test_name: matching freetext keyword" );
+              "$test_name: matching freetext keyword"
+        );
         like(
             eval {
                 scalar $data->{Profiles}->[0]->{WebLinks_beta}->[0]->{URL};
@@ -694,17 +693,12 @@ SKIP: {
                 '>=', 1, "$test_name: Was in the news" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Videos} } },
                 '>=', 1, "$test_name: at least 1 video" );
-        cmp_ok(
-            eval {
-                scalar(
-                    @{  $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries}
-                    }
-                );
-            },
-            '>=',
-            3,
-            "$test_name: got 3+ global health countries"
-        );
+
+        my $countries
+            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} }
+            || [];
+        cmp_ok( scalar(@$countries), '>=', 3,
+                "$test_name: got 3+ global health countries" );
     }
 }
 
