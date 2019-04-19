@@ -1246,6 +1246,10 @@ sub canonical_url_to_json {
                                     and $author_list
                                     and length $author_list
                                     and $title !~ m/\Q$author_list\E/i ) {
+
+                                   # combine author list and title
+                                   # killing any extra periods in between
+                                   $title =~ s/^\s*\.\s+//;
                                    $title = "$author_list. $title";
                                }
                            }
