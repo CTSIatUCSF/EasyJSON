@@ -1457,6 +1457,24 @@ sub canonical_url_to_json {
                Videos => (
                    eval {
                        my @videos;
+
+                       if (     $orng_data{'hasVideos'}->{videos}
+                            and !ref $orng_data{'hasVideos'}->{videos}
+                            and $orng_data{'hasVideos'}->{videos} =~ m/url/ ) {
+                           eval {
+                               my $raw_video_json
+                                   = Encode::encode_utf8(
+                                            $orng_data{'hasVideos'}->{videos} );
+                               my $decoded_videos
+                                   = decode_json($raw_video_json);
+                               if (     ref $decoded_videos
+                                    and ref $decoded_videos eq 'ARRAY' ) {
+                                   $orng_data{'hasVideos'}->{videos}
+                                       = $decoded_videos;
+                               }
+                           };
+                       }
+
                        if ( eval { @{ $orng_data{'hasVideos'}->{videos} } } ) {
                            foreach my $entry (
                                       @{ $orng_data{'hasVideos'}->{videos} } ) {
@@ -1464,7 +1482,7 @@ sub canonical_url_to_json {
                                unless ( $entry->{name} =~ m/\w/ ) {
                                    $entry->{name} = 'Video';
                                }
-                               if (     $entry->{url} !~ m/youtube/i
+                               if (     $entry->{url} !~ m/youtu\.?be/i
                                     and $entry->{id}
                                     and $entry->{id} =~ m/\w/ ) {
                                    $entry->{url}
