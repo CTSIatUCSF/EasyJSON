@@ -703,8 +703,8 @@ sub canonical_url_to_json {
             # accidental double-JSON encoding.
             if ( $pub and ref $pub and ref $pub eq 'HASH' ) {
 
-                my $pmid = $pub->{pmid};
-                my $id   = $pub->{id};
+                my $pmid = $pub->{'pmid'};
+                my $id   = $pub->{'id'};
 
                 my $matched_the_publication = 0;
                 if ( defined $id and $id =~ m/^\d+$/ ) {
