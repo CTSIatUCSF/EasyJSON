@@ -1228,6 +1228,18 @@ sub canonical_url_to_json {
                            my $pub_id = $pub_data->{id};
                            my $pub    = $items_by_url_id{$pub_id};
 
+                           # In the initial set of data imported from
+                           #   Dimensions in Nov 2019, the list of
+                           #   authors was separated by commas without
+                           #   spaces, like "Auth1,Auth2,Auth3" rather
+                           #   than "Auth1, Auth2, Auth3".
+                           # So we add spaces manually.
+                           if (     $pub->{'hasAuthorList'}
+                                and $pub->{'hasAuthorList'} =~ m/,.*,/
+                                and $pub->{'hasAuthorList'} !~ m/,\s/ ) {
+                               $pub->{'hasAuthorList'} =~ s/,(\S|\Z)/, $1/g;
+                           }
+
                            # In January 2016, Profiles RDF stopped
                            #   including the list of authors in the
                            #   "informationResourceReference"
