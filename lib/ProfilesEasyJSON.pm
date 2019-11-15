@@ -1254,6 +1254,11 @@ sub canonical_url_to_json {
                                }
                            }
 
+                           unless (     $pub->{'pmid'}
+                                    and $pub->{'pmid'} =~ m/^\d+$/ ) {
+                               delete $pub->{'pmid'};
+                           }
+
                            push @publications, {
 
                                # PublicationAddedBy => '?',
@@ -1282,19 +1287,29 @@ sub canonical_url_to_json {
                                    ( $pub->{'hmsPubCategory'} || undef ),
 
                                PublicationTitle  => $title,
-                               PublicationSource => [
-                                   {  PublicationSourceName => (
+                               PublicationSource => (
+                                   eval {
+                                       if ( $pub->{'pmid'} ) {
+                                           return [
+                                               {  PublicationSourceName => (
                                                        $pub->{'pmid'} ? 'PubMed'
                                                        : undef
-                                      ),
-                                      PublicationSourceURL => (
-                                          $pub->{'pmid'}
-                                          ? "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'pmid'}"
-                                          : undef
-                                      ),
-                                      PMID => ( $pub->{'pmid'} || undef ),
+                                                  ),
+                                                  PublicationSourceURL => (
+                                                      $pub->{'pmid'}
+                                                      ? "http://www.ncbi.nlm.nih.gov/pubmed/$pub->{'pmid'}"
+                                                      : undef
+                                                  ),
+                                                  PMID => (
+                                                         $pub->{'pmid'} || undef
+                                                  ),
+                                               }
+                                           ];
+                                       } else {
+                                           return [];
+                                       }
                                    }
-                               ],
+                               ),
 
                                Featured => (
                                    (  (  $featured_publication_order_by_id{
