@@ -1284,10 +1284,17 @@ sub canonical_url_to_json {
                                Title => ( $pub->{'label'} || undef ),
                                Date  => (
                                    eval {
-                                              $pub->{'publicationDate'}
+                                       if (   $pub->{'publicationDate'}
+                                           && $pub->{'publicationDate'} =~ m/\d/
                                            && $pub->{'publicationDate'}
-                                           !~ m/^1900-01-01/;
-                                   } ? $pub->{'publicationDate'} : undef
+                                           !~ m/^1900-01-01/ ) {
+                                           my $date = $pub->{'publicationDate'};
+                                           $date =~ s/T00:00:00$//;
+                                           return $date;
+                                       } else {
+                                           return undef;
+                                       }
+                                   }
                                ),
                                Year => (
                                    eval {
