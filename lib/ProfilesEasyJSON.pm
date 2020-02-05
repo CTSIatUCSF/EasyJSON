@@ -1476,6 +1476,11 @@ sub canonical_url_to_json {
                    }
                ],
 
+               ORCID => ( (         $person->{'orcidId'}
+                                and $person->{'orcidId'} =~ m/\d\d\d\d/
+                          ) ? $person->{'orcidId'} : undef
+               ),
+
                Twitter_beta => (
                    eval {
                        if (    $orng_data{'hasTwitter'}
