@@ -1800,6 +1800,9 @@ sub _split_keyword_string {
             $_
                 =~ s/^(my |main |areas of |clinical |research |scholarly |scientific |other )*interests?( include| relates to)?\s*:?\s*//i;
 
+            # delete leading "X's practice includes…the following: "
+            $_ =~ s/^.*? the following\s*:\s*(.*?\w.*?)\s*$/$1/si;
+
             # delete leading or trailing 'e.g.'
             $_ =~ s/^\s*e\.g\.\s*//;
             $_ =~ s/\s*\be\.g\.\s*$//;
