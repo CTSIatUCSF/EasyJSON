@@ -1824,7 +1824,7 @@ sub _split_keyword_string {
         } @parts;
     }
 
-    @parts = grep { defined and m/\w/ } @parts;
+    @parts = uniq grep { defined and m/\w/ } @parts;
 
     return @parts;
 
