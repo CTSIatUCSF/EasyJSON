@@ -559,6 +559,7 @@ sub canonical_url_to_json {
                         'hasNIHGrantList',         'hasTwitter',
                         'hasSlideShare',           'hasMediaLinks',
                         'hasVideos',               'hasClinicalTrials',
+                        'hasCollaborationInterests',
     ) {
 
         if (     $person->{$field}
@@ -1667,6 +1668,55 @@ sub canonical_url_to_json {
                        return @grants;
                    }
                ],
+
+               CollaborationInterests => (
+                   eval {
+                       if (     $orng_data{'hasCollaborationInterests'}
+                            and ref $orng_data{'hasCollaborationInterests'}
+                            and ref $orng_data{'hasCollaborationInterests'} eq
+                            'HASH' ) {
+
+                           my $orig = $orng_data{'hasCollaborationInterests'};
+                           my $interests = { Summary   => undef,
+                                             Details   => {},
+                                             Narrative => undef
+                           };
+
+                           my @interest_strings;
+
+                           foreach my $key ( sort keys %{$orig} ) {
+
+                               # The JSON encoding for this gadget is
+                               # idiotic! True values are encoded as
+                               # true, but false values are encoded as
+                               # string "false".
+                               next if !$orig->{$key};
+                               next if $orig->{$key} eq 'false';
+
+                               if ( $key eq 'UpdatedOn' ) {
+                                   next;
+                               } elsif ( $key eq 'Narrative' ) {
+                                   if ( length( $orig->{$key} ) >= 3 ) {
+                                       $interests->{Narrative} = $orig->{$key};
+                                   }
+                               } elsif ( $key =~ m/^[A-Z]/i ) {
+                                   $interests->{Details}->{$key} = JSON::true;
+                                   my $interest_readable = $key;
+                                   $interest_readable
+                                       =~ s/([^[:upper:]])([[:upper:]])/$1 $2/g;
+                                   push @interest_strings,
+                                       lc $interest_readable;
+                               }
+                           }
+
+                           $interests->{Summary}
+                               = join( ', ', @interest_strings );
+                           return $interests;
+                       } else {
+                           return {};
+                       }
+                   }
+               ),
 
             }
         ]
