@@ -1671,10 +1671,11 @@ sub canonical_url_to_json {
 
                FacultyMentoring => (
                    eval {
-                       my $return = { Types => [] };
+                       my $return = { Types => [], Narrative => undef };
                        if (     $orng_data{'hasMentor'}
                             and ref $orng_data{'hasMentor'}
                             and ref $orng_data{'hasMentor'} eq 'HASH' ) {
+
                            my %mentorship_types = (
                                  'careerMentor' => 'Career mentor',
                                  'coMentor'     => 'Co-mentor',
@@ -1689,6 +1690,12 @@ sub canonical_url_to_json {
                                        $mentorship_types{$type};
                                }
                            }
+
+                           if ( $orng_data{'hasMentor'}->{narrative} ) {
+                               $return->{Narrative}
+                                   = $orng_data{'hasMentor'}->{narrative};
+                           }
+
                        }
                        return $return;
                    }
