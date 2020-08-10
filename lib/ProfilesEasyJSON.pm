@@ -1057,7 +1057,7 @@ sub canonical_url_to_json {
                                    unless ( defined $item->{$date_field_name}
                                         and $item->{$date_field_name} =~ m/\d/ )
                                    {
-                                       $item->{$date_field_name} = '';
+                                       $item->{$date_field_name} = undef;
                                        next DateFieldName;
                                    }
 
