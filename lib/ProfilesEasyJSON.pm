@@ -1041,6 +1041,7 @@ sub canonical_url_to_json {
                                        trim(       $item->{'majorField'}
                                                 || $item->{'departmentOrSchool'}
                                        ),
+                                   location => $item->{'trainingLocation'},
                                };
                            }
 
