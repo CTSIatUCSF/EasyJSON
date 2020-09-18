@@ -20,7 +20,7 @@ use String::Util qw( trim );
 use Types::Standard 1.002001
     qw( ArrayRef ClassName InstanceOf Maybe RegexpRef );
 use URI;
-use URI::Escape qw( uri_escape );
+use URI::Escape qw( uri_escape uri_unescape );
 binmode STDOUT, ':utf8';
 use 5.10.0;
 use namespace::clean;
@@ -1550,6 +1550,56 @@ sub canonical_url_to_json {
                        } else {
                            return [];
                        }
+                   }
+               ),
+
+               GlobalHealth => (
+                   eval {
+                       my $return = { Projects => [] };
+                       if ( $orng_data{'hasGlobalHealth'} ) {
+                           my $gh = $orng_data{'hasGlobalHealth'};
+                           for my $project_i ( 0 .. 99 ) {
+                               my $value = $gh->{"gh_${project_i}"};
+                               next unless $value and ref($value) eq 'HASH';
+                               my $project;
+
+                               if (     $value->{Title}
+                                    and $value->{Title}
+                                    =~ m{^<a href="([^"]+)".*?>([^<]+)} ) {
+                                   my ( $path_encoded, $title_encoded )
+                                       = ( $1, $2 );
+                                   my $path  = uri_unescape($path_encoded);
+                                   my $title = uri_unescape($title_encoded);
+                                   if ($title) {
+                                       $project->{Title} = $title;
+                                   }
+                                   $path
+                                       =~ s{^/}{https://globalprojects.ucsf.edu/};
+                                   if ( $path =~ m/^http/ ) {
+                                       $project->{URL} = $path;
+                                   }
+                               }
+
+                               foreach my $key ( 'StartDate', 'EndDate' ) {
+                                   if (     $value->{$key}
+                                        and $value->{$key}
+                                        =~ m/^(\d\d\d\d-\d\d-\d\d)(?!\d)/ ) {
+                                       $project->{$key} = $1;
+                                   }
+                               }
+
+                               if ( $value->{Locations}
+                                    and ref $value->{Locations} eq 'ARRAY' ) {
+                                   @{ $project->{Locations} }
+                                       = @{ $value->{Locations} };
+                               }
+
+                               if ($project) {
+                                   push @{ $return->{Projects} }, $project;
+                               }
+                           }
+                       }
+                       return $return;
                    }
                ),
 
