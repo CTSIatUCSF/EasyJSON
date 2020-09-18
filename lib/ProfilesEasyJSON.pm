@@ -1310,7 +1310,8 @@ sub canonical_url_to_json {
                                PublicationTitle  => $title,
                                PublicationSource => (
                                    eval {
-                                       if ( $pub->{'pmid'} ) {
+                                       if (     $pub->{'pmid'}
+                                            and $pub->{'pmid'} =~ m/^\d+$/ ) {
                                            return [
                                                {  PublicationSourceName => (
                                                        $pub->{'pmid'} ? 'PubMed'
