@@ -19,7 +19,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 133;
+plan tests => 132;
 
 # looking up users by different identifiers
 
@@ -340,11 +340,6 @@ SKIP: {
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
                 '>=', 10, "$test_name: Got enough publications" );
-        my $countries
-            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} }
-            || [];
-        cmp_ok( scalar(@$countries), '>=', 1,
-                "$test_name: got 1+ global health countries" );
         like( $data->{Profiles}->[0]->{PhotoURL},
               qr{PhotoHandler\.ashx}, "$test_name: Got photo, as expected" );
     }
@@ -439,16 +434,16 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Harold Chapman';
+    my $test_name = 'Peter Chin-Hong';
     my $json      = $api->identifier_to_json( 'URL',
-                                    'http://profiles.ucsf.edu/harold.chapman' );
+                                    'http://profiles.ucsf.edu/peter.chin-hong' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
-        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 3; },
-            "$test_name: has 3+ web links" );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 2; },
+            "$test_name: has 2+ web links" );
 
     }
 }
@@ -472,9 +467,9 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Melinda Bender';
+    my $test_name = 'Brian Schwartz';
     my $json      = $api->identifier_to_json( 'URL',
-                                    'http://profiles.ucsf.edu/melinda.bender' );
+                                    'http://profiles.ucsf.edu/brian.schwartz' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
