@@ -1076,16 +1076,25 @@ sub canonical_url_to_json {
                            }
 
                            @education_training = sort {
-                               (  ( $date_to_year{ $b->{end_date} } // '' )
-                                      cmp( $date_to_year{ $a->{end_date} } // ''
+                               (  ( $a->{end_date} && $b->{end_date} )
+                                  ? ( ( $date_to_year{ $b->{end_date} } // '' )
+                                          cmp(
+                                           $date_to_year{ $a->{end_date} } // ''
+                                          )
                                       )
+                                  : 0
                                    )
                                    || ( ( $b->{end_date} // '' )
                                         cmp( $a->{end_date} // '' ) )
-                                   || (
-                                     ( $date_to_year{ $b->{start_date} } // '' )
-                                     cmp($date_to_year{ $a->{start_date} } // ''
-                                     )
+                                   || (( $a->{start_date} && $b->{start_date} )
+                                       ? ( ( $date_to_year{ $b->{start_date} }
+                                                 // ''
+                                           ) cmp(
+                                               $date_to_year{ $a->{start_date} }
+                                                   // ''
+                                           )
+                                       )
+                                       : 0
                                    )
                                    || ( ( $b->{start_date} // '' )
                                         cmp( $a->{start_date} // '' ) )
