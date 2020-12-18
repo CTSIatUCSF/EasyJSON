@@ -74,10 +74,10 @@ sub preprocess_ucsf_identifier {
 
     my $identifier_types = {
 
-        'EmployeeID'     => { lookup      => 1, translate   => 1 },
+        'EmployeeID'     => { lookup      => 1, translate => 1 },
         'EPPN'           => { passthrough => 1 },
-        'FNO'            => { lookup      => 1, translate   => 1 },
-        'Person'         => { lookup      => 1, translate   => 1 },
+        'FNO'            => { lookup      => 1, translate => 1 },
+        'Person'         => { lookup      => 1, translate => 1 },
         'PrettyURL'      => { passthrough => 1 },
         'ProfilesNodeID' => { lookup      => 1, passthrough => 1 },
         'URL'            => { expand      => 1 },
@@ -225,10 +225,13 @@ sub _load_lookup_table {
     my $table = {};
 
     my @files;
-    my @dir_options = ( "$ENV{HOME}/profiles-mega-mapping-tables",
-                        "/srv/profiles-mega-mapping-tables",
-                        "/etc/profiles-mega-mapping-tables"
-    );
+    my @dir_options;
+
+    push @dir_options, "$ENV{HOME}/profiles-mega-mapping-tables"
+        if $ENV{HOME};
+    push @dir_options, "/srv/profiles-mega-mapping-tables";
+    push @dir_options, "/etc/profiles-mega-mapping-tables";
+
     foreach my $dir_option (@dir_options) {
         if ( -d $dir_option ) {
             @files = io->dir($dir_option)->all;
