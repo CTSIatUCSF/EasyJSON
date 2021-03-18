@@ -1207,7 +1207,7 @@ sub canonical_url_to_json {
 
                            $award->{Summary}
                                = join( ', ',
-                                       map { trim($_) }
+                                       map      { trim($_) }
                                            grep { defined and length } (
                                            $award->{AwardLabel},
                                            $award->{AwardConferredBy},
@@ -1296,7 +1296,7 @@ sub canonical_url_to_json {
 
                                # PublicationAddedBy => '?',
                                PublicationID => $pub_id,
-                               AuthorList =>
+                               AuthorList    =>
                                    ( $pub->{'hasAuthorList'} || undef ),
                                Publication =>
                                    ( $pub->{'hasPublicationVenue'} || undef ),
@@ -1660,9 +1660,7 @@ sub canonical_url_to_json {
                            my @grant_roles
                                = @{
                                $research_activities_and_funding_by_role{
-                                   $person->{'@id'}
-                               }
-                               };
+                                   $person->{'@id'} } };
                            foreach my $role_group (@grant_roles) {
                                my $grant_id   = $role_group->{id};
                                my $grant_role = $role_group->{role};
@@ -1687,8 +1685,7 @@ sub canonical_url_to_json {
                                        my $award_id = $grant->{SponsorAwardID};
                                        if ($award_id) {
                                            if ((      $award_id =~ m/\d{5,12}/
-                                                  and $award_id =~ m/[A-Z]/
-                                               )
+                                                  and $award_id =~ m/[A-Z]/ )
                                                or ( $award_id
                                                    =~ m/\d[A-Z]\d+[A-Z][A-Z]-\d+/
                                                )
@@ -1845,7 +1842,7 @@ sub canonical_url_to_json {
                     Title            => $grant->{Title},
                     NIHFiscalYear    => $grant_year,
                     NIHProjectNumber => $grant->{SponsorAwardID},
-                    api_notes =>
+                    api_notes        =>
                         'Deprecated, use ResearchActivitiesAndFunding instead. The fiscal year may be off.',
                     };
             }
