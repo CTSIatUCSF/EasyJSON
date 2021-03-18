@@ -893,6 +893,16 @@ sub canonical_url_to_json {
                     namespace => 'Profiles JSON API canonical_url_to_positions',
                     expires_in => '5 days', );
 
+    # Every once in a while, phone or fax numbers are "--" instead of blank/null
+    unless (     $person->{'phoneNumber'}
+             and $person->{'phoneNumber'} =~ m/\d\d\d/ ) {
+        $person->{'phoneNumber'} = undef;
+    }
+    unless (     $person->{'faxNumber'}
+             and $person->{'faxNumber'} =~ m/\d\d\d/ ) {
+        $person->{'faxNumber'} = undef;
+    }
+
     my $final_data = {
         Profiles => [
             {  Name        => $person->{'fullName'},
