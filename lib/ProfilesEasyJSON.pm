@@ -11,7 +11,7 @@ use Digest::MD5 qw( md5_base64 );
 use Encode qw( encode );
 use HTTP::Message 6.06;
 use JSON;
-use List::AllUtils qw( min max uniq );
+use List::AllUtils qw( min max uniq uniq_by );
 use LWP::UserAgent 6.0;
 use Moo;
 use ProfilesEasyJSON::CHI;
@@ -460,7 +460,8 @@ sub canonical_url_to_json {
 
     my $person;
     my %items_by_url_id;
-    my ( %publications_by_author, %research_activities_and_funding_by_role );
+    my ( %publications_by_author, %research_activities_and_funding_by_role,
+         %webpages_by_id );
 
     foreach my $item ( @{ $data->{entry}->{jsonld}->{'@graph'} } ) {
 
@@ -503,6 +504,14 @@ sub canonical_url_to_json {
                             { role => $item->{label},
                               id   => $item->{'roleContributesTo'}
                             };
+                    }
+                } elsif ( $type eq 'vivo:URLLink' ) {
+                    if ( $item->{label} ) {
+                        $webpages_by_id{ $item->{'@id'} } = {
+                                    URL             => $item->{label},
+                                    Label           => $item->{linkAnchorText},
+                                    PublicationDate => $item->{publicationDate},
+                        };
                     }
                 }
             }
@@ -1390,6 +1399,19 @@ sub canonical_url_to_json {
 
                        my @links;
 
+                       # Profiles 3 native data?
+                       if ( $person->{'webpage'} and ref $person->{'webpage'} )
+                       {
+                           foreach my $id ( @{ $person->{'webpage'} } ) {
+                               if ( $webpages_by_id{$id} ) {
+                                   push @links,
+                                       { Label => $webpages_by_id{$id}->{Label},
+                                         URL   => $webpages_by_id{$id}->{URL}
+                                       };
+                               }
+                           }
+                       }
+
                        # individually numbered entries data structure?
                        my @numbered_style_links;
                        if (    !@links
@@ -1447,6 +1469,8 @@ sub canonical_url_to_json {
                            }
                        } @links;
 
+                       @links = uniq_by { $_->{URL} } @links;
+
                        return @links;
                    }
                ],
@@ -1454,12 +1478,27 @@ sub canonical_url_to_json {
                MediaLinks_beta => [
                    eval {
 
+                       my @links;
+
+                       if ( $person->{'mediaLinks'}
+                            and ref $person->{'mediaLinks'} ) {
+                           foreach my $id ( @{ $person->{'mediaLinks'} } ) {
+                               if ( $webpages_by_id{$id} ) {
+                                   push @links,
+                                       {link_name =>
+                                            $webpages_by_id{$id}->{Label},
+                                        link_url => $webpages_by_id{$id}->{URL},
+                                        link_date => $webpages_by_id{$id}
+                                            ->{PublicationDate}
+                                       };
+                               }
+                           }
+                       }
+
                        # $orng_data{'hasMediaLinks'}->{links} is
                        # sometimes accidentally double-encoded as
                        # JSON. So user "wilson.liao" is correct but
                        # user "anirvan.chatterjee" is wrong.
-
-                       my @links;
 
                        my @raw_links;
                        if ( eval { $orng_data{'hasMediaLinks'}->{links} }
