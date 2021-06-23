@@ -1151,7 +1151,10 @@ sub canonical_url_to_json {
                                }
 
                                if ( $raw_trial->{Conditions} ) {
-                                   my @conditions = split /\s+,\s+/,
+
+                                   # can be stored as "A , B" or "A,B"
+                                   my @conditions
+                                       = split /\s+,\s+|(?<=\w),(?=\w)/,
                                        $raw_trial->{Conditions};
                                    $trial{Conditions} = \@conditions;
                                }
