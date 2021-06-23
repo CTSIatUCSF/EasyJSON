@@ -465,6 +465,9 @@ sub canonical_url_to_json {
 
     foreach my $item ( @{ $data->{entry}->{jsonld}->{'@graph'} } ) {
 
+        if ( !$item->{'@type'} and $item->{'pluginSearchableData'} ) {
+            $item->{'@type'} = 'pluginSearchableData';
+        }
         next unless $item->{'@type'};
 
         # ensure list of types ALWAYS represented as an array
@@ -532,7 +535,8 @@ sub canonical_url_to_json {
                         'mailingAddress', 'phoneNumber',
                         'faxNumber',      'latitude',
                         'longitude',      'mainImage',
-                        'preferredTitle', 'personInPrimaryPosition'
+                        'preferredTitle', 'personInPrimaryPosition',
+                        'Twitter',        'FeaturedPresentations',
     ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = $person->{$field}->[0];
@@ -626,6 +630,7 @@ sub canonical_url_to_json {
             if ($raw_json_for_field) {
                 my $field_data
                     = eval { $json_obj->decode($raw_json_for_field) };
+
                 if (     $field_data
                      and ref $field_data
                      and eval { $field_data->{entry}->{jsonld}->{'@graph'} } ) {
@@ -829,14 +834,18 @@ sub canonical_url_to_json {
     }
 
     if ( $person->{'hasClinicalTrials'} ) {
-        if (     $self->root_domain eq 'https://researcherprofiles.org/'
+        if ( $self->root_domain
+             =~ 'https://(dev\.|stage\.)?researcherprofiles.org/'
              and $person->{'workplaceHomepage'} ) {
+            my $forced_prod_profiles_url = $person->{'workplaceHomepage'};
+            $forced_prod_profiles_url
+                =~ s{^https?://(?:stage|dev)-ucsf\.researcherprofiles\.org}{https://profiles.ucsf.edu};
             $additional_fields_to_look_up{'clinical_trials'}
                 = URI->new(
                 'https://api.researcherprofiles.org/ClinicalTrialsApi/api/clinicaltrial/'
                 );
-            $additional_fields_to_look_up{'clinical_trials'}->query_form(
-                             { person_url => $person->{'workplaceHomepage'} } );
+            $additional_fields_to_look_up{'clinical_trials'}
+                ->query_form( { person_url => $forced_prod_profiles_url } );
         }
     }
 
@@ -873,7 +882,6 @@ sub canonical_url_to_json {
 
         # got some raw content? start using it
         if ($raw) {
-
             if ( $field_to_look_up_key eq 'email_vcard' ) {
                 if ( $raw =~ m/[\r\n]EMAIL\S*?:(.*?)[\r\n]/s ) {
                     my $likely_email = $1;
@@ -1547,6 +1555,22 @@ sub canonical_url_to_json {
 
                Twitter_beta => (
                    eval {
+
+                       if ( $person->{'Twitter'} ) {
+                           my $twitter_plugin_re = qr/Twitter Tweets \@?(\S+)/;
+                           my $item = $items_by_url_id{ $person->{'Twitter'} };
+                           if ($item
+                               and eval {
+                                   $item->{pluginSearchableData}->[0]
+                                       =~ m/$twitter_plugin_re/;
+                               }
+                           ) {
+                               $item->{pluginSearchableData}->[0]
+                                   =~ m/$twitter_plugin_re/;
+                               return [ '@' . $1 ];
+                           }
+                       }
+
                        if (    $orng_data{'hasTwitter'}
                            and $orng_data{'hasTwitter'}->{twitter_username}
                            and $orng_data{'hasTwitter'}->{twitter_username}
@@ -1559,9 +1583,27 @@ sub canonical_url_to_json {
 
                Videos => (
                    eval {
+                       my @raw_videos_array;
                        my @videos;
 
-                       if (     $orng_data{'hasVideos'}->{videos}
+                       if ( $person->{'FeaturedVideos'} ) {
+                           my $item
+                               = $items_by_url_id{ $person->{'FeaturedVideos'}
+                               };
+                           if ( $item and $item->{'pluginData'} ) {
+                               my $maybe_data
+                                   = eval { decode_json( $item->{'pluginData'} ) };
+                               if (     $maybe_data
+                                    and ref $maybe_data
+                                    and ref $maybe_data eq 'ARRAY'
+                                    and @{$maybe_data} ) {
+                                   @raw_videos_array = @{$maybe_data};
+                               }
+                           }
+                       }
+
+                       if (    !@raw_videos_array
+                            and $orng_data{'hasVideos'}->{videos}
                             and !ref $orng_data{'hasVideos'}->{videos}
                             and $orng_data{'hasVideos'}->{videos} =~ m/url/ ) {
                            eval {
@@ -1575,12 +1617,19 @@ sub canonical_url_to_json {
                                    $orng_data{'hasVideos'}->{videos}
                                        = $decoded_videos;
                                }
+                               @raw_videos_array
+                                   = @{ $orng_data{'hasVideos'}->{videos} };
                            };
+                       } elsif (     !@raw_videos_array
+                                 and ref $orng_data{'hasVideos'}->{videos}
+                                 and ref $orng_data{'hasVideos'}->{videos} eq
+                                 'ARRAY' ) {
+                           @raw_videos_array
+                               = @{ $orng_data{'hasVideos'}->{videos} };
                        }
 
-                       if ( eval { @{ $orng_data{'hasVideos'}->{videos} } } ) {
-                           foreach my $entry (
-                                      @{ $orng_data{'hasVideos'}->{videos} } ) {
+                       if (@raw_videos_array) {
+                           foreach my $entry (@raw_videos_array) {
                                next unless $entry->{url} =~ m/^http/;
                                unless ( $entry->{name} =~ m/\w/ ) {
                                    $entry->{name} = 'Video';
@@ -1604,6 +1653,24 @@ sub canonical_url_to_json {
 
                SlideShare_beta => (
                    eval {
+
+                       if ( $person->{'FeaturedPresentations'} ) {
+                           my $slideshare_plugin_re
+                               = qr/SlideShare Slide Share (\S+)/;
+                           my $item = $items_by_url_id{ $person->{
+                                   'FeaturedPresentations'} };
+                           if ($item
+                               and eval {
+                                   $item->{pluginSearchableData}->[0]
+                                       =~ m/$slideshare_plugin_re/;
+                               }
+                           ) {
+                               $item->{pluginSearchableData}->[0]
+                                   =~ m/$slideshare_plugin_re/;
+                               return [$1];
+                           }
+                       }
+
                        if (     $orng_data{'hasSlideShare'}
                             and $orng_data{'hasSlideShare'}->{username}
                             and $orng_data{'hasSlideShare'}->{username}
