@@ -551,9 +551,10 @@ sub canonical_url_to_json {
     }
 
     # ensure that repeatable fields are set up as an array
-    foreach my $field ( 'hasResearchArea',  'awardOrHonor',
-                        'personInPosition', 'educationalTraining',
-                        'hasResearcherRole'
+    foreach my $field ( 'hasResearchArea',   'awardOrHonor',
+                        'personInPosition',  'educationalTraining',
+                        'hasResearcherRole', 'webpage',
+                        'mediaLinks',
     ) {
         if ( !defined $person->{$field} ) {
             $person->{$field} = [];
