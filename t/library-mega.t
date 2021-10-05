@@ -19,7 +19,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 132;
+plan tests => 128;
 
 # looking up users by different identifiers
 
@@ -142,8 +142,6 @@ SKIP: {
             qr{^(http://profiles.ucsf.edu/profile/370974|https?://(profiles.ucsf.edu|(stage-)?ucsf\.researcherprofiles\.org)/anirvan.chatterjee)$},
             'Anirvan URL'
         );
-        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
-                '>=', 1, "$test_name: Got enough in the news" );
     }
 }
 
@@ -183,7 +181,6 @@ SKIP: {
 SKIP: {
         skip "$test_name: got back no JSON", 12 unless $json;
         my $data = decode_json($json);
-        like( $data->{Profiles}->[0]->{Name}, qr/Grandis/, 'Jenny name' );
         like( $data->{Profiles}->[0]->{Department},
               qr/Otolaryngology/i, "$test_name: department" );
         like( $data->{Profiles}->[0]->{School},
@@ -198,9 +195,6 @@ SKIP: {
               "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 50, "$test_name: got 50+ publications" );
-        is_deeply( $data->{Profiles}->[0]->{Twitter_beta},
-                 ['CTSIatUCSF'],
-                 "$test_name: got Twitter (from potentially broken username)" );
 
         my @publication_years
             = map { $_->{Year} } @{ $data->{Profiles}->[0]->{Publications} };
@@ -211,10 +205,12 @@ SKIP: {
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
 
-        cmp_ok( @featured_pubs, '>=', 2,
-                      "$test_name: found at least 2 featured publications ("
-                    . scalar(@featured_pubs)
-                    . ')' );
+        cmp_ok( @featured_pubs,
+                '>=',
+                2,
+                "$test_name: found at least 2 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
 
         isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
                 'ARRAY', "$test_name: got back list of awards" );
@@ -364,10 +360,12 @@ SKIP: {
 
         my @claimed_pubs = grep { $_->{Claimed} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @claimed_pubs, '>=', 2,
-                      "$test_name: found at least 2 claimed publications ("
-                    . scalar(@claimed_pubs)
-                    . ')' );
+        cmp_ok( @claimed_pubs,
+                '>=',
+                2,
+                "$test_name: found at least 2 claimed publications ("
+                    . scalar(@claimed_pubs) . ')'
+        );
 
         my $geolocated_ok = 0;
         if (    ( !defined $data->{Profiles}->[0]->{Address}->{Latitude} )
@@ -436,7 +434,7 @@ SKIP: {
 {
     my $test_name = 'Peter Chin-Hong';
     my $json      = $api->identifier_to_json( 'URL',
-                                    'http://profiles.ucsf.edu/peter.chin-hong' );
+                                   'http://profiles.ucsf.edu/peter.chin-hong' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -459,10 +457,12 @@ SKIP: {
         my $data          = decode_json($json);
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @featured_pubs, '>=', 5,
-                      "$test_name: found at least 5 featured publications ("
-                    . scalar(@featured_pubs)
-                    . ')' );
+        cmp_ok( @featured_pubs,
+                '>=',
+                5,
+                "$test_name: found at least 5 featured publications ("
+                    . scalar(@featured_pubs) . ')'
+        );
     }
 }
 
@@ -486,15 +486,16 @@ SKIP: {
             }
         }
 
-        ok( !$found_a_leading_tab, 'We killed any leading tabs in her awards' );
+        ok( !$found_a_leading_tab,
+            "$test_name: We killed any leading tabs in awards" );
 
     }
 }
 
 {
-    my $test_name = 'Erin Van Blarigan';
+    my $test_name = 'Alka Kanaya';
     my $json      = $api->identifier_to_json( 'URL',
-                                      'http://profiles.ucsf.edu/erin.richman' );
+                                       'http://profiles.ucsf.edu/alka.kanaya' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -507,8 +508,8 @@ SKIP: {
         cmp_ok( scalar(
                      @{ $data->{Profiles}->[0]->{ResearchActivitiesAndFunding} }
                 ),
-                '<=', 4,
-                "$test_name: No more than 4 grants"
+                '<=', 20,
+                "$test_name: No more than 20 grants"
         );
 
     }
@@ -527,12 +528,14 @@ SKIP: {
         like( $data->{Profiles}->[0]->{Title},
               qr/librar/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{Department},
-              qr/library/i, "$test_name: department" );
+              qr/library|son dean/i,
+              "$test_name: department" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
               qr/^415-/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^min-lin\.fang\@ucsf\.edu$/i,
-              "$test_name: email" );
+              "$test_name: email"
+        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
                 '>=', 2, "$test_name: got 2+ publications" );
     }
@@ -644,19 +647,14 @@ SKIP: {
               qr/^415-514-8113$/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^robert\.hiatt\@ucsf\.edu$/i,
-              "$test_name: email" );
+              "$test_name: email"
+        );
         like( $data->{Profiles}->[0]->{Narrative},
               qr/cancer epidemiology/,
               "$test_name: narrative" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
               qr/implementation science/i,
-              "$test_name: matching freetext keyword" );
-        like(
-            eval {
-                scalar $data->{Profiles}->[0]->{WebLinks_beta}->[0]->{URL};
-            } // '',
-            qr/epibiostat.ucsf.edu/i,
-            "$test_name: has an epi biostat web link"
+              "$test_name: matching freetext keyword"
         );
         ok( eval {
                 grep { $_->{degree} =~ m/residency/i }
