@@ -537,6 +537,7 @@ sub canonical_url_to_json {
                         'longitude',      'mainImage',
                         'preferredTitle', 'personInPrimaryPosition',
                         'Twitter',        'FeaturedPresentations',
+                        'GlobalHealthEquity',
     ) {
         if ( eval { ref $person->{$field} eq 'ARRAY' } ) {
             $person->{$field} = $person->{$field}->[0];
@@ -1729,6 +1730,32 @@ sub canonical_url_to_json {
                                }
                            }
                        }
+
+                       if (    $person->{'GlobalHealthEquity'}
+                           and
+                           $items_by_url_id{ $person->{'GlobalHealthEquity'} } )
+                       {
+                           my $plugin_data = eval {
+                               decode_json( $items_by_url_id{ $person->{
+                                                    'GlobalHealthEquity'} }
+                                                ->{'pluginData'} );
+                           };
+                           if ($plugin_data) {
+                               if ( $plugin_data->{'centers'} ) {
+                                   $return->{Centers}
+                                       = $plugin_data->{'centers'};
+                               }
+                               if ( $plugin_data->{'interests'} ) {
+                                   $return->{Interests}
+                                       = $plugin_data->{'interests'};
+                               }
+                               if ( $plugin_data->{'locations'} ) {
+                                   $return->{Locations}
+                                       = $plugin_data->{'locations'};
+                               }
+                           }
+                       }
+
                        return $return;
                    }
                ),
@@ -1757,6 +1784,30 @@ sub canonical_url_to_json {
                        if (%countries) {
                            return { Countries => [ sort keys %countries ] };
                        } else {
+
+                           # if we don't have global health gadget
+                           # data, try falling back to the global
+                           # health equity locations list
+                           my $data_from_global_health_equity = eval {
+                               $person->{'GlobalHealthEquity'}
+                                   && decode_json(
+                                                 $items_by_url_id{ $person->{
+                                                         'GlobalHealthEquity'} }
+                                                     ->{'pluginData'} );
+                           };
+                           if (     $data_from_global_health_equity
+                                and ref $data_from_global_health_equity
+                                and $data_from_global_health_equity->{locations}
+                                and
+                                ref $data_from_global_health_equity->{locations}
+                                eq 'ARRAY' ) {
+                               return { Countries => [
+                                                 $data_from_global_health_equity
+                                                     ->{locations}
+                                        ]
+                               };
+                           }
+
                            return {};
                        }
                    }
