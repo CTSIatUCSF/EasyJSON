@@ -1998,6 +1998,9 @@ sub canonical_url_to_json {
                 my $grant_year = $grant->{EndDate};
                 if ( length $grant_year ) {
                     $grant_year =~ s/-.*$//;
+                    if ( $grant_year =~ m/^\d\d\d\d$/ ) {
+                        $grant_year += 0;
+                    }
                 }
                 push @{ $final_data->{Profiles}->[0]->{NIHGrants_beta} },
                     {
