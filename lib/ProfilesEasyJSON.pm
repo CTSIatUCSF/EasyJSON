@@ -1341,7 +1341,7 @@ sub canonical_url_to_json {
                                Year => (
                                    eval {
                                        $pub->{'year'} && $pub->{'year'} > 1900;
-                                   } ? $pub->{'year'} : undef
+                                   } ? ( $pub->{'year'} + 0 ) : undef
                                ),
 
                                PublicationCategory =>
@@ -1979,7 +1979,9 @@ sub canonical_url_to_json {
     # kill all leading and trailing whitespace
     my $v = Data::Visitor::Callback->new(
         plain_value => sub {
-            if ( defined($_) and length($_) and (m/^\s|\s$/) ) {
+            my $copy = $_;
+            if ( defined($copy) and length($copy) and ( $copy =~ m/^\s|\s$/ ) )
+            {
                 s/^\s+//;
                 s/\s+$//;
             }
