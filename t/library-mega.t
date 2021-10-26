@@ -19,7 +19,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 128;
+plan tests => 127;
 
 # looking up users by different identifiers
 
@@ -205,12 +205,10 @@ SKIP: {
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
 
-        cmp_ok( @featured_pubs,
-                '>=',
-                2,
-                "$test_name: found at least 2 featured publications ("
-                    . scalar(@featured_pubs) . ')'
-        );
+        cmp_ok( @featured_pubs, '>=', 2,
+                      "$test_name: found at least 2 featured publications ("
+                    . scalar(@featured_pubs)
+                    . ')' );
 
         isa_ok( $data->{Profiles}->[0]->{AwardOrHonors},
                 'ARRAY', "$test_name: got back list of awards" );
@@ -360,12 +358,10 @@ SKIP: {
 
         my @claimed_pubs = grep { $_->{Claimed} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @claimed_pubs,
-                '>=',
-                2,
-                "$test_name: found at least 2 claimed publications ("
-                    . scalar(@claimed_pubs) . ')'
-        );
+        cmp_ok( @claimed_pubs, '>=', 2,
+                      "$test_name: found at least 2 claimed publications ("
+                    . scalar(@claimed_pubs)
+                    . ')' );
 
         my $geolocated_ok = 0;
         if (    ( !defined $data->{Profiles}->[0]->{Address}->{Latitude} )
@@ -457,12 +453,10 @@ SKIP: {
         my $data          = decode_json($json);
         my @featured_pubs = grep { $_->{Featured} }
             @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @featured_pubs,
-                '>=',
-                5,
-                "$test_name: found at least 5 featured publications ("
-                    . scalar(@featured_pubs) . ')'
-        );
+        cmp_ok( @featured_pubs, '>=', 5,
+                      "$test_name: found at least 5 featured publications ("
+                    . scalar(@featured_pubs)
+                    . ')' );
     }
 }
 
@@ -645,15 +639,13 @@ SKIP: {
               qr/^415-514-8113$/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
               qr/^robert\.hiatt\@ucsf\.edu$/i,
-              "$test_name: email"
-        );
+              "$test_name: email" );
         like( $data->{Profiles}->[0]->{Narrative},
               qr/cancer epidemiology/,
               "$test_name: narrative" );
         like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
               qr/implementation science/i,
-              "$test_name: matching freetext keyword"
-        );
+              "$test_name: matching freetext keyword" );
         ok( eval {
                 grep { $_->{degree} =~ m/residency/i }
                     @{ $data->{Profiles}->[0]->{Education_Training} };
@@ -664,12 +656,6 @@ SKIP: {
                 '>=', 1, "$test_name: Was in the news" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Videos} } },
                 '>=', 1, "$test_name: at least 1 video" );
-
-        my $countries
-            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} }
-            || [];
-        cmp_ok( scalar(@$countries), '>=', 3,
-                "$test_name: got 3+ global health countries" );
     }
 }
 
