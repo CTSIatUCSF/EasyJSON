@@ -516,9 +516,9 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Min-Lin Fang';
+    my $test_name = 'Peggy Tahir';
     my $json      = $api->identifier_to_json( 'URL',
-                                      'http://profiles.ucsf.edu/min-lin.fang' );
+                                      'https://profiles.ucsf.edu/peggy.tahir' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
@@ -528,16 +528,14 @@ SKIP: {
         like( $data->{Profiles}->[0]->{Title},
               qr/librar/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{Department},
-              qr/library|son dean/i,
-              "$test_name: department" );
+              qr/library/i, "$test_name: department" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
               qr/^415-/i, "$test_name: telephone" );
         like( $data->{Profiles}->[0]->{Email},
-              qr/^min-lin\.fang\@ucsf\.edu$/i,
-              "$test_name: email"
-        );
+              qr/^peggy\.tahir\@ucsf\.edu$/i,
+              "$test_name: email" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
-                '>=', 2, "$test_name: got 2+ publications" );
+                '==', 0, "$test_name: got 0 publications" );
     }
 }
 
