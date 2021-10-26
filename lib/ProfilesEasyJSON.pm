@@ -1801,10 +1801,11 @@ sub canonical_url_to_json {
                                 and
                                 ref $data_from_global_health_equity->{locations}
                                 eq 'ARRAY' ) {
-                               return { Countries => [
-                                                 $data_from_global_health_equity
-                                                     ->{locations}
-                                        ]
+                               return {
+                                   Countries =>
+                                       $data_from_global_health_equity
+                                       ->{locations}
+
                                };
                            }
 
