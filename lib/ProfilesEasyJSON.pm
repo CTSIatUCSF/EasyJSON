@@ -1735,23 +1735,64 @@ sub canonical_url_to_json {
                            and
                            $items_by_url_id{ $person->{'GlobalHealthEquity'} } )
                        {
-                           my $plugin_data = eval {
-                               decode_json( $items_by_url_id{ $person->{
-                                                    'GlobalHealthEquity'} }
-                                                ->{'pluginData'} );
-                           };
-                           if ($plugin_data) {
-                               if ( $plugin_data->{'centers'} ) {
-                                   $return->{Centers}
-                                       = $plugin_data->{'centers'};
+
+                           # This is ridiculous, but pluginData can be
+                           # *either* a JSON representation of a hash,
+                           # or an array of JSON representations of a
+                           # hash. If the latter, the results are
+                           # likely additive, so we need to scan every
+                           # single entry and concatenate them
+                           # together.
+
+                           my @plugin_data_maybe_json_strings;
+                           if (eval {
+                                   $items_by_url_id{ $person->{
+                                           'GlobalHealthEquity'} }
+                                       ->{'pluginData'};
                                }
-                               if ( $plugin_data->{'interests'} ) {
-                                   $return->{Interests}
-                                       = $plugin_data->{'interests'};
+                           ) {
+                               if (eval {
+                                       ref $items_by_url_id{ $person->{
+                                               'GlobalHealthEquity'} }
+                                           ->{'pluginData'} eq 'ARRAY';
+                                   }
+                               ) {
+                                   @plugin_data_maybe_json_strings
+                                       = @{ $items_by_url_id{ $person->{
+                                               'GlobalHealthEquity'} }
+                                           ->{'pluginData'} };
+
+                               } else {
+                                   @plugin_data_maybe_json_strings
+                                       = $items_by_url_id{ $person->{
+                                           'GlobalHealthEquity'} }
+                                       ->{'pluginData'};
                                }
-                               if ( $plugin_data->{'locations'} ) {
-                                   $return->{Locations}
-                                       = $plugin_data->{'locations'};
+                           }
+
+                           foreach my $maybe_plugin_data_json_string (
+                                              @plugin_data_maybe_json_strings) {
+
+                               my $plugin_data = eval {
+                                   decode_json($maybe_plugin_data_json_string);
+                               };
+
+                               if ($plugin_data) {
+                                   if ( $plugin_data->{'centers'}
+                                        and @{ $plugin_data->{'centers'} } ) {
+                                       $return->{Centers}
+                                           = $plugin_data->{'centers'};
+                                   }
+                                   if ( $plugin_data->{'interests'}
+                                        and @{ $plugin_data->{'interests'} } ) {
+                                       $return->{Interests}
+                                           = $plugin_data->{'interests'};
+                                   }
+                                   if ( $plugin_data->{'locations'}
+                                        and @{ $plugin_data->{'locations'} } ) {
+                                       $return->{Locations}
+                                           = $plugin_data->{'locations'};
+                                   }
                                }
                            }
                        }
