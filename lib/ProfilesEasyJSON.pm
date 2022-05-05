@@ -1588,7 +1588,25 @@ sub canonical_url_to_json {
                        my @raw_videos_array;
                        my @videos;
 
-                       if ( $person->{'FeaturedVideos'} ) {
+                       if ( $person->{'UCSFFeaturedVideos'} ) {
+                           my $item
+                               = $items_by_url_id{ $person->{'UCSFFeaturedVideos'}
+                               };
+                           if ( $item and $item->{'pluginData'} ) {
+                               my $maybe_data
+                                   = eval { decode_json( $item->{'pluginData'} ) };
+                               if (     $maybe_data
+                                    and ref $maybe_data
+                                    and ref $maybe_data eq 'ARRAY'
+                                    and @{$maybe_data} ) {
+				   warn 1005;
+                                   @raw_videos_array = @{$maybe_data};
+                               }
+                           }
+                       }
+
+                       if (    !@raw_videos_array
+                            and $person->{'FeaturedVideos'} ) {
                            my $item
                                = $items_by_url_id{ $person->{'FeaturedVideos'}
                                };
