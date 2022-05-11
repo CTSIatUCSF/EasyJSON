@@ -16,8 +16,10 @@ use File::Spec::Functions qw( catdir  tmpdir );
 use base 'CHI';
 use 5.10.0;
 
-my @dir_options = ( catdir( '/srv',   'ProfilesEasyJSON-cache' ),
-                    catdir( tmpdir(), 'ProfilesEasyJSON-cache' ) );
+my @dir_options = (
+    catdir( '/srv',   'ProfilesEasyJSON-cache' ),
+    catdir( tmpdir(), 'ProfilesEasyJSON-cache' )
+);
 
 my $root_dir;
 foreach my $dir_option (@dir_options) {
@@ -29,8 +31,7 @@ foreach my $dir_option (@dir_options) {
             $root_dir = $dir_option;
             last;
         } else {
-            warn
-                "Could not write to cache directory '$dir_option' -- skipping\n";
+            warn "Could not write to cache directory '$dir_option' -- skipping\n";
         }
     } else {
         warn "Could not create cache directory '$dir_option' -- skipping\n";
@@ -44,9 +45,9 @@ unless ($root_dir) {
 }
 
 __PACKAGE__->config(
-    {  storage => { local_file => { driver => 'File', root_dir => $root_dir } },
-       defaults => { storage => 'local_file', expires_variance => 0.25 },
-       memoize_cache_objects => 1,
+    {   storage  => { local_file => { driver => 'File', root_dir => $root_dir } },
+        defaults => { storage    => 'local_file', expires_variance => 0.25 },
+        memoize_cache_objects => 1,
     }
 );
 

@@ -17,10 +17,10 @@ my @input = (
     ["Larry\r\nMoe\r\nCurly\r\n"],
     ["Larry; Moe; Curly"],
     ["Larry; Moe; and Curly"],
-    [ ' ',      "Larry, Moe,   and  Curly", '' ],
-    [ '(Larry', 'Moe)',                     '(Curly)' ],
-    [ 'Larry (', '-',     'Moe)', ' and Curly  ' ],
-    [ '*Larry',  '* Moe', 'Curly ' ],
+    [ ' ',       "Larry, Moe,   and  Curly", '' ],
+    [ '(Larry',  'Moe)',                     '(Curly)' ],
+    [ 'Larry (', '-',                        'Moe)', ' and Curly  ' ],
+    [ '*Larry',  '* Moe',                    'Curly ' ],
     ["•Larry\n• Moe •\tCurly"],
     ["*Larry\n* Moe *\tCurly"],
     ['Areas of interest include: Larry, Moe, and Curly'],
@@ -34,16 +34,19 @@ my @input = (
     [ 'e.g.', 'Larry', 'Moe', 'Curly' ],
     ['the Larry, Moe, and Curly  '],
     [ 'Larry (e.g. ', 'Moe', 'Curly)' ],
-    [ 'Dr. Smith\'s practice includes surgical treatment of the following: Larry, Moe, and Curly'
+    [
+        'Dr. Smith\'s practice includes surgical treatment of the following: Larry, Moe, and Curly'
     ],
 );
 
 plan tests => 1 + scalar @input;
 
 foreach my $test (@input) {
-    is_deeply( [ ProfilesEasyJSON::_split_keyword_string( @{$test} ) ],
-               [ 'Larry', 'Moe', 'Curly' ],
-               dump($test), );
+    is_deeply(
+        [ ProfilesEasyJSON::_split_keyword_string( @{$test} ) ],
+        [ 'Larry', 'Moe', 'Curly' ],
+        dump($test),
+    );
 }
 
 # Local Variables:

@@ -5,8 +5,8 @@ use lib '..';
 use Data::Dump qw( dump );
 use IO::All;
 use Moo;
-use URI;
 use Text::CSV::Slurp;
+use URI;
 use namespace::clean;
 use 5.10.0;
 
@@ -41,9 +41,8 @@ around 'identifier_to_canonical_url' => sub {
         = preprocess_ucsf_identifier( $identifier_type, $identifier, $options );
 
     if ( $final_identifier_type and $final_identifier ) {
-        return
-            $orig->( $self, $final_identifier_type, $final_identifier, $options
-            );
+        return $orig->( $self, $final_identifier_type, $final_identifier,
+            $options );
     }
 
     warn "Could not process this UCSF identifier (", dump($identifier_type),
@@ -114,8 +113,7 @@ sub preprocess_ucsf_identifier {
                 $identifier_type = 'PrettyURL';
                 $identifier      = lc $1;
             } elsif ( $identifier
-                =~ m{$current_or_legacy_profiles_root_url_regexp/profile/(\d+)$}
-            ) {
+                =~ m{$current_or_legacy_profiles_root_url_regexp/profile/(\d+)$} ) {
                 $identifier_type = 'ProfilesNodeID';
                 $identifier      = $1;
             } else {
@@ -143,13 +141,9 @@ sub preprocess_ucsf_identifier {
         }
 
         foreach my $possible_identifier ( keys %identifiers_to_check ) {
-            if (eval {
-                    $lookup_table->{$identifier_type}->{$possible_identifier};
-                }
-            ) {
-                return ( 'PrettyURL',
-                      $lookup_table->{$identifier_type}->{$possible_identifier},
-                      $options );
+            if ( eval { $lookup_table->{$identifier_type}->{$possible_identifier}; } ) {
+                return ( 'PrettyURL', $lookup_table->{$identifier_type}->{$possible_identifier},
+                    $options );
             }
         }
     }
@@ -160,8 +154,7 @@ sub preprocess_ucsf_identifier {
             if ( $identifier > 1_000_000 ) {
                 my $new_identifier = substr( ( $identifier - 569307 ), 1, 6 );
                 if ( $new_identifier >= 100000 ) {
-                    return ( 'UserName', "$new_identifier\@ucsf.edu",
-                             $options );
+                    return ( 'UserName', "$new_identifier\@ucsf.edu", $options );
                 }
             }
         } elsif ( $identifier_type eq 'EmployeeID' ) {
@@ -215,8 +208,7 @@ sub preprocess_ucsf_identifier {
         }
     }
 
-    warn
-        "Could not process this UCSF identifier ($identifier_type = $identifier)";
+    warn "Could not process this UCSF identifier ($identifier_type = $identifier)";
     return;
 }
 

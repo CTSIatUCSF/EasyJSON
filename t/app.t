@@ -39,37 +39,35 @@ test_psgi $app, sub {
     {
         my $req
             = GET(
-            'http://localhost/?source=Anirvan_script&FNO=anirvan.chatterjee@ucsf.edu'
-            );
+            'http://localhost/?source=Anirvan_script&FNO=anirvan.chatterjee@ucsf.edu');
         my $res = $cb->($req);
         is $res->code, 200, 'reasonable FNO call should return 200';
 
     SKIP: {
             skip "invalid data, can't test", 1 unless $res->code == 200;
             like( $res->decoded_content, qr/Anirvan/,
-                  'call for Anirvan should mention Anirvan' );
+                'call for Anirvan should mention Anirvan' );
         }
     }
 
     # good req type and source
     {
         my $req
-            = GET(
-                'http://localhost/?source=Anirvan_script&EPPN=827204@ucsf.edu');
+            = GET('http://localhost/?source=Anirvan_script&EPPN=827204@ucsf.edu');
         my $res = $cb->($req);
         is $res->code, 200, 'reasonable EPPN call should return 200';
 
     SKIP: {
             skip "invalid data, can't test", 1 unless $res->code == 200;
             like( $res->decoded_content, qr/Anirvan/,
-                  'call for Anirvan [EPPN] should mention Anirvan' );
+                'call for Anirvan [EPPN] should mention Anirvan' );
         }
     }
 
     # 404 for nonexistent user
     {
-        my $req = GET(
-              'http://localhost/?source=Anirvan_script&FNO=fake.user@ucsf.edu');
+        my $req
+            = GET('http://localhost/?source=Anirvan_script&FNO=fake.user@ucsf.edu');
         my $res = $cb->($req);
         is $res->code, 404, 'FNO call for nonexistent user should return 404';
     }
@@ -78,26 +76,23 @@ test_psgi $app, sub {
     {
         my $req
             = GET(
-            'http://localhost/?source=Anirvan_script&ProfilesURLName=fake.user@ucsf.edu'
-            );
+            'http://localhost/?source=Anirvan_script&ProfilesURLName=fake.user@ucsf.edu');
         my $res = $cb->($req);
-        is $res->code, 404,
-            'URL name call for nonexistent user should return 404';
+        is $res->code, 404, 'URL name call for nonexistent user should return 404';
     }
 
     # good req type and source
     {
         my $req
             = GET(
-            'http://localhost/?source=Anirvan_script&ProfilesURLName=ronald.arenson'
-            );
+            'http://localhost/?source=Anirvan_script&ProfilesURLName=ronald.arenson');
         my $res = $cb->($req);
         is $res->code, 200, 'reasonable call should return 200';
 
     SKIP: {
             skip "invalid data, can't test", 1 unless $res->code == 200;
             like( $res->decoded_content, qr/Ronald/,
-                  'call for Ronald should mention Ronald' );
+                'call for Ronald should mention Ronald' );
         }
     }
 
@@ -112,8 +107,7 @@ test_psgi $app, sub {
         my $end_time   = time;
         my $time_taken = sprintf '%0.1f', ( $end_time - $start_time );
         cmp_ok( $time_taken, '>=', 0.7,
-            "uncached search without timeout takes a little time ($time_taken sec)"
-        );
+            "uncached search without timeout takes a little time ($time_taken sec)" );
     }
 
     # timeout works
@@ -127,7 +121,7 @@ test_psgi $app, sub {
         my $end_time   = time;
         my $time_taken = sprintf '%0.1f', ( $end_time - $start_time );
         cmp_ok( $time_taken, '<', 1,
-                "uncached search with timeout is fast ($time_taken sec)" );
+            "uncached search with timeout is fast ($time_taken sec)" );
     }
 };
 

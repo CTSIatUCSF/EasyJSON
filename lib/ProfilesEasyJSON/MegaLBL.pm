@@ -6,7 +6,6 @@ use Data::Dump qw( dump );
 use IO::All;
 use Moo;
 use URI;
-use Text::CSV::Slurp;
 use namespace::clean;
 use 5.10.0;
 
