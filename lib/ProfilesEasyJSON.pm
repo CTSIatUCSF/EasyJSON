@@ -1492,7 +1492,6 @@ sub canonical_url_to_json {
                                     and ref $maybe_data
                                     and ref $maybe_data eq 'ARRAY'
                                     and @{$maybe_data} ) {
-                                    warn 1005;
                                     @raw_videos_array = @{$maybe_data};
                                 }
                             }
