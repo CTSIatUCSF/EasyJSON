@@ -153,7 +153,7 @@ sub preprocess_ucsf_identifier {
         if ( $identifier_type eq 'Person' ) {
             if ( $identifier > 1_000_000 ) {
                 my $new_identifier = substr( ( $identifier - 569307 ), 1, 6 );
-                if ( $new_identifier >= 100000 ) {
+                if ( "$new_identifier" =~ m/\d\d\d\d\d\d/ or $new_identifier >= 100000 ) {
                     return ( 'UserName', "$new_identifier\@ucsf.edu", $options );
                 }
             }
