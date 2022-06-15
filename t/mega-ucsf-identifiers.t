@@ -8,7 +8,7 @@ use Test::NoWarnings;
 use strict;
 use warnings;
 
-plan tests => 16;
+plan tests => 17;
 
 *preprocess_ucsf_identifier
     = \&ProfilesEasyJSON::MegaUCSF::preprocess_ucsf_identifier;
@@ -23,6 +23,12 @@ is_deeply(
     [ preprocess_ucsf_identifier( 'Person', '5396511' ) ],
     [ 'PrettyURL', 'anirvan.chatterjee', {} ],
     'valid Person'
+);
+
+is_deeply(
+    [ preprocess_ucsf_identifier( 'Person', '2570262' ) ],
+    [ 'UserName', '000955@ucsf.edu', {} ],
+    'valid short person ID (regression)'
 );
 
 is_deeply(
