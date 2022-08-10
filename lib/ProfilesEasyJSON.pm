@@ -1536,6 +1536,9 @@ sub canonical_url_to_json {
 
                         if (@raw_videos_array) {
                             foreach my $entry (@raw_videos_array) {
+                                if ( $entry->{youTubeId} and $entry->{youTubeId} =~ m/\w\w/ ) {
+                                    $entry->{url} = 'https://www.youtube.com/watch?v=' . $entry->{youTubeId};
+                                }
                                 next unless $entry->{url} =~ m/^http/;
                                 unless ( $entry->{name} =~ m/\w/ ) {
                                     $entry->{name} = 'Video';
