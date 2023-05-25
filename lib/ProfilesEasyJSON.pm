@@ -1203,6 +1203,7 @@ sub canonical_url_to_json {
                                 and $pub->{'hasAuthorList'} =~ m/,.*,/
                                 and $pub->{'hasAuthorList'} !~ m/,\s/ ) {
                                 $pub->{'hasAuthorList'} =~ s/,(\S|\Z)/, $1/g;
+                                $pub->{'hasAuthorList'} =~ s/[\xA0\x85\n\t]/ /g;
                             }
 
                             # In January 2016, Profiles RDF stopped
@@ -1217,6 +1218,7 @@ sub canonical_url_to_json {
 
                             my $title = $pub->{'informationResourceReference'};
                             {
+                                $title =~ s/[\xA0\x85\n\t]/ /g;
                                 my $author_list = $pub->{'hasAuthorList'};
                                 if (    $title
                                     and length $title
