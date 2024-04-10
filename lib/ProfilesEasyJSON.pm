@@ -8,7 +8,7 @@ use Data::Dump qw( dump );
 use Data::Validate::Domain 0.14 qw( is_domain );
 use Data::Visitor::Callback;
 use Digest::MD5 qw( md5_base64 );
-use Encode qw( encode );
+use Encode      qw( encode );
 use HTTP::Message 6.06;
 use JSON;
 use List::AllUtils qw( min max uniq uniq_by );
@@ -1162,7 +1162,7 @@ sub canonical_url_to_json {
 
                             $award->{Summary} = join(
                                 ', ',
-                                map      { trim($_) }
+                                map { trim($_) }
                                     grep { defined and length } (
                                         $award->{AwardLabel},
                                         $award->{AwardConferredBy},
