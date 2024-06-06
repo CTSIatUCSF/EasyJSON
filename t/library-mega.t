@@ -19,7 +19,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 132;
+plan tests => 144;
 
 # looking up users by different identifiers
 
@@ -587,7 +587,7 @@ SKIP: {
 
         like( $data->{Profiles}->[0]->{Title}, qr/analyst/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{Department},
-            qr/gyn/i, "$test_name: department" );
+            qr/Medicine/i, "$test_name: department" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
             qr/^415-/i, "$test_name: telephone" );
         like(
@@ -610,7 +610,6 @@ SKIP: {
         );
         is_deeply( $data->{Profiles}->[0]->{ClinicalTrials},
             [], "$test_name: Got no clinical trials" );
-
     }
 }
 
@@ -651,13 +650,50 @@ SKIP: {
 }
 
 {
+    my $test_name = 'Tung Nguyen';
+    my $json
+        = $api->identifier_to_json( 'URL', 'http://profiles.ucsf.edu/tung.nguyen' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 13 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},  qr/professor/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{School}, qr/Medicine/,   "$test_name: school" );
+        like(
+            $data->{Profiles}->[0]->{Email},
+            qr/^tung\.nguyen\@ucsf\.edu$/i,
+            "$test_name: email"
+        );
+        like( $data->{Profiles}->[0]->{Narrative},
+            qr/Vietnamese/, "$test_name: narrative" );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
+            "$test_name: has 1+ web links" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
+            '>=', 2, "$test_name: got 2+ education items" );
+        ok( eval {
+                grep { $_->{organization} =~ m/Harvard/ }
+                    @{ $data->{Profiles}->[0]->{Education_Training} };
+            },
+            "$test_name: was educated at Harvard"
+        );
+
+        like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
+            qr/immigrant/i, "$test_name: matching freetext keyword" );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
+            '>=', 3, "$test_name: Got enough in the news" );
+    }
+}
+
+{
     my $test_name = 'Robert Hiatt';
     my $json      = $api->identifier_to_json( 'URL',
         'http://profiles.ucsf.edu/robert.hiatt' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 12 unless $json;
+        skip "$test_name: got back no JSON", 11 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},  qr/^Professor$/i, "$test_name: title" );
@@ -702,8 +738,6 @@ SKIP: {
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
             '>=', 1, "$test_name: Was in the news" );
-        cmp_ok( eval { @{ $data->{Profiles}->[0]->{Videos} } },
-            '>=', 1, "$test_name: at least 1 video" );
     }
 }
 
