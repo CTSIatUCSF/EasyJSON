@@ -1870,6 +1870,10 @@ sub canonical_url_to_json {
                                 }
                             }
 
+                            unless (@interest_strings) {
+                                return {};
+                            }
+
                             $interests->{Summary} = join( ', ', @interest_strings );
                             return $interests;
                         } else {
