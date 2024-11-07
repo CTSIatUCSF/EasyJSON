@@ -782,7 +782,7 @@ sub canonical_url_to_json {
         }
 
         # handles a weird edge case with UCSF data
-        if ( grep {m/Varies, CA 00000/} @address ) {
+        if ( grep {m/Varies(?:, CA)? 0000[01]|^Varies$|Flexible, \#1/} @address ) {
             @address = ();
             delete $person->{'latitude'};
             delete $person->{'longitude'};
