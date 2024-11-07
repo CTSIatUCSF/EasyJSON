@@ -4,8 +4,11 @@
 # always honor cache=always
 
 package ProfilesEasyJSON;
-use Data::Dump qw( dump );
-use Data::Validate::Domain 0.14 qw( is_domain );
+use local::lib;
+use Config::Auto;
+use Crypt::RC4 ();
+use Data::Dump 'dump';
+use Data::Validate::Domain 0.14 'is_domain';
 use Data::Visitor::Callback;
 use Digest::MD5 qw( md5_base64 );
 use Encode      qw( encode );
@@ -803,6 +806,31 @@ sub canonical_url_to_json {
     }
 
     my %additional_fields_to_look_up;
+
+    # no email? try to decrypt if possible
+    if ( !defined $person->{'email'} and $person->{'emailEncrypted'} ) {
+
+        # putting this here, should centralize later
+        # hash of arrays
+        state $config = eval {
+            my $config_filename = 'profilesdotjson.conf';
+            my $result
+                = eval { Config::Auto::parse( $config_filename, format => 'equal' ) };
+            return ( $result || {} );
+        };
+
+        if ( $config and eval { $config->{RC4_PASSWORD}->[0] } ) {
+            my $key = 'PRNS' . $config->{RC4_PASSWORD}->[0];
+            eval {
+                my $encrypted_bytes = decode_base64( $person->{'emailEncrypted'} );
+                my $rc4             = Crypt::RC4->new($key);
+                my $decrypted       = $rc4->RC4($encrypted_bytes);
+                if ( $decrypted and $decrypted =~ m/\w/ and $decrypted =~ m/@/ ) {
+                    $person->{email} = $decrypted;
+                }
+            }
+        }
+    }
 
     # no email? see if it's publicly accessible via the vCard
     if ( !defined $person->{'email'} ) {
