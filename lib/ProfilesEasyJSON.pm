@@ -4,7 +4,6 @@
 # always honor cache=always
 
 package ProfilesEasyJSON;
-use local::lib;
 use Config::Auto;
 use Crypt::RC4 ();
 use Data::Dump 'dump';
