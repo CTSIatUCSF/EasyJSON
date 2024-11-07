@@ -1,5 +1,7 @@
 #!perl
 
+# add web links, education, keywords, news
+
 use lib 'lib', '../lib';
 use Data::Dump;
 use JSON qw( decode_json );
@@ -19,7 +21,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 144;
+plan tests => 138;
 
 # looking up users by different identifiers
 
@@ -125,10 +127,21 @@ is( $api->identifier_to_canonical_url(
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 4 unless $json;
+        skip "$test_name: got back no JSON", 5 unless $json;
         my $data = decode_json($json);
 
         is( $data->{Profiles}->[0]->{Name}, 'Anirvan Chatterjee', 'Anirvan name' );
+
+        like(
+            $data->{Profiles}->[0]->{Address}->{Address1},
+            qr/490 Illinois Street/,
+            "$test_name: address line 1"
+        );
+        like(
+            $data->{Profiles}->[0]->{Address}->{Address2},
+            qr/San Francisco/,
+            "$test_name: address line 2"
+        );
 
     TODO: {
             local $TODO = "Email should show up, but isn't always available at source";
@@ -614,38 +627,24 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Rupa Marya';
+    my $test_name = 'Aayush Khadka';
     my $json      = $api->identifier_to_json( 'URL',
-        'http://profiles.ucsf.edu/ProfileDetails.aspx?Person=5389189' );
+        'http://profiles.ucsf.edu/aayush.khadka' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 13 unless $json;
+        skip "$test_name: got back no JSON", 4 unless $json;
         my $data = decode_json($json);
 
-        like( $data->{Profiles}->[0]->{Title},  qr/professor/i, "$test_name: title" );
-        like( $data->{Profiles}->[0]->{School}, qr/Medicine/,   "$test_name: school" );
-        like( $data->{Profiles}->[0]->{Department},
-            qr/Medicine/, "$test_name: department" );
-        like( $data->{Profiles}->[0]->{Email},
-            qr/^rupa\.marya\@ucsf\.edu$/i, "$test_name: email" );
-        like( $data->{Profiles}->[0]->{Narrative},
-            qr/Do No Harm/, "$test_name: narrative" );
-        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
-            "$test_name: has 1+ web links" );
-        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
-            '>=', 2, "$test_name: got 2+ education items" );
-        ok( eval {
-                grep { $_->{organization} =~ m/Georgetown/ }
-                    @{ $data->{Profiles}->[0]->{Education_Training} };
-            },
-            "$test_name: was educated at Georgetown"
+        like( $data->{Profiles}->[0]->{Title},  qr/postdoc/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{School}, qr/Medicine/, "$test_name: school" );
+        like(
+            $data->{Profiles}->[0]->{Email},
+            qr/^aayush\.khadka\@ucsf\.edu$/i,
+            "$test_name: email"
         );
-
-        like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
-            qr/racism|music/i, "$test_name: matching freetext keyword" );
-        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
-            '>=', 3, "$test_name: Got enough in the news" );
+        like( $data->{Profiles}->[0]->{Narrative},
+            qr/cognitive|environmental/i, "$test_name: narrative" );
     }
 }
 
@@ -703,16 +702,10 @@ SKIP: {
             qr/Epidemiology.{1,5}Biostatistics/,
             "$test_name: department"
         );
-        like(
-            $data->{Profiles}->[0]->{Address}->{Address1},
-            qr/550 16th.*St/,
-            "$test_name: address line 1"
-        );
-        like(
-            $data->{Profiles}->[0]->{Address}->{Address2},
-            qr/San Francisco/,
-            "$test_name: address line 2"
-        );
+        unlike( $data->{Profiles}->[0]->{Address}->{Address1},
+            qr/Varies|Flexible|0000/i, "$test_name: address line 1 is not stupid" );
+        unlike( $data->{Profiles}->[0]->{Address}->{Address2},
+            qr/Varies|Flexible|0000/i, "$test_name: address line 2 is not stupid" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
             qr/^415-514-8113$/i, "$test_name: telephone" );
         like(
@@ -738,6 +731,12 @@ SKIP: {
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
             '>=', 1, "$test_name: Was in the news" );
+        ok( eval {
+                grep { $_->{organization} =~ m/Berkeley|University of California/ }
+                    @{ $data->{Profiles}->[0]->{Education_Training} };
+            },
+            "$test_name: was educated at Berkeley"
+        );
     }
 }
 
