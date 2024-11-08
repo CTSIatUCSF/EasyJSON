@@ -360,7 +360,7 @@ sub canonical_url_to_json {
     );
     my $expanded_jsonld_url_cache_key = $expanded_jsonld_url->as_string;
 
-    state $json_obj = JSON->new->utf8->pretty(1);
+    state $json_obj = JSON->new->utf8->pretty(1)->convert_blessed(1);
     my $raw_json;
     my $decoded_json;
 
