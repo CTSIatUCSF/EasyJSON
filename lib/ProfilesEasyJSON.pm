@@ -15,6 +15,7 @@ use HTTP::Message 6.06;
 use JSON;
 use List::AllUtils qw( min max uniq uniq_by );
 use LWP::UserAgent 6.0;
+use MIME::Base64 'decode_base64';
 use Moo;
 use ProfilesEasyJSON::CHI;
 use Regexp::Assemble;
