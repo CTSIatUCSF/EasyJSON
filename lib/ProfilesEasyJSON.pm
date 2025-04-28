@@ -740,6 +740,39 @@ sub canonical_url_to_json {
                         }
                     }
                 }
+
+                if (   !$matched_the_publication
+                    and $pub->{'title'}
+                    and $pub->{'title'} =~ m{<span class="label">(.*?)</span>} ) {
+
+                    # If no ID or PMID is given, but we see a "<span
+                    # class="label">TITLE</span>" title in the list of
+                    # publications. This is pretty uncommon, though
+                    # I've seen it with adeel.rehman.
+
+                    my $maybe_title = $1;
+                    if ( $maybe_title and $maybe_title =~ m/[[:alpha:]]{3}.*[[:alpha:]]{3}/ ) {
+
+                        my @pub_ids_that_match_this_title;
+
+                    EachPubToScanTitles:
+                        foreach
+                            my $candidate_pub_data ( @{ $publications_by_author{ $person->{'@id'} } } )
+                        {
+                            my $candidate_pub_id = $candidate_pub_data->{id};
+                            my $label            = $items_by_url_id{$candidate_pub_id}->{'label'};
+                            if ( $label and $maybe_title and $label eq $maybe_title ) {
+                                push @pub_ids_that_match_this_title, $candidate_pub_id;
+                            }
+                        }
+                        if ( @pub_ids_that_match_this_title == 1 ) {
+                            $featured_publication_order_by_id{ $pub_ids_that_match_this_title[0] }
+                                = $featured_num;
+                            $matched_the_publication = 1;
+                        }
+                    }
+                }
+
             }
         }
     }
