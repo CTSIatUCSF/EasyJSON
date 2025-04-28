@@ -361,7 +361,7 @@ sub canonical_url_to_json {
     );
     my $expanded_jsonld_url_cache_key = $expanded_jsonld_url->as_string;
 
-    state $json_obj = JSON->new->utf8->pretty(1)->convert_blessed(1);
+    my $json_obj = JSON->new->utf8->pretty(1)->convert_blessed(1);
     my $raw_json;
     my $decoded_json;
 
@@ -2006,7 +2006,24 @@ sub canonical_url_to_json {
 
     $v->visit($final_data);
 
-    my $out = $json_obj->encode($final_data);
+    my $out;
+    {
+        $out = eval { $json_obj->encode($final_data) };
+
+        if ( !$out or $@ ) {
+            my $encoder = JSON->new->utf8->pretty(1)->convert_blessed(1);
+            $out = eval { $encoder->encode($final_data) };
+        }
+
+        if ( !$out or $@ ) {
+            eval {
+                no warnings;
+                use JSON::PP ();
+                $out = JSON::PP::encode_json($final_data);
+            };
+        }
+    }
+
     return $out;
 }
 
