@@ -873,6 +873,11 @@ sub canonical_url_to_json {
         $additional_fields_to_look_up{'email_vcard'} = $vcard_url;
     }
 
+    # very weird! Sometimes "@ucsf.edu" becomes "@ucs\u0000.e\u0000u"
+    if ( defined $person->{email} ) {
+        $person->{email} =~ s/\@(ucs\x{0000}\.e\x{0000}u)$/\@ucsf.edu/;
+    }
+
     if ( $person->{'hasClinicalTrials'} ) {
         if (    $self->root_domain =~ 'https://(dev\.|stage\.)?researcherprofiles.org/'
             and $person->{'workplaceHomepage'} ) {
