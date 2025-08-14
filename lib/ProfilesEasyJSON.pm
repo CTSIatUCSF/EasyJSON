@@ -468,14 +468,20 @@ sub canonical_url_to_json {
             and $item->{'rdf:type'}
             and ref $item->{'rdf:type'} eq 'ARRAY' ) {
             foreach my $type_map ( @{ $item->{'rdf:type'} } ) {
-                if ( $type_map->{'@id'} ) {
+                if ( $type_map->{'@id'} and !ref $type_map->{'@id'} ) {
                     push @{ $item->{'@type'} }, $type_map->{'@id'};
                 }
             }
         }
 
-        if ( !$item->{'@type'} and $item->{'pluginSearchableData'} ) {
-            $item->{'@type'} = 'pluginSearchableData';
+        if ( !$item->{'@type'} ) {
+            if ( $item->{'pluginSearchableData'} ) {
+                $item->{'@type'} = 'pluginSearchableData';
+            } elsif (
+                eval { $item->{'rdf:type'}->{'@id'} and !ref $item->{'rdf:type'}->{'@id'} }
+            ) {
+                $item->{'@type'} = $item->{'rdf:type'}->{'@id'};
+            }
         }
         next unless $item->{'@type'};
 
