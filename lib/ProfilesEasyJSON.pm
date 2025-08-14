@@ -464,6 +464,16 @@ sub canonical_url_to_json {
 
     foreach my $item ( @{ $data->{entry}->{jsonld}->{'@graph'} } ) {
 
+        if (   !$item->{'@type'}
+            and $item->{'rdf:type'}
+            and ref $item->{'rdf:type'} eq 'ARRAY' ) {
+            foreach my $type_map ( @{ $item->{'rdf:type'} } ) {
+                if ( $type_map->{'@id'} ) {
+                    push @{ $item->{'@type'} }, $type_map->{'@id'};
+                }
+            }
+        }
+
         if ( !$item->{'@type'} and $item->{'pluginSearchableData'} ) {
             $item->{'@type'} = 'pluginSearchableData';
         }
