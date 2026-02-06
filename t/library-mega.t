@@ -1,6 +1,6 @@
 #!perl
 
-# add web links, education, keywords, news
+# add featured videos, global health
 
 use lib 'lib', '../lib';
 use Data::Dump;
@@ -21,7 +21,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 138;
+plan tests => 139;
 
 # looking up users by different identifiers
 
@@ -143,15 +143,6 @@ SKIP: {
             "$test_name: address line 2"
         );
 
-    TODO: {
-            local $TODO = "Email should show up, but isn't always available at source";
-            like(
-                $data->{Profiles}->[0]->{Email},
-                qr/^anirvan\.chatterjee\@ucsf\.edu$/i,
-                'Anirvan email'
-            );
-        }
-
         like(
             $data->{Profiles}->[0]->{ProfilesURL},
             qr{^(http://profiles.ucsf.edu/profile/370974|https?://(profiles.ucsf.edu|(stage-)?ucsf\.researcherprofiles\.org)/anirvan.chatterjee)$},
@@ -204,11 +195,6 @@ SKIP: {
             qr/^Jenn/i, "$test_name: first name" );
         like( $data->{Profiles}->[0]->{LastName},
             qr/^Grandis$/i, "$test_name: last name" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^jennifer\.grandis\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
             '>=', 50, "$test_name: got 50+ publications" );
 
@@ -261,8 +247,11 @@ SKIP: {
             qr/Daniel Lowenstein/,
             "$test_name: Got name"
         );
-        like( $data->{Profiles}->[0]->{PhotoURL},
-            qr/^http/, "$test_name: Got photo URL" );
+        like(
+            $data->{Profiles}->[0]->{PhotoURL},
+            qr{^https://.*PhotoHandler\.ashx},
+            "$test_name: Got photo, as expected"
+        );
         like( $data->{Profiles}->[0]->{Keywords}->[0],
             qr/\w/, "$test_name: Got keyword" );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{Publications} } },
@@ -313,6 +302,16 @@ SKIP: {
         );
         cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
             '>=', 3, "$test_name: Got enough in the news" );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{Videos} } },
+            '>=', 2, "$test_name: Got multiple video" );
+
+        like( ( eval { $data->{Profiles}->[0]->{Videos}->[0]->{url} } // '' ),
+            qr/you.?tube/i, "$test_name: first video is from YouTube" );
+
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } },
+            '>=', 1, "$test_name: Got global health locations" );
+        cmp_ok( eval { @{ $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } },
+            '>=', 1, "$test_name: Got global health interests" );
     }
 }
 
@@ -360,8 +359,6 @@ SKIP: {
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
             '>=', 10, "$test_name: Got enough publications" );
-        like( $data->{Profiles}->[0]->{PhotoURL},
-            qr{PhotoHandler\.ashx}, "$test_name: Got photo, as expected" );
     }
 }
 
@@ -472,15 +469,15 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Brian Turner';
-    my $json      = $api->identifier_to_json( 'PrettyURL', 'brian.turner' );
+    my $test_name = 'Vanessa Jacoby';
+    my $json      = $api->identifier_to_json( 'PrettyURL', 'vanessa.jacoby' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
         skip "$test_name: got back no JSON", 1 unless $json;
         my $data = decode_json($json);
         is( eval { $data->{Profiles}->[0]->{Name} // '' },
-            'Brian Turner, MBA',
+            'Vanessa Jacoby, MD, MAS',
             "$test_name: name is as expected"
         );
     }
@@ -603,11 +600,6 @@ SKIP: {
             qr/Medicine/i, "$test_name: department" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
             qr/^415-/i, "$test_name: telephone" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^michael\.schembri\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
             '>=', 1, "$test_name: got 1+ publications" );
         ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
@@ -627,24 +619,46 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Aayush Khadka';
-    my $json      = $api->identifier_to_json( 'URL',
-        'http://profiles.ucsf.edu/aayush.khadka' );
+    my $test_name = 'Ruth Siew';
+    my $json
+        = $api->identifier_to_json( 'URL', 'https://profiles.ucsf.edu/ruth.siew' );
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 4 unless $json;
+        skip "$test_name: got back no JSON", 8 unless $json;
         my $data = decode_json($json);
 
-        like( $data->{Profiles}->[0]->{Title},  qr/postdoc/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{Title}, qr/professor/i, "$test_name: title" );
+        like( $data->{Profiles}->[0]->{Department},
+            qr/Pediatrics/, "$test_name: department" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
+            '>=', 4, "$test_name: got 1+ publications" );
+        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } == 0 },
+            "$test_name: has no web links" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
+            '==', 0, "$test_name: got zero education items" );
+        is_deeply( $data->{Profiles}->[0]->{ClinicalTrials},
+            [], "$test_name: Got no clinical trials" );
+    }
+}
+
+{
+    my $test_name = 'Isabelle Remick';
+    my $json      = $api->identifier_to_json( 'URL',
+        'http://profiles.ucsf.edu/isabelle.remick' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 3 unless $json;
+        my $data = decode_json($json);
+
+        like( $data->{Profiles}->[0]->{Title},  qr/project/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{School}, qr/Medicine/, "$test_name: school" );
         like(
             $data->{Profiles}->[0]->{Email},
-            qr/^aayush\.khadka\@ucsf\.edu$/i,
+            qr/^isabelle\.remick\@ucsf\.edu$/i,
             "$test_name: email"
         );
-        like( $data->{Profiles}->[0]->{Narrative},
-            qr/cognitive|environmental/i, "$test_name: narrative" );
     }
 }
 
@@ -655,7 +669,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 13 unless $json;
+        skip "$test_name: got back no JSON", 5 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},  qr/professor/i, "$test_name: title" );
@@ -665,10 +679,6 @@ SKIP: {
             qr/^tung\.nguyen\@ucsf\.edu$/i,
             "$test_name: email"
         );
-        like( $data->{Profiles}->[0]->{Narrative},
-            qr/Vietnamese/, "$test_name: narrative" );
-        ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
-            "$test_name: has 1+ web links" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
             '>=', 2, "$test_name: got 2+ education items" );
         ok( eval {
@@ -677,11 +687,6 @@ SKIP: {
             },
             "$test_name: was educated at Harvard"
         );
-
-        like( join( ' ', @{ $data->{Profiles}->[0]->{FreetextKeywords} } ),
-            qr/immigrant/i, "$test_name: matching freetext keyword" );
-        cmp_ok( eval { @{ $data->{Profiles}->[0]->{MediaLinks_beta} } },
-            '>=', 3, "$test_name: Got enough in the news" );
     }
 }
 
@@ -708,11 +713,6 @@ SKIP: {
             qr/Varies|Flexible|0000/i, "$test_name: address line 2 is not stupid" );
         like( $data->{Profiles}->[0]->{Address}->{Telephone},
             qr/^415-514-8113$/i, "$test_name: telephone" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^robert\.hiatt\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
         like(
             $data->{Profiles}->[0]->{Narrative},
             qr/cancer epidemiology/,
