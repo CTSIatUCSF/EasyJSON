@@ -2151,9 +2151,7 @@ sub _ua_with_updated_settings {
     # so we're trying to add some random spaces to the useragent.
 
     my $agent_string = 'Profiles EasyJSON Interface 2.0';
-    0 while $agent_string =~ s/(\w)(\w)/$1 . (' ' x rand(3)) . $2/ei;
     $agent_string = "Mozilla/5.0 ($agent_string)";
-    $agent_string .= ' [' . int( rand 10000 ) . ']';
     $ua->agent($agent_string);
 
     # If we want to never cache, set timeout to 10 seconds.
