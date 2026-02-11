@@ -1,7 +1,5 @@
 #!perl
 
-# add featured videos, global health
-
 use lib 'lib', '../lib';
 use Data::Dump;
 use JSON qw( decode_json );
