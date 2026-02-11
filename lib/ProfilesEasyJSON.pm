@@ -2150,7 +2150,7 @@ sub _ua_with_updated_settings {
     # Profiles has bot detection that interferes with some downloads
     # so we're trying to add some random spaces to the useragent.
 
-    my $agent_string = 'Profiles EasyJSON Interface 2.0';
+    my $agent_string = 'Profiles EasyJSON Interface 2.01';
     $agent_string = "Mozilla/5.0 ($agent_string)";
     $ua->agent($agent_string);
 
