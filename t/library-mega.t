@@ -732,7 +732,7 @@ SKIP: {
             "$test_name: matching freetext keyword"
         );
         ok( eval {
-                grep { $_->{degree} =~ m/residency/i }
+                grep { ( $_->{degree} // '' ) =~ m/residency/i }
                     @{ $data->{Profiles}->[0]->{Education_Training} };
             },
             "$test_name: includes residency"
