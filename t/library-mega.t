@@ -15,6 +15,10 @@ use warnings;
 
 my $api = new ProfilesEasyJSON::MegaUCSF;
 
+my $has_mapping_tables =
+    grep { -d $_ && scalar( glob("$_/*.csv") ) }
+    ProfilesEasyJSON::MegaUCSF::_mapping_table_dir_options();
+
 my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
@@ -264,7 +268,10 @@ SKIP: {
     }
 }
 
-{
+SKIP: {
+    skip 'Kirsten Bibbins-Domingo FNO tests require mapping tables', 12
+        unless $has_mapping_tables;
+
     my $test_name = 'Kirsten Bibbins-Domingo';
 
     my $json
@@ -313,7 +320,10 @@ SKIP: {
     }
 }
 
-{
+SKIP: {
+    skip 'Kirsten Bibbins-Domingo no publications FNO tests require mapping tables', 3
+        unless $has_mapping_tables;
+
     my $test_name = 'Kirsten Bibbins-Domingo no publications';
     my $json      = $api->identifier_to_json(
         'FNO',
