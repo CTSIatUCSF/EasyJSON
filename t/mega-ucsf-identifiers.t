@@ -13,17 +13,27 @@ plan tests => 18;
 *preprocess_ucsf_identifier
     = \&ProfilesEasyJSON::MegaUCSF::preprocess_ucsf_identifier;
 
+my $has_mapping_tables =
+    grep { -d $_ && scalar( glob("$_/*.csv") ) }
+    ProfilesEasyJSON::MegaUCSF::_mapping_table_dir_options();
+
+diag "WARNING: mapping tables not installed -- some tests will be skipped"
+    unless $has_mapping_tables;
+
 is_deeply(
     [ preprocess_ucsf_identifier( 'PrettyURL', 'anirvan.chatterjee' ) ],
     [ 'PrettyURL', 'anirvan.chatterjee', {} ],
     'valid PrettyURL'
 );
 
-is_deeply(
-    [ preprocess_ucsf_identifier( 'Person', '5396511' ) ],
-    [ 'PrettyURL', 'anirvan.chatterjee', {} ],
-    'valid Person'
-);
+SKIP: {
+    skip 'mapping tables not available', 1 unless $has_mapping_tables;
+    is_deeply(
+        [ preprocess_ucsf_identifier( 'Person', '5396511' ) ],
+        [ 'PrettyURL', 'anirvan.chatterjee', {} ],
+        'valid Person'
+    );
+}
 
 is_deeply(
     [ preprocess_ucsf_identifier( 'Person', '2570262' ) ],
@@ -31,11 +41,14 @@ is_deeply(
     'valid short person ID (regression)'
 );
 
-is_deeply(
-    [ preprocess_ucsf_identifier( 'Person', '5150308' ) ],
-    [ 'PrettyURL', 'emily.morell', {} ],
-    'valid short person ID, but without zeros (regression)'
-);
+SKIP: {
+    skip 'mapping tables not available', 1 unless $has_mapping_tables;
+    is_deeply(
+        [ preprocess_ucsf_identifier( 'Person', '5150308' ) ],
+        [ 'PrettyURL', 'emily.morell', {} ],
+        'valid short person ID, but without zeros (regression)'
+    );
+}
 
 is_deeply(
     [ preprocess_ucsf_identifier( 'FNO', 'anirvan.chatterjee@ucsf.edu' ) ],
@@ -64,14 +77,17 @@ is_deeply(
     'valid URL with PrettyURL'
 );
 
-is_deeply(
-    [   preprocess_ucsf_identifier(
-            'URL', 'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
-        )
-    ],
-    [ 'PrettyURL', 'anirvan.chatterjee', {} ],
-    'valid URL with Person ID'
-);
+SKIP: {
+    skip 'mapping tables not available', 1 unless $has_mapping_tables;
+    is_deeply(
+        [   preprocess_ucsf_identifier(
+                'URL', 'https://profiles.ucsf.edu/ProfileDetails.aspx?Person=5396511'
+            )
+        ],
+        [ 'PrettyURL', 'anirvan.chatterjee', {} ],
+        'valid URL with Person ID'
+    );
+}
 
 is_deeply(
     [   preprocess_ucsf_identifier(
