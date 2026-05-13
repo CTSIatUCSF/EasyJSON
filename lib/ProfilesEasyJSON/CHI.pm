@@ -11,8 +11,8 @@
 package ProfilesEasyJSON::CHI;
 use lib '..';
 use CHI;
-use File::Path qw( mkpath );
-use File::Spec::Functions qw( catdir  tmpdir );
+use File::Path 'mkpath';
+use File::Spec::Functions 'catdir', 'tmpdir';
 use base 'CHI';
 use 5.10.0;
 
