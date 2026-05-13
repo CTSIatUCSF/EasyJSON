@@ -212,17 +212,20 @@ sub preprocess_ucsf_identifier {
     return;
 }
 
+sub _mapping_table_dir_options {
+    my @dir_options;
+    push @dir_options, "$ENV{HOME}/profiles-mega-mapping-tables" if $ENV{HOME};
+    push @dir_options, "/srv/profiles-mega-mapping-tables";
+    push @dir_options, "/etc/profiles-mega-mapping-tables";
+    return @dir_options;
+}
+
 sub _load_lookup_table {
 
     my $table = {};
 
     my @files;
-    my @dir_options;
-
-    push @dir_options, "$ENV{HOME}/profiles-mega-mapping-tables"
-        if $ENV{HOME};
-    push @dir_options, "/srv/profiles-mega-mapping-tables";
-    push @dir_options, "/etc/profiles-mega-mapping-tables";
+    my @dir_options = _mapping_table_dir_options();
 
     foreach my $dir_option (@dir_options) {
         if ( -d $dir_option ) {
@@ -236,7 +239,8 @@ sub _load_lookup_table {
     }
 
     unless (@files) {
-        warn "Could not find user mapping tables";
+        warn "Could not find user mapping tables"
+            unless $ENV{PROFILES_EASYJSON_SUPPRESS_WARNINGS};
         return $table;
     }
 

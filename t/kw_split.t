@@ -1,6 +1,7 @@
 #!perl
 
 use lib 'lib', '../lib';
+BEGIN { $ENV{PROFILES_EASYJSON_SUPPRESS_WARNINGS} = 1 }
 use Data::Dump qw( dump );
 use Test::More;
 use Test::NoWarnings;
