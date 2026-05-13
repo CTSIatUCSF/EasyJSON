@@ -587,11 +587,9 @@ sub canonical_url_to_json {
     # load ORNG data
     foreach my $field (
         'hasFeaturedPublications', 'hasGlobalHealth',
-        'hasLinks',                'hasMentor',
-        'hasNIHGrantList',         'hasTwitter',
-        'hasSlideShare',           'hasMediaLinks',
-        'hasVideos',               'hasClinicalTrials',
-        'hasCollaborationInterests',
+        'hasLinks',                'hasNIHGrantList',
+        'hasTwitter',              'hasSlideShare',
+        'hasMediaLinks',           'hasVideos',
     ) {
 
         if (    $person->{$field}
@@ -894,17 +892,20 @@ sub canonical_url_to_json {
         $person->{email} =~ s/\@(ucs\x{0000}\.e\x{0000}u)$/\@ucsf.edu/;
     }
 
-    if ( $person->{'hasClinicalTrials'} ) {
-        if (    $self->root_domain =~ 'https://(dev\.|stage\.)?researcherprofiles.org/'
-            and $person->{'workplaceHomepage'} ) {
-            my $forced_prod_profiles_url = $person->{'workplaceHomepage'};
-            $forced_prod_profiles_url
-                =~ s{^https?://(?:stage|dev)-ucsf\.researcherprofiles\.org}{https://profiles.ucsf.edu};
-            $additional_fields_to_look_up{'clinical_trials'}
-                = URI->new(
-                'https://api.researcherprofiles.org/ClinicalTrialsApi/api/clinicaltrial/');
-            $additional_fields_to_look_up{'clinical_trials'}
-                ->query_form( { person_url => $forced_prod_profiles_url } );
+    if (    $person->{'ClinicalTrials'}
+        and $items_by_url_id{ $person->{'ClinicalTrials'} }
+        and $items_by_url_id{ $person->{'ClinicalTrials'} }->{'pluginData'} ) {
+        my $raw_plugin_data
+            = $items_by_url_id{ $person->{'ClinicalTrials'} }->{'pluginData'};
+        if ( !ref $raw_plugin_data ) {
+            $raw_plugin_data = eval {
+                no warnings;
+                $raw_plugin_data = Encode::encode_utf8($raw_plugin_data);
+                $json_obj->decode($raw_plugin_data);
+            };
+        }
+        if ( $raw_plugin_data and ref $raw_plugin_data eq 'ARRAY' ) {
+            $person->{clinical_trials} = $raw_plugin_data;
         }
     }
 
@@ -946,14 +947,7 @@ sub canonical_url_to_json {
                         $person->{'email'} = $likely_email;
                     }
                 }
-            } elsif ( $field_to_look_up_key eq 'clinical_trials' ) {
-                if ( $raw =~ m/\{/ ) {
-                    my $trials = eval { no warnings; return decode_json($raw) };
-                    if ( $trials and ref $trials and ref $trials eq 'ARRAY' ) {
-                        $person->{clinical_trials} = $trials;
-                    }
-                }
-            }    # end if trial
+            }    # end if email_vcard
 
         }    # if we got back content from this API lookup
     }    # for each special URL to look up
@@ -1887,8 +1881,39 @@ sub canonical_url_to_json {
                 FacultyMentoring => (
                     eval {
                         my $return = { Types => [], Narrative => undef };
-                        if (    $orng_data{'hasMentor'}
-                            and ref $orng_data{'hasMentor'}
+
+                        if (    $person->{'Mentoring'}
+                            and $items_by_url_id{ $person->{'Mentoring'} } ) {
+
+                            my $plugin_node = $items_by_url_id{ $person->{'Mentoring'} };
+                            my @maybe_json
+                                = ref $plugin_node->{'pluginData'} eq 'ARRAY'
+                                ? @{ $plugin_node->{'pluginData'} }
+                                : ( $plugin_node->{'pluginData'} // () );
+
+                            my %seen_types;
+                            for my $json_string (@maybe_json) {
+                                next unless $json_string and !ref $json_string;
+                                my $data = eval { decode_json($json_string) };
+                                next unless $data and ref $data eq 'HASH';
+
+                                if ( $data->{'narrative'}
+                                    and !$return->{Narrative} ) {
+                                    $return->{Narrative} = $data->{'narrative'};
+                                }
+
+                                if ( $data->{'mentoringInterests'}
+                                    and ref $data->{'mentoringInterests'} eq 'ARRAY' ) {
+                                    for my $mi ( @{ $data->{'mentoringInterests'} } ) {
+                                        next unless ref $mi eq 'HASH';
+                                        my $label = join( ' - ', grep {$_} $mi->{'mentee'}, $mi->{'type'} );
+                                        push @{ $return->{Types} }, $label
+                                            unless $seen_types{$label}++;
+                                    }
+                                }
+                            }
+
+                        } elsif ( $orng_data{'hasMentor'}
                             and ref $orng_data{'hasMentor'} eq 'HASH' ) {
 
                             my %mentorship_types = (
@@ -1903,41 +1928,59 @@ sub canonical_url_to_json {
                                     push @{ $return->{Types} }, $mentorship_types{$type};
                                 }
                             }
-
                             if ( $orng_data{'hasMentor'}->{narrative} ) {
-                                $return->{Narrative}
-                                    = $orng_data{'hasMentor'}->{narrative};
+                                $return->{Narrative} = $orng_data{'hasMentor'}->{narrative};
                             }
-
                         }
+
                         return $return;
                     }
                 ),
 
                 CollaborationInterests => (
                     eval {
-                        if (    $orng_data{'hasCollaborationInterests'}
-                            and ref $orng_data{'hasCollaborationInterests'}
+                        my $interests = {
+                            Summary   => undef,
+                            Details   => {},
+                            Narrative => undef
+                        };
+                        my @interest_strings;
+
+                        if (    $person->{'CollaborationInterests'}
+                            and $items_by_url_id{ $person->{'CollaborationInterests'} } ) {
+
+                            my $plugin_node = $items_by_url_id{ $person->{'CollaborationInterests'} };
+                            my @maybe_json
+                                = ref $plugin_node->{'pluginData'} eq 'ARRAY'
+                                ? @{ $plugin_node->{'pluginData'} }
+                                : ( $plugin_node->{'pluginData'} // () );
+
+                            for my $json_string (@maybe_json) {
+                                next unless $json_string and !ref $json_string;
+                                my $data = eval { decode_json($json_string) };
+                                next unless $data and ref $data eq 'HASH';
+
+                                if ( $data->{'narrative'}
+                                    and length( $data->{'narrative'} ) >= 3 ) {
+                                    $interests->{Narrative} = $data->{'narrative'};
+                                }
+
+                                if ( $data->{'collaborationInterests'}
+                                    and ref $data->{'collaborationInterests'} eq 'ARRAY' ) {
+                                    for my $item ( @{ $data->{'collaborationInterests'} } ) {
+                                        next unless $item and $item =~ m/\w/;
+                                        $interests->{Details}->{$item} = JSON::true;
+                                        push @interest_strings, lc $item;
+                                    }
+                                }
+                            }
+                        } elsif ( $orng_data{'hasCollaborationInterests'}
                             and ref $orng_data{'hasCollaborationInterests'} eq 'HASH' ) {
 
-                            my $orig      = $orng_data{'hasCollaborationInterests'};
-                            my $interests = {
-                                Summary   => undef,
-                                Details   => {},
-                                Narrative => undef
-                            };
-
-                            my @interest_strings;
-
+                            my $orig = $orng_data{'hasCollaborationInterests'};
                             foreach my $key ( sort keys %{$orig} ) {
-
-                                # The JSON encoding for this gadget is
-                                # idiotic! True values are encoded as
-                                # true, but false values are encoded as
-                                # string "false".
                                 next if !$orig->{$key};
                                 next if $orig->{$key} eq 'false';
-
                                 if ( $key eq 'UpdatedOn' ) {
                                     next;
                                 } elsif ( $key eq 'Narrative' ) {
@@ -1951,16 +1994,11 @@ sub canonical_url_to_json {
                                     push @interest_strings, lc $interest_readable;
                                 }
                             }
-
-                            unless (@interest_strings) {
-                                return {};
-                            }
-
-                            $interests->{Summary} = join( ', ', @interest_strings );
-                            return $interests;
-                        } else {
-                            return {};
                         }
+
+                        return {} unless @interest_strings;
+                        $interests->{Summary} = join( ', ', @interest_strings );
+                        return $interests;
                     }
                 ),
 
