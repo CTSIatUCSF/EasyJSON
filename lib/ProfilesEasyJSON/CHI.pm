@@ -31,10 +31,12 @@ foreach my $dir_option (@dir_options) {
             $root_dir = $dir_option;
             last;
         } else {
-            warn "Could not write to cache directory '$dir_option' -- skipping\n";
+            warn "Could not write to cache directory '$dir_option' -- skipping\n"
+                unless $ENV{PROFILES_EASYJSON_SUPPRESS_WARNINGS};
         }
     } else {
-        warn "Could not create cache directory '$dir_option' -- skipping\n";
+        warn "Could not create cache directory '$dir_option' -- skipping\n"
+            unless $ENV{PROFILES_EASYJSON_SUPPRESS_WARNINGS};
     }
     next;
 }
