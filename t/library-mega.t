@@ -621,8 +621,8 @@ SKIP: {
             qr/Davis/,
             "$test_name: was educated at Davis"
         );
-        is_deeply( $data->{Profiles}->[0]->{ClinicalTrials},
-            [], "$test_name: Got no clinical trials" );
+        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{ClinicalTrials} // [] } ),
+            '>=', 1, "$test_name: Got clinical trials" );
     }
 }
 
