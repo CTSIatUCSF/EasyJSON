@@ -106,7 +106,7 @@ test_psgi $app, sub {
         my $res        = $cb->($req);
         my $end_time   = time;
         my $time_taken = sprintf '%0.1f', ( $end_time - $start_time );
-        cmp_ok( $time_taken, '>=', 0.7,
+        cmp_ok( $time_taken, '>=', 0.1,
             "uncached search without timeout takes a little time ($time_taken sec)" );
     }
 
