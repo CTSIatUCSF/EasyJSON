@@ -22,14 +22,14 @@ use warnings;
 my $api = ProfilesEasyJSON::MegaUCSF->new;
 
 my %profile_for;
-for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis' ) {
+for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan.ashworth' ) {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
     $profile_for{$u} = decode_json($json)->{Profiles}[0] if $json;
 }
 
 my @profiles = values %profile_for;
 
-plan tests => 67;
+plan tests => 68;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -91,6 +91,9 @@ ok( any_profile { ( $_->{PhotoURL} // '' ) =~ /PhotoHandler\.ashx/ },
 
 ok( any_profile { ( $_->{Address}{Telephone} // '' ) =~ /^415-/ },
     'At least one profile has a 415 phone number' );
+
+ok( any_profile { ( $_->{Email} // '' ) =~ /\@ucsf\.edu$/ },
+    'At least one profile has a @ucsf.edu Email address' );
 
 ok( any_profile {
         defined $_->{Address}{Latitude}
