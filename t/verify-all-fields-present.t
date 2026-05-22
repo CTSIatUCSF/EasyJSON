@@ -29,7 +29,7 @@ for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan
 
 my @profiles = values %profile_for;
 
-plan tests => 77;
+plan tests => 84;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -305,6 +305,26 @@ ok( any_profile {
 ok( any_profile { scalar @{ $_->{ResearchActivitiesAndFunding} // [] } >= 5 },
     'At least one profile has 5+ research activities/grants' );
 
+my @all_grants = map { @{ $_->{ResearchActivitiesAndFunding} // [] } } @profiles;
+
+ok( (any { length( $_->{Title} // '' ) > 5 } @all_grants),
+    'At least one grant has a Title' );
+
+ok( (any { length( $_->{Sponsor} // '' ) > 1 } @all_grants),
+    'At least one grant has a Sponsor' );
+
+ok( (any { length( $_->{Role} // '' ) > 1 } @all_grants),
+    'At least one grant has a Role' );
+
+ok( (any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants),
+    'At least one grant has a YYYY-MM-DD StartDate' );
+
+ok( (any { ( $_->{EndDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants),
+    'At least one grant has a YYYY-MM-DD EndDate' );
+
+ok( (any { ( $_->{SponsorAwardID} // '' ) =~ /\w/ } @all_grants),
+    'At least one grant has a SponsorAwardID' );
+
 # --- WebLinks ---
 
 my @all_weblinks = map { @{ $_->{WebLinks_beta} // [] } } @profiles;
@@ -324,6 +344,8 @@ ok( (any { length( $_->{link_name} // '' ) > 3 } @all_media),
     'At least one media link has a name' );
 ok( (any { ( $_->{link_url} // '' ) =~ m{^https?://} } @all_media),
     'At least one media link has a URL' );
+ok( (any { ( $_->{link_date} // '' ) =~ m{^\d{2}/\d{2}/\d{4}$} } @all_media),
+    'At least one media link has a MM/DD/YYYY link_date' );
 
 # --- GlobalHealth ---
 
