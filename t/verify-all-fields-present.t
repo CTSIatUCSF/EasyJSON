@@ -29,7 +29,7 @@ for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan
 
 my @profiles = values %profile_for;
 
-plan tests => 68;
+plan tests => 77;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -136,6 +136,43 @@ ok( any_profile { scalar( grep { $_->{Featured} } @{ $_->{Publications} // [] } 
 ok( any_profile { scalar( grep { $_->{Claimed}  } @{ $_->{Publications} // [] } ) >= 1 },
     'At least one profile has claimed publications' );
 
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{Title} } // '' ) =~ /\w{3}/
+    },
+    'At least one profile has a short Title on first publication'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{AuthorList} } // '' ) =~ /\w+\s+\w+/
+    },
+    'At least one profile has an AuthorList on first publication'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{Date} } // '' ) =~ /^\d{4}-\d{2}-\d{2}$/
+    },
+    'At least one profile has a YYYY-MM-DD Date on first publication'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{PublicationSource}[0]{PMID} } // '' ) =~ /^\d+$/
+    },
+    'At least one profile has a numeric PMID in PublicationSource'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{PublicationSource}[0]{PublicationSourceURL} } // '' )
+            =~ m{^https?://}
+    },
+    'At least one profile has a PublicationSourceURL'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{PublicationID} } // '' ) =~ m{^https?://}
+    },
+    'At least one profile has a PublicationID URL'
+);
+
 # Publications are in descending year order
 ok( any_profile {
         my @years = map { $_->{Year} } @{ $_->{Publications} // [] };
@@ -163,6 +200,27 @@ ok( any_profile {
             @{ $_->{Education_Training} // [] }
     },
     'At least one profile has a recognizable institution in Education_Training'
+);
+
+ok( any_profile {
+        any { ( $_->{end_date} // '' ) =~ /^\d{4}$/ }
+            @{ $_->{Education_Training} // [] }
+    },
+    'At least one profile has a 4-digit end_date in Education_Training'
+);
+
+ok( any_profile {
+        any { length( $_->{location} // '' ) > 3 }
+            @{ $_->{Education_Training} // [] }
+    },
+    'At least one profile has a location in Education_Training'
+);
+
+ok( any_profile {
+        any { length( $_->{department_or_school} // '' ) > 3 }
+            @{ $_->{Education_Training} // [] }
+    },
+    'At least one profile has a department_or_school in Education_Training'
 );
 
 # --- Titles (positions) ---
