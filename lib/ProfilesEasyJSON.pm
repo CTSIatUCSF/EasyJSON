@@ -904,6 +904,28 @@ sub canonical_url_to_json {
                 $json_obj->decode($raw_plugin_data);
             };
         }
+        # pluginData may arrive as an array of JSON-encoded strings (upstream
+        # format change). Strings may be duplicated or contain different
+        # subsets; deduplicate strings, decode each unique one, flatten and
+        # deduplicate the resulting trial objects by Id.
+        if (    ref $raw_plugin_data eq 'ARRAY'
+            and @$raw_plugin_data
+            and !ref $raw_plugin_data->[0] ) {
+            my %seen_str;
+            my @all_trials;
+            for my $str ( grep { !$seen_str{$_}++ } @$raw_plugin_data ) {
+                my $decoded = eval {
+                    no warnings;
+                    $json_obj->decode( Encode::encode_utf8($str) );
+                };
+                push @all_trials, @$decoded
+                    if $decoded and ref $decoded eq 'ARRAY';
+            }
+            my %seen_id;
+            $raw_plugin_data = [
+                grep { !$seen_id{ $_->{Id} // $_ }++ } @all_trials
+            ];
+        }
         if ( $raw_plugin_data and ref $raw_plugin_data eq 'ARRAY' ) {
             $person->{clinical_trials} = $raw_plugin_data;
         }

@@ -259,34 +259,29 @@ ok( ( grep { defined $profile_for{$_} && ( $profile_for{$_}{ProfilesURL} // '' )
 );
 
 # --- ClinicalTrials ---
-# TODO: upstream no longer returns ClinicalTrials data for any profile
 
 my @all_trials = map { @{ $_->{ClinicalTrials} // [] } } @profiles;
 
-TODO: {
-    local $TODO = 'ClinicalTrials data not currently returned by upstream';
+ok( any_profile { scalar @{ $_->{ClinicalTrials} // [] } >= 3 },
+    'At least one profile has 3+ clinical trials' );
 
-    ok( any_profile { scalar @{ $_->{ClinicalTrials} // [] } >= 3 },
-        'At least one profile has 3+ clinical trials' );
+ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @all_trials ) >= 3,
+    'At least 3 trials across all profiles have valid NCT IDs' );
 
-    ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @all_trials ) >= 3,
-        'At least 3 trials across all profiles have valid NCT IDs' );
+ok( (any { ( $_->{Title} // '' ) =~ /\w{5}/ } @all_trials),
+    'At least one trial has a title' );
 
-    ok( (any { ( $_->{Title} // '' ) =~ /\w{5}/ } @all_trials),
-        'At least one trial has a title' );
+ok( (any { ( $_->{URL} // '' ) =~ m{^https?://} } @all_trials),
+    'At least one trial has a URL' );
 
-    ok( (any { ( $_->{URL} // '' ) =~ m{^https?://} } @all_trials),
-        'At least one trial has a URL' );
+ok( (any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_trials),
+    'At least one trial has a YYYY-MM-DD StartDate' );
 
-    ok( (any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_trials),
-        'At least one trial has a YYYY-MM-DD StartDate' );
+ok( (any { defined $_->{EndDate} && $_->{EndDate} =~ /^\d{4}/ } @all_trials),
+    'At least one trial has an EndDate' );
 
-    ok( (any { defined $_->{EndDate} && $_->{EndDate} =~ /^\d{4}/ } @all_trials),
-        'At least one trial has an EndDate' );
-
-    ok( (any { ref( $_->{Conditions} ) eq 'ARRAY' && @{ $_->{Conditions} } >= 1 } @all_trials),
-        'At least one trial has a Conditions array' );
-}
+ok( (any { ref( $_->{Conditions} ) eq 'ARRAY' && @{ $_->{Conditions} } >= 1 } @all_trials),
+    'At least one trial has a Conditions array' );
 
 # --- Videos ---
 
