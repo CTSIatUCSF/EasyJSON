@@ -23,14 +23,14 @@ my $api = ProfilesEasyJSON::MegaUCSF->new;
 
 my %profile_for;
 for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan.ashworth',
-            'elizabeth.owens', 'vincent.turon-lagot' ) {
+            'elizabeth.owens', 'vincent.turon-lagot', 'adithya.cattamanchi' ) {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
     $profile_for{$u} = decode_json($json)->{Profiles}[0] if $json;
 }
 
 my @profiles = values %profile_for;
 
-plan tests => 88;
+plan tests => 89;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -377,6 +377,9 @@ ok( any_profile { scalar @{ $_->{GlobalHealth}{Interests} // [] } >= 1 },
     'At least one profile has GlobalHealth Interests' );
 ok( any_profile { scalar @{ $_->{GlobalHealth}{Centers} // [] } >= 1 },
     'At least one profile has GlobalHealth Centers' );
+
+ok( any_profile { scalar @{ $_->{GlobalHealth_beta}{Countries} // [] } >= 1 },
+    'At least one profile has GlobalHealth_beta Countries' );
 
 # --- FacultyMentoring ---
 

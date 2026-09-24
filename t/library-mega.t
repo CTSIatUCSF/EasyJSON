@@ -23,7 +23,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 130;
+plan tests => 138;
 
 # looking up users by different identifiers
 
@@ -442,12 +442,43 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
-        my $data    = decode_json($json);
-        my $centers = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Centers} }
-            || [];
+        skip "$test_name: got back no JSON", 4 unless $json;
+        my $data = decode_json($json);
+        my $centers = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Centers} } || [];
         cmp_ok( scalar(@$centers), '>=', 1,
             "$test_name: got some global health centers" );
+        my $locations = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
+        cmp_ok( scalar(@$locations), '>=', 1,
+            "$test_name: got some global health locations" );
+        my $interests = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
+        cmp_ok( scalar(@$interests), '>=', 1,
+            "$test_name: got some global health interests" );
+        my $countries = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
+        cmp_ok( scalar(@$countries), '>=', 1,
+            "$test_name: got global health countries" );
+    }
+}
+
+{
+    my $test_name = 'Aaron Harries';
+    my $json      = $api->identifier_to_json( 'PrettyURL', 'aaron.harries' );
+    ok( $json, "$test_name: got back JSON" );
+
+SKIP: {
+        skip "$test_name: got back no JSON", 4 unless $json;
+        my $data = decode_json($json);
+        my $centers = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Centers} } || [];
+        cmp_ok( scalar(@$centers), '>=', 1,
+            "$test_name: got some global health centers" );
+        my $locations = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
+        cmp_ok( scalar(@$locations), '>=', 1,
+            "$test_name: got some global health locations" );
+        my $interests = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
+        cmp_ok( scalar(@$interests), '>=', 1,
+            "$test_name: got some global health interests" );
+        my $countries = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
+        cmp_ok( scalar(@$countries), '>=', 1,
+            "$test_name: got global health countries" );
     }
 }
 
