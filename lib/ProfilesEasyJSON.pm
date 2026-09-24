@@ -2465,32 +2465,23 @@ sub canonical_url_to_json {
         }
     }
 
-   # If Twitter_beta is empty, try to extract an X/Twitter handle from
-   # WebLinks_beta. Upstream now stores these as native webpage links with
-   # labels like "Posts on X ReneeYHsia" and URLs like https://x.com/ReneeYHsia.
+    # If Twitter_beta is empty, scan all WebLinks_beta URLs for any
+    # twitter.com or x.com link and collect handles, deduplicating
+    # case-insensitively (e.g. "AlexSmithMD" and "alexsmithmd" are the same).
     if ( !eval { @{ $final_data->{Profiles}->[0]->{Twitter_beta} } } ) {
         my $x_url_re =
           qr{^https?://(?:x|twitter)\.com/([A-Za-z0-9_]{2,15})/?$}i;
+        my ( @handles, %seen_lc );
         for
           my $link ( @{ $final_data->{Profiles}->[0]->{WebLinks_beta} // [] } )
         {
-            my ( $handle_from_url, $handle_from_label );
             if ( ( $link->{URL} // '' ) =~ $x_url_re ) {
-                $handle_from_url = $1;
+                my $handle = $1;
+                push @handles, $handle unless $seen_lc{ lc $handle }++;
             }
-            if ( ( $link->{Label} // '' ) =~
-                /\bPosts on (?:X|Twitter)\b\s*@?\s*(\w+)\s*$/i )
-            {
-                $handle_from_label = $1;
-            }
-            if (    $handle_from_url
-                and $handle_from_label
-                and lc($handle_from_url) eq lc($handle_from_label) )
-            {
-                $final_data->{Profiles}->[0]->{Twitter_beta} =
-                  [$handle_from_url];
-                last;
-            }
+        }
+        if (@handles) {
+            $final_data->{Profiles}->[0]->{Twitter_beta} = \@handles;
         }
     }
 
