@@ -587,9 +587,9 @@ sub canonical_url_to_json {
     # load ORNG data
     foreach my $field (
         'hasFeaturedPublications', 'hasGlobalHealth',
-        'hasLinks',                'hasNIHGrantList',
-        'hasTwitter',              'hasSlideShare',
-        'hasMediaLinks',           'hasVideos',
+        'hasLinks',                'hasTwitter',
+        'hasSlideShare',           'hasMediaLinks',
+        'hasVideos',
     ) {
 
         if (    $person->{$field}
@@ -904,6 +904,7 @@ sub canonical_url_to_json {
                 $json_obj->decode($raw_plugin_data);
             };
         }
+
         # pluginData may arrive as an array of JSON-encoded strings (upstream
         # format change). Strings may be duplicated or contain different
         # subsets; deduplicate strings, decode each unique one, flatten and
@@ -922,9 +923,7 @@ sub canonical_url_to_json {
                     if $decoded and ref $decoded eq 'ARRAY';
             }
             my %seen_id;
-            $raw_plugin_data = [
-                grep { !$seen_id{ $_->{Id} // $_ }++ } @all_trials
-            ];
+            $raw_plugin_data = [ grep { !$seen_id{ $_->{Id} // $_ }++ } @all_trials ];
         }
         if ( $raw_plugin_data and ref $raw_plugin_data eq 'ARRAY' ) {
             $person->{clinical_trials} = $raw_plugin_data;
@@ -1155,20 +1154,20 @@ sub canonical_url_to_json {
                             @education_training = sort {
                                 (   ( $a->{end_date} && $b->{end_date} )
                                     ? ( ( $date_to_year{ $b->{end_date} } // '' )
-                                            cmp( $date_to_year{ $a->{end_date} } // '' ) )
+                                            cmp ( $date_to_year{ $a->{end_date} } // '' ) )
                                     : 0
                                     )
-                                    || ( ( $b->{end_date} // '' ) cmp( $a->{end_date} // '' ) )
+                                    || ( ( $b->{end_date} // '' ) cmp ( $a->{end_date} // '' ) )
                                     || (( $a->{start_date} && $b->{start_date} )
                                         ? ( ( $date_to_year{ $b->{start_date} } // '' )
-                                            cmp( $date_to_year{ $a->{start_date} } // '' ) )
+                                            cmp ( $date_to_year{ $a->{start_date} } // '' ) )
                                         : 0
                                     )
-                                    || ( ( $b->{start_date}   // '' ) cmp( $a->{start_date}   // '' ) )
-                                    || ( ( $a->{organization} // '' ) cmp( $b->{organization} // '' ) )
+                                    || ( ( $b->{start_date}   // '' ) cmp ( $a->{start_date}   // '' ) )
+                                    || ( ( $a->{organization} // '' ) cmp ( $b->{organization} // '' ) )
                                     || ( ( $a->{department_or_school} // '' )
-                                        cmp( $b->{department_or_school} // '' ) )
-                                    || ( ( $a->{degree} // '' ) cmp( $b->{degree} // '' ) )
+                                        cmp ( $b->{department_or_school} // '' ) )
+                                    || ( ( $a->{degree} // '' ) cmp ( $b->{degree} // '' ) )
                             } @education_training;
 
                             return @education_training;
@@ -1274,10 +1273,10 @@ sub canonical_url_to_json {
                     }
 
                     @awards = sort {
-                               ( ( $b->{'AwardStartDate'} // '' ) cmp( $a->{'AwardStartDate'} // '' ) )
-                            || ( ( $b->{AwardEndDate}     // '' ) cmp( $a->{AwardEndDate}     // '' ) )
-                            || ( ( $a->{AwardConferredBy} // '' ) cmp( $b->{AwardConferredBy} // '' ) )
-                            || ( ( $a->{AwardLabel}       // '' ) cmp( $b->{AwardLabel}       // '' ) )
+                               ( ( $b->{'AwardStartDate'} // '' ) cmp ( $a->{'AwardStartDate'} // '' ) )
+                            || ( ( $b->{AwardEndDate}     // '' ) cmp ( $a->{AwardEndDate}     // '' ) )
+                            || ( ( $a->{AwardConferredBy} // '' ) cmp ( $b->{AwardConferredBy} // '' ) )
+                            || ( ( $a->{AwardLabel}       // '' ) cmp ( $b->{AwardLabel}       // '' ) )
                     } @awards;
                     return \@awards;
                 },
@@ -1407,9 +1406,9 @@ sub canonical_url_to_json {
                     }    # end if we should include pubs
 
                     @publications = sort {
-                               ( ( $b->{Date} // '' ) cmp( $a->{Date} // '' ) )
-                            || ( ( $a->{Title}            // '' ) cmp( $b->{Title}            // '' ) )
-                            || ( ( $a->{PublicationTitle} // '' ) cmp( $b->{PublicationTitle} // '' ) )
+                               ( ( $b->{Date} // '' ) cmp ( $a->{Date} // '' ) )
+                            || ( ( $a->{Title}            // '' ) cmp ( $b->{Title}            // '' ) )
+                            || ( ( $a->{PublicationTitle} // '' ) cmp ( $b->{PublicationTitle} // '' ) )
 
                     } @publications;
 
@@ -1891,7 +1890,7 @@ sub canonical_url_to_json {
                             no warnings 'uninitialized';
                             @grants = sort {
                                 ( ( $b->{EndDate} || $b->{StartDate} )
-                                        cmp( $a->{EndDate} || $a->{StartDate} ) )
+                                        cmp ( $a->{EndDate} || $a->{StartDate} ) )
                                     || ( $b->{StartDate} cmp $a->{StartDate} )
                             } @grants;
                         }
@@ -2063,7 +2062,7 @@ sub canonical_url_to_json {
                 and $person_data->{$key}->[0]
                 and $person_data->{$key}->[0]->{Date} ) {
                 @{ $person_data->{$key} }
-                    = sort { ( $b->{Date} || '' ) cmp( $a->{Date} || '' ) }
+                    = sort { ( $b->{Date} || '' ) cmp ( $a->{Date} || '' ) }
                     @{ $person_data->{$key} };
             }
         }
