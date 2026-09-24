@@ -27,7 +27,8 @@ for my $u (
     'claire.brindis',      'alan.ashworth',
     'elizabeth.owens',     'vincent.turon-lagot',
     'adithya.cattamanchi', 'nevan.krogan',
-    'leslie.benet',        'renee.hsia'
+    'leslie.benet',        'renee.hsia',
+    'steven.pantilat',     'aaron.neinstein'
   )
 {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
@@ -36,7 +37,7 @@ for my $u (
 
 my @profiles = values %profile_for;
 
-plan tests => 99;
+plan tests => 106;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -581,3 +582,42 @@ ok(
     },
     'At least one profile has a CollaborationInterests Summary with content'
 );
+
+# --- Twitter_beta backfill from WebLinks ---
+
+SKIP: {
+    my $p = $profile_for{'renee.hsia'}
+      or skip 'renee.hsia: no JSON', 2;
+    my @tw = @{ $p->{Twitter_beta} // [] };
+    ok( @tw >= 1,
+        'Renee Hsia: has Twitter_beta handle (backfilled from x.com)' );
+    like( $tw[0], qr/^ReneeYHsia$/i,
+        'Renee Hsia: Twitter handle is ReneeYHsia' );
+}
+
+SKIP: {
+    my $p = $profile_for{'steven.pantilat'}
+      or skip 'steven.pantilat: no JSON', 2;
+    my @tw = @{ $p->{Twitter_beta} // [] };
+    ok( @tw >= 1,
+        'Steven Pantilat: has Twitter_beta handle (backfilled from x.com)' );
+    like( $tw[0], qr/^stevepantilat$/i,
+        'Steven Pantilat: Twitter handle is stevepantilat' );
+}
+
+SKIP: {
+    my $p = $profile_for{'aaron.neinstein'}
+      or skip 'aaron.neinstein: no JSON', 3;
+    my @tw = @{ $p->{Twitter_beta} // [] };
+    ok(
+        @tw >= 1,
+'Aaron Neinstein: has Twitter_beta handle (twitter.com + x.com backfill)'
+    );
+    like( $tw[0], qr/^AaronNeinstein$/i,
+        'Aaron Neinstein: Twitter handle is AaronNeinstein' );
+    is(
+        scalar @tw,
+        1,
+'Aaron Neinstein: twitter.com and x.com duplicates collapsed to one entry'
+    );
+}
