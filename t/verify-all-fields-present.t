@@ -28,7 +28,10 @@ for my $u (
     'elizabeth.owens',     'vincent.turon-lagot',
     'adithya.cattamanchi', 'nevan.krogan',
     'leslie.benet',        'renee.hsia',
-    'steven.pantilat',     'aaron.neinstein'
+    'steven.pantilat',     'aaron.neinstein',
+    'jaime.sepulveda',     'eric.goosby',
+    'dilys.walker',        'michael.lipnick',
+    'craig.cohen',
   )
 {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
@@ -38,7 +41,7 @@ for my $u (
 my @profiles = values %profiles_by_username;
 my @loaded   = grep { defined } values %profiles_by_username;
 
-plan tests => 154;
+plan tests => 180;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -611,6 +614,10 @@ ok(
 );
 
 # --- GlobalHealth ---
+# Data comes entirely from GlobalHealthEquity pluginData.
+# Projects is always [] (ORNG hasGlobalHealth gadget is defunct).
+# GlobalHealth_beta.Countries should always match GlobalHealth.Locations
+# (same underlying data, different shape).
 
 ok( any_profile { scalar @{ $_->{GlobalHealth}{Locations} // [] } >= 1 },
     'At least one profile has GlobalHealth Locations' );
@@ -618,9 +625,108 @@ ok( any_profile { scalar @{ $_->{GlobalHealth}{Interests} // [] } >= 1 },
     'At least one profile has GlobalHealth Interests' );
 ok( any_profile { scalar @{ $_->{GlobalHealth}{Centers} // [] } >= 1 },
     'At least one profile has GlobalHealth Centers' );
-
 ok( any_profile { scalar @{ $_->{GlobalHealth_beta}{Countries} // [] } >= 1 },
     'At least one profile has GlobalHealth_beta Countries' );
+
+# Projects is always empty — ORNG hasGlobalHealth gadget is defunct
+ok(
+    ( grep { ref( $_->{GlobalHealth}{Projects} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'GlobalHealth Projects is an arrayref on every loaded profile'
+);
+ok(
+    ( grep { scalar @{ $_->{GlobalHealth}{Projects} // [] } == 0 } @loaded ) ==
+      scalar @loaded,
+    'GlobalHealth Projects is always empty (ORNG gadget defunct)'
+);
+
+SKIP: {
+    my $p = $profiles_by_username{'jaime.sepulveda'}
+      or skip 'jaime.sepulveda: no JSON', 6;
+    my $gh  = $p->{GlobalHealth}      // {};
+    my $ghb = $p->{GlobalHealth_beta} // {};
+    cmp_ok( scalar @{ $gh->{Locations} // [] }, '>=', 5,
+        'Jaime Sepulveda: has 5+ GlobalHealth locations' );
+    ok( ( grep { /Tanzania/i } @{ $gh->{Locations} // [] } ),
+        'Jaime Sepulveda: Tanzania is in GlobalHealth locations' );
+    ok( ( grep { /Kenya/i } @{ $gh->{Locations} // [] } ),
+        'Jaime Sepulveda: Kenya is in GlobalHealth locations' );
+    ok( ( grep { /IGHS/i } @{ $gh->{Centers} // [] } ),
+        'Jaime Sepulveda: has an IGHS center' );
+    cmp_ok( scalar @{ $gh->{Interests} // [] }, '>=', 2,
+        'Jaime Sepulveda: has 2+ GlobalHealth interests' );
+    cmp_ok( scalar @{ $ghb->{Countries} // [] }, '>=', 5,
+        'Jaime Sepulveda: GlobalHealth_beta has 5+ countries' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'eric.goosby'}
+      or skip 'eric.goosby: no JSON', 5;
+    my $gh  = $p->{GlobalHealth}      // {};
+    my $ghb = $p->{GlobalHealth_beta} // {};
+    cmp_ok( scalar @{ $gh->{Locations} // [] }, '>=', 5,
+        'Eric Goosby: has 5+ GlobalHealth locations' );
+    ok( ( grep { /Sub-Saharan Africa/i } @{ $gh->{Locations} // [] } ),
+        'Eric Goosby: Sub-Saharan Africa is in GlobalHealth locations' );
+    ok( ( grep { /HIV/i } @{ $gh->{Interests} // [] } ),
+        'Eric Goosby: HIV/AIDS is in GlobalHealth interests' );
+    ok( ( grep { /IGHS/i } @{ $gh->{Centers} // [] } ),
+        'Eric Goosby: has an IGHS center' );
+    cmp_ok( scalar @{ $ghb->{Countries} // [] }, '>=', 5,
+        'Eric Goosby: GlobalHealth_beta has 5+ countries' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'dilys.walker'}
+      or skip 'dilys.walker: no JSON', 5;
+    my $gh  = $p->{GlobalHealth}      // {};
+    my $ghb = $p->{GlobalHealth_beta} // {};
+    cmp_ok( scalar @{ $gh->{Locations} // [] }, '>=', 5,
+        'Dilys Walker: has 5+ GlobalHealth locations' );
+    ok( ( grep { /Rwanda|Uganda|Kenya/i } @{ $gh->{Locations} // [] } ),
+        'Dilys Walker: Africa locations present' );
+    ok( ( grep { /maternal|reproductive/i } @{ $gh->{Interests} // [] } ),
+        'Dilys Walker: maternal/reproductive health in interests' );
+    # Countries should match Locations — this tests the array-pluginData bug fix
+    cmp_ok( scalar @{ $ghb->{Countries} // [] }, '>=', 5,
+        'Dilys Walker: GlobalHealth_beta has 5+ countries (requires array-pluginData fix)' );
+    is_deeply(
+        [ sort @{ $ghb->{Countries} // [] } ],
+        [ sort @{ $gh->{Locations}  // [] } ],
+        'Dilys Walker: GlobalHealth_beta Countries matches GlobalHealth Locations'
+    );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'michael.lipnick'}
+      or skip 'michael.lipnick: no JSON', 3;
+    my $gh  = $p->{GlobalHealth}      // {};
+    my $ghb = $p->{GlobalHealth_beta} // {};
+    cmp_ok( scalar @{ $gh->{Locations} // [] }, '>=', 1,
+        'Michael Lipnick: has GlobalHealth locations' );
+    ok( ( grep { /Uganda/i } @{ $gh->{Locations} // [] } ),
+        'Michael Lipnick: Uganda is in GlobalHealth locations' );
+    # Countries should match Locations — this tests the array-pluginData bug fix
+    cmp_ok( scalar @{ $ghb->{Countries} // [] }, '>=', 1,
+        'Michael Lipnick: GlobalHealth_beta has countries (requires array-pluginData fix)' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'craig.cohen'}
+      or skip 'craig.cohen: no JSON', 5;
+    my $gh  = $p->{GlobalHealth}      // {};
+    my $ghb = $p->{GlobalHealth_beta} // {};
+    cmp_ok( scalar @{ $gh->{Locations} // [] }, '>=', 5,
+        'Craig Cohen: has 5+ GlobalHealth locations' );
+    ok( ( grep { /Kenya/i } @{ $gh->{Locations} // [] } ),
+        'Craig Cohen: Kenya is in GlobalHealth locations' );
+    ok( ( grep { /HIV|Tuberculosis/i } @{ $gh->{Interests} // [] } ),
+        'Craig Cohen: HIV or TB in interests' );
+    ok( ( grep { /IGHS/i } @{ $gh->{Centers} // [] } ),
+        'Craig Cohen: has an IGHS center' );
+    cmp_ok( scalar @{ $ghb->{Countries} // [] }, '>=', 5,
+        'Craig Cohen: GlobalHealth_beta has 5+ countries' );
+}
 
 # --- FacultyMentoring ---
 

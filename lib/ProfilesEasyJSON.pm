@@ -648,7 +648,7 @@ sub canonical_url_to_json {
 
     # load ORNG data
     foreach my $field (
-        'hasFeaturedPublications', 'hasGlobalHealth',
+        'hasFeaturedPublications',
       )
     {
 
@@ -1863,52 +1863,10 @@ sub canonical_url_to_json {
                 GlobalHealth => (
                     eval {
                         my $return = { Projects => [] };
-                        if ( $orng_data{'hasGlobalHealth'} ) {
-                            my $gh = $orng_data{'hasGlobalHealth'};
-                            for my $project_i ( 0 .. 99 ) {
-                                my $value = $gh->{"gh_${project_i}"};
-                                next unless $value and ref($value) eq 'HASH';
-                                my $project;
 
-                                if (    $value->{Title}
-                                    and $value->{Title} =~
-                                    m{^<a href="([^"]+)".*?>([^<]+)} )
-                                {
-                                    my ( $path_encoded, $title_encoded ) =
-                                      ( $1, $2 );
-                                    my $path  = uri_unescape($path_encoded);
-                                    my $title = uri_unescape($title_encoded);
-                                    if ($title) {
-                                        $project->{Title} = $title;
-                                    }
-                                    $path =~
-                                      s{^/}{https://globalprojects.ucsf.edu/};
-                                    if ( $path =~ m/^http/ ) {
-                                        $project->{URL} = $path;
-                                    }
-                                }
-
-                                foreach my $key ( 'StartDate', 'EndDate' ) {
-                                    if (    $value->{$key}
-                                        and $value->{$key} =~
-                                        m/^(\d\d\d\d-\d\d-\d\d)(?!\d)/ )
-                                    {
-                                        $project->{$key} = $1;
-                                    }
-                                }
-
-                                if ( $value->{Locations}
-                                    and ref $value->{Locations} eq 'ARRAY' )
-                                {
-                                    @{ $project->{Locations} } =
-                                      @{ $value->{Locations} };
-                                }
-
-                                if ($project) {
-                                    push @{ $return->{Projects} }, $project;
-                                }
-                            }
-                        }
+                        # Projects is always [] — ORNG hasGlobalHealth defunct.
+                        # All live data (Locations, Centers, Interests) comes
+                        # from GlobalHealthEquity pluginData below.
 
                         if (    $person->{'GlobalHealthEquity'}
                             and
@@ -1993,58 +1951,35 @@ sub canonical_url_to_json {
 
                 GlobalHealth_beta => (
                     eval {
-                        my %countries;
-                        if ( $orng_data{'hasGlobalHealth'} ) {
 
-                            my $gh = $orng_data{'hasGlobalHealth'};
-                            if ( $gh->{gh_0} ) {
-                                foreach my $value ( values %{$gh} ) {
-                                    if (    ref($value) eq 'HASH'
-                                        and $value->{Locations}
-                                        and ref $value->{Locations} eq 'ARRAY' )
-                                    {
-                                        foreach my $country (
-                                            @{ $value->{Locations} } )
-                                        {
-                                            $countries{$country} = 1;
-                                        }
-                                    }
+                        # pluginData can be a scalar JSON string OR an array of
+                        # JSON strings — use same scan-all loop as GlobalHealth.
+                        if (    $person->{'GlobalHealthEquity'}
+                            and $items_by_url_id{
+                                $person->{'GlobalHealthEquity'} } )
+                        {
+                            my $pd = eval {
+                                $items_by_url_id{
+                                    $person->{'GlobalHealthEquity'}
+                                }->{'pluginData'}
+                            };
+                            my @json_strings
+                              = ref $pd eq 'ARRAY' ? @{$pd} : ( $pd // () );
+
+                            my @locations;
+                            for my $json_str (@json_strings) {
+                                my $d = eval { decode_json($json_str) };
+                                if (    $d
+                                    and $d->{locations}
+                                    and ref $d->{locations} eq 'ARRAY' )
+                                {
+                                    @locations = @{ $d->{locations} };
                                 }
                             }
+                            return { Countries => \@locations } if @locations;
                         }
 
-                        if (%countries) {
-                            return { Countries => [ sort keys %countries ] };
-                        }
-                        else {
-
-                            # if we don't have global health gadget
-                            # data, try falling back to the global
-                            # health equity locations list
-                            my $data_from_global_health_equity = eval {
-                                $person->{'GlobalHealthEquity'}
-                                  && decode_json(
-                                    $items_by_url_id{
-                                        $person->{'GlobalHealthEquity'}
-                                    }->{'pluginData'}
-                                  );
-                            };
-                            if (    $data_from_global_health_equity
-                                and ref $data_from_global_health_equity
-                                and $data_from_global_health_equity->{locations}
-                                and
-                                ref $data_from_global_health_equity->{locations}
-                                eq 'ARRAY' )
-                            {
-                                return {
-                                    Countries => $data_from_global_health_equity
-                                      ->{locations}
-
-                                };
-                            }
-
-                            return {};
-                        }
+                        return {};
                     }
                 ),
 
