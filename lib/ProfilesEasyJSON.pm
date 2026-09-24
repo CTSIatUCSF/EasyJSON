@@ -1874,7 +1874,8 @@ sub canonical_url_to_json {
                                 my %seen;
                                 for my $str ( grep { !$seen{$_}++ } @$pd ) {
                                     my $decoded = eval {
-                                        decode_json( Encode::encode_utf8($str) );
+                                        decode_json(
+                                            Encode::encode_utf8($str) );
                                     };
                                     push @raw_videos_array, @{$decoded}
                                       if $decoded and ref $decoded eq 'ARRAY';
@@ -2460,6 +2461,35 @@ sub canonical_url_to_json {
                     api_notes        =>
 'Deprecated, use ResearchActivitiesAndFunding instead. The fiscal year may be off.',
                   };
+            }
+        }
+    }
+
+   # If Twitter_beta is empty, try to extract an X/Twitter handle from
+   # WebLinks_beta. Upstream now stores these as native webpage links with
+   # labels like "Posts on X ReneeYHsia" and URLs like https://x.com/ReneeYHsia.
+    if ( !eval { @{ $final_data->{Profiles}->[0]->{Twitter_beta} } } ) {
+        my $x_url_re =
+          qr{^https?://(?:x|twitter)\.com/([A-Za-z0-9_]{2,15})/?$}i;
+        for
+          my $link ( @{ $final_data->{Profiles}->[0]->{WebLinks_beta} // [] } )
+        {
+            my ( $handle_from_url, $handle_from_label );
+            if ( ( $link->{URL} // '' ) =~ $x_url_re ) {
+                $handle_from_url = $1;
+            }
+            if ( ( $link->{Label} // '' ) =~
+                /\bPosts on (?:X|Twitter)\b\s*@?\s*(\w+)\s*$/i )
+            {
+                $handle_from_label = $1;
+            }
+            if (    $handle_from_url
+                and $handle_from_label
+                and lc($handle_from_url) eq lc($handle_from_label) )
+            {
+                $final_data->{Profiles}->[0]->{Twitter_beta} =
+                  [$handle_from_url];
+                last;
             }
         }
     }

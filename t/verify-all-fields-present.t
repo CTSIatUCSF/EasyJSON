@@ -27,7 +27,7 @@ for my $u (
     'claire.brindis',      'alan.ashworth',
     'elizabeth.owens',     'vincent.turon-lagot',
     'adithya.cattamanchi', 'nevan.krogan',
-    'leslie.benet'
+    'leslie.benet',        'renee.hsia'
   )
 {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
@@ -36,7 +36,7 @@ for my $u (
 
 my @profiles = values %profile_for;
 
-plan tests => 98;
+plan tests => 99;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -103,6 +103,13 @@ ok(
 
 ok( any_profile { ( $_->{ORCID} // '' ) =~ /^\d{4}-\d{4}-\d{4}-\d{4}$/ },
     'At least one profile has a well-formed ORCID' );
+
+ok(
+    any_profile {
+        ( eval { $_->{Twitter_beta}[0] } // '' ) =~ /^\w{2,}$/
+    },
+    'At least one profile has a Twitter_beta handle'
+);
 
 ok( any_profile { ( $_->{PhotoURL} // '' ) =~ /PhotoHandler\.ashx/ },
     'At least one profile has a PhotoURL' );
