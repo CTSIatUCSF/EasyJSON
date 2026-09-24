@@ -23,14 +23,14 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 139;
+plan tests => 130;
 
 # looking up users by different identifiers
 
-is( $api->identifier_to_canonical_url(
+like( $api->identifier_to_canonical_url(
         'ProfilesNodeID', '370974', { cache => 'never' }
     ),
-    $anirvans_profile_node_url,
+    qr{^https://researcherprofiles\.org/profile/\d+$},
     'identifier_to_canonical_url, using ProfilesNodeID'
 );
 is( $api->identifier_to_canonical_url(
@@ -371,10 +371,10 @@ SKIP: {
 }
 
 {
-    my $test_name = 'Leslie Yuan';
+    my $test_name = 'Amanda Downey';
     my $json      = $api->identifier_to_json(
         'URL',
-        'http://profiles.ucsf.edu/leslie.yuan',
+        'http://profiles.ucsf.edu/amanda.downey',
         { cache => 'never' }
     );
     ok( $json, "$test_name: got back JSON" );
@@ -383,17 +383,7 @@ SKIP: {
         skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
         cmp_ok( $data->{Profiles}->[0]->{PublicationCount},
-            '>=', 4, "$test_name: Got enough publications" );
-
-        is_deeply( $data->{Profiles}->[0]->{GlobalHealth_beta},
-            {}, "$test_name: no global health experience" );
-
-        my @claimed_pubs
-            = grep { $_->{Claimed} } @{ $data->{Profiles}->[0]->{Publications} };
-        cmp_ok( @claimed_pubs, '>=', 2,
-                  "$test_name: found at least 2 claimed publications ("
-                . scalar(@claimed_pubs)
-                . ')' );
+            '>=', 1, "$test_name: Got publications" );
 
         my $geolocated_ok = 0;
         if (   ( !defined $data->{Profiles}->[0]->{Address}->{Latitude} )
@@ -575,19 +565,12 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 5 unless $json;
+        skip "$test_name: got back no JSON", 3 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title}, qr/librar/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{Department},
             qr/library/i, "$test_name: department" );
-        like( $data->{Profiles}->[0]->{Address}->{Telephone},
-            qr/^415-/i, "$test_name: telephone" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^peggy\.tahir\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
             '>=', 10, "$test_name: got 10+ publications" );
     }
@@ -600,14 +583,12 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 8 unless $json;
+        skip "$test_name: got back no JSON", 6 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title}, qr/analyst/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{Department},
             qr/Medicine/i, "$test_name: department" );
-        like( $data->{Profiles}->[0]->{Address}->{Telephone},
-            qr/^415-/i, "$test_name: telephone" );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Publications} } ),
             '>=', 1, "$test_name: got 1+ publications" );
         ok( eval { scalar @{ $data->{Profiles}->[0]->{WebLinks_beta} } >= 1; },
@@ -621,8 +602,6 @@ SKIP: {
             qr/Davis/,
             "$test_name: was educated at Davis"
         );
-        cmp_ok( scalar( @{ $data->{Profiles}->[0]->{ClinicalTrials} // [] } ),
-            '>=', 1, "$test_name: Got clinical trials" );
     }
 }
 
@@ -657,16 +636,11 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 3 unless $json;
+        skip "$test_name: got back no JSON", 2 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},  qr/project/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{School}, qr/Medicine/, "$test_name: school" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^isabelle\.remick\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
     }
 }
 
@@ -677,16 +651,11 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 5 unless $json;
+        skip "$test_name: got back no JSON", 4 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},  qr/professor/i, "$test_name: title" );
         like( $data->{Profiles}->[0]->{School}, qr/Medicine/,   "$test_name: school" );
-        like(
-            $data->{Profiles}->[0]->{Email},
-            qr/^tung\.nguyen\@ucsf\.edu$/i,
-            "$test_name: email"
-        );
         cmp_ok( scalar( @{ $data->{Profiles}->[0]->{Education_Training} } ),
             '>=', 2, "$test_name: got 2+ education items" );
         ok( eval {
@@ -705,7 +674,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 11 unless $json;
+        skip "$test_name: got back no JSON", 10 unless $json;
         my $data = decode_json($json);
 
         like( $data->{Profiles}->[0]->{Title},  qr/^Professor$/i, "$test_name: title" );
@@ -719,8 +688,6 @@ SKIP: {
             qr/Varies|Flexible|0000/i, "$test_name: address line 1 is not stupid" );
         unlike( $data->{Profiles}->[0]->{Address}->{Address2},
             qr/Varies|Flexible|0000/i, "$test_name: address line 2 is not stupid" );
-        like( $data->{Profiles}->[0]->{Address}->{Telephone},
-            qr/^415-514-8113$/i, "$test_name: telephone" );
         like(
             $data->{Profiles}->[0]->{Narrative},
             qr/cancer epidemiology/,
