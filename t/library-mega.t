@@ -15,8 +15,7 @@ use warnings;
 
 my $api = new ProfilesEasyJSON::MegaUCSF;
 
-my $has_mapping_tables =
-    grep { -d $_ && scalar( glob("$_/*.csv") ) }
+my $has_mapping_tables = grep { -d $_ && scalar( glob("$_/*.csv") ) }
     ProfilesEasyJSON::MegaUCSF::_mapping_table_dir_options();
 
 my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
@@ -27,7 +26,8 @@ plan tests => 145;
 
 # looking up users by different identifiers
 
-like( $api->identifier_to_canonical_url(
+like(
+    $api->identifier_to_canonical_url(
         'ProfilesNodeID', '370974', { cache => 'never' }
     ),
     qr{^https://researcherprofiles\.org/profile/\d+$},
@@ -51,9 +51,8 @@ is( $api->identifier_to_canonical_url(
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using EPPN'
 );
-is( $api->identifier_to_canonical_url(
-        'Person', '5396511', { cache => 'never' }
-    ),
+is(
+    $api->identifier_to_canonical_url( 'Person', '5396511', { cache => 'never' } ),
     $anirvans_profile_node_url,
     'identifier_to_canonical_url, using Person ID'
 );
@@ -109,16 +108,14 @@ is( $api->identifier_to_canonical_url(
 
 {
     local $SIG{__WARN__} = sub { };    # override warnings
-    is( $api->identifier_to_canonical_url(
-            'Person', '4617024', { cache => 'never' }
-        ),
+    is(
+        $api->identifier_to_canonical_url( 'Person', '4617024', { cache => 'never' } ),
         undef,
         'identifier_to_canonical_url, with an outdated person'
     );
 }
-is( $api->identifier_to_canonical_url(
-        'Person', '5195436', { cache => 'never' }
-    ),
+is(
+    $api->identifier_to_canonical_url( 'Person', '5195436', { cache => 'never' } ),
     $patrick_philips_node_url,
     'identifier_to_canonical_url, regression testing person among formerly broken set',
 );
@@ -168,8 +165,7 @@ SKIP: {
         );
 
         ok( (   (
-                    eval { $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle} }
-                        || ''
+                    eval { $data->{Profiles}->[0]->{Publications}->[0]->{PublicationTitle} } || ''
                 ) =~ m/Chatterjee/
             ),
             "$test_name: Anirvan's pub PublicationTitle includes his own name [regression]"
@@ -321,7 +317,8 @@ SKIP: {
 }
 
 SKIP: {
-    skip 'Kirsten Bibbins-Domingo no publications FNO tests require mapping tables', 3
+    skip 'Kirsten Bibbins-Domingo no publications FNO tests require mapping tables',
+        3
         unless $has_mapping_tables;
 
     my $test_name = 'Kirsten Bibbins-Domingo no publications';
@@ -443,17 +440,20 @@ SKIP: {
 
 SKIP: {
         skip "$test_name: got back no JSON", 4 unless $json;
-        my $data = decode_json($json);
+        my $data    = decode_json($json);
         my $centers = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Centers} } || [];
         cmp_ok( scalar(@$centers), '>=', 1,
             "$test_name: got some global health centers" );
-        my $locations = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
+        my $locations
+            = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
         cmp_ok( scalar(@$locations), '>=', 1,
             "$test_name: got some global health locations" );
-        my $interests = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
+        my $interests
+            = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
         cmp_ok( scalar(@$interests), '>=', 1,
             "$test_name: got some global health interests" );
-        my $countries = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
+        my $countries
+            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
         cmp_ok( scalar(@$countries), '>=', 1,
             "$test_name: got global health countries" );
     }
@@ -466,17 +466,20 @@ SKIP: {
 
 SKIP: {
         skip "$test_name: got back no JSON", 4 unless $json;
-        my $data = decode_json($json);
+        my $data    = decode_json($json);
         my $centers = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Centers} } || [];
         cmp_ok( scalar(@$centers), '>=', 1,
             "$test_name: got some global health centers" );
-        my $locations = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
+        my $locations
+            = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Locations} } || [];
         cmp_ok( scalar(@$locations), '>=', 1,
             "$test_name: got some global health locations" );
-        my $interests = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
+        my $interests
+            = eval { $data->{Profiles}->[0]->{GlobalHealth}->{Interests} } || [];
         cmp_ok( scalar(@$interests), '>=', 1,
             "$test_name: got some global health interests" );
-        my $countries = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
+        my $countries
+            = eval { $data->{Profiles}->[0]->{GlobalHealth_beta}->{Countries} } || [];
         cmp_ok( scalar(@$countries), '>=', 1,
             "$test_name: got global health countries" );
     }
@@ -510,11 +513,12 @@ SKIP: {
             "$test_name: name is as expected"
         );
         my @trials = @{ $data->{Profiles}->[0]->{ClinicalTrials} // [] };
-        cmp_ok( scalar @trials, '>=', 3, "$test_name: has 3+ clinical trials" );
+        cmp_ok( scalar @trials, '>=', 5, "$test_name: has 5+ clinical trials" );
         ok( ( grep { ( $_->{ID} // '' ) eq 'NCT06143631' } @trials ),
             "$test_name: includes trial NCT06143631" );
-        ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 3,
-            "$test_name: at least 3 trials have valid NCT IDs" );
+        ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 5,
+            "$test_name: at least 5 trials have valid NCT IDs"
+        );
     }
 }
 
@@ -527,12 +531,16 @@ SKIP: {
         skip "$test_name: got back no JSON", 3 unless $json;
         my $data   = decode_json($json);
         my @trials = @{ $data->{Profiles}->[0]->{ClinicalTrials} // [] };
-        cmp_ok( scalar @trials, '>=', 5, "$test_name: has 5+ clinical trials" );
-        ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 5,
-            "$test_name: at least 5 trials have valid NCT IDs" );
-        ok( ( grep { ( $_->{Title} // '' ) =~ /Program to Overcome Pelvic Pain Study/i }
-                @trials ),
-            "$test_name: includes 'Program to Overcome Pelvic Pain Study' trial" );
+        cmp_ok( scalar @trials, '>=', 7, "$test_name: has 7+ clinical trials" );
+        ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 7,
+            "$test_name: at least 7 trials have valid NCT IDs"
+        );
+        ok( (
+                grep { ( $_->{Title} // '' ) =~ /Program to Overcome Pelvic Pain Study/i }
+                    @trials
+            ),
+            "$test_name: includes 'Program to Overcome Pelvic Pain Study' trial"
+        );
     }
 }
 

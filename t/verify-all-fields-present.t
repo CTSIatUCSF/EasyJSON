@@ -8,7 +8,7 @@
 # Identity facts (name, department, etc.) are still tied to a specific person.
 
 use lib 'lib', '../lib';
-use JSON qw( decode_json );
+use JSON       qw( decode_json );
 use List::Util qw( any first );
 use ProfilesEasyJSON::MegaUCSF;
 use Test::More;
@@ -22,9 +22,13 @@ use warnings;
 my $api = ProfilesEasyJSON::MegaUCSF->new;
 
 my %profile_for;
-for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan.ashworth',
-            'elizabeth.owens', 'vincent.turon-lagot', 'adithya.cattamanchi',
-            'nevan.krogan', 'leslie.benet' ) {
+for my $u (
+    'vanessa.jacoby',      'kirsten.bibbins-domingo',
+    'claire.brindis',      'alan.ashworth',
+    'elizabeth.owens',     'vincent.turon-lagot',
+    'adithya.cattamanchi', 'nevan.krogan',
+    'leslie.benet'
+) {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
     $profile_for{$u} = decode_json($json)->{Profiles}[0] if $json;
 }
@@ -37,7 +41,9 @@ plan tests => 94;
 # Helper: true if any profile satisfies the test
 sub any_profile (&) {
     my $code = shift;
-    return any { do { local $_ = $_; $code->() } } @profiles;
+    return any {
+        do { local $_ = $_; $code->() }
+    } @profiles;
 }
 
 ###############################################################################
@@ -47,33 +53,38 @@ sub any_profile (&) {
 SKIP: {
     my $p = $profile_for{'vanessa.jacoby'}
         or skip 'vanessa.jacoby: no JSON', 7;
-    is( $p->{Name},      'Vanessa Jacoby, MD, MAS', 'Vanessa: full name'     );
-    is( $p->{FirstName}, 'Vanessa',                  'Vanessa: first name'    );
-    is( $p->{LastName},  'Jacoby',                   'Vanessa: last name'     );
+    is( $p->{Name},      'Vanessa Jacoby, MD, MAS', 'Vanessa: full name' );
+    is( $p->{FirstName}, 'Vanessa',                 'Vanessa: first name' );
+    is( $p->{LastName},  'Jacoby',                  'Vanessa: last name' );
     like( $p->{Department}, qr/ob.?gyn|reproductive/i, 'Vanessa: department' );
-    like( $p->{School},     qr/medicine/i,              'Vanessa: school'     );
-    like( $p->{ProfilesURL}, qr{profiles\.ucsf\.edu/vanessa\.jacoby},
-        'Vanessa: ProfilesURL' );
+    like( $p->{School},     qr/medicine/i,             'Vanessa: school' );
+    like(
+        $p->{ProfilesURL},
+        qr{profiles\.ucsf\.edu/vanessa\.jacoby},
+        'Vanessa: ProfilesURL'
+    );
     like( $p->{Narrative}, qr/fibroid/i, 'Vanessa: narrative mentions fibroids' );
 }
 
 SKIP: {
     my $p = $profile_for{'kirsten.bibbins-domingo'}
         or skip 'kirsten.bibbins-domingo: no JSON', 4;
-    like( $p->{Name},       qr/Kirsten Bibbins-Domingo/, 'Kirsten: full name'   );
-    like( $p->{Department}, qr/epidemiology/i,           'Kirsten: department'  );
-    like( $p->{School},     qr/medicine/i,               'Kirsten: school'      );
-    like( join( ' ', @{ $p->{Keywords} } ), qr/cardiovascular/i,
-        'Kirsten: mesh keywords include cardiovascular' );
+    like( $p->{Name},       qr/Kirsten Bibbins-Domingo/, 'Kirsten: full name' );
+    like( $p->{Department}, qr/epidemiology/i,           'Kirsten: department' );
+    like( $p->{School},     qr/medicine/i,               'Kirsten: school' );
+    like( join( ' ', @{ $p->{Keywords} } ),
+        qr/cardiovascular/i, 'Kirsten: mesh keywords include cardiovascular' );
 }
 
 SKIP: {
     my $p = $profile_for{'claire.brindis'}
         or skip 'claire.brindis: no JSON', 4;
-    like( $p->{Name},       qr/Claire Brindis/,  'Claire: full name'   );
-    like( $p->{Department}, qr/health policy/i,  'Claire: department'  );
-    like( $p->{School},     qr/medicine/i,        'Claire: school'      );
-    ok( length( $p->{Narrative} // '' ) >= 100,   'Claire: has a substantive narrative' );
+    like( $p->{Name},       qr/Claire Brindis/, 'Claire: full name' );
+    like( $p->{Department}, qr/health policy/i, 'Claire: department' );
+    like( $p->{School},     qr/medicine/i,      'Claire: school' );
+    ok( length( $p->{Narrative} // '' ) >= 100,
+        'Claire: has a substantive narrative'
+    );
 }
 
 ###############################################################################
@@ -83,7 +94,8 @@ SKIP: {
 # --- Identity / basic fields ---
 
 ok( any_profile { $_->{Title} =~ /professor/i },
-    'At least one profile has a Professor title' );
+    'At least one profile has a Professor title'
+);
 
 ok( any_profile { ( $_->{ORCID} // '' ) =~ /^\d{4}-\d{4}-\d{4}-\d{4}$/ },
     'At least one profile has a well-formed ORCID' );
@@ -95,18 +107,21 @@ ok( any_profile { ( $_->{Address}{Telephone} // '' ) =~ /^415-/ },
     'At least one profile has a 415 phone number' );
 
 ok( any_profile { ( $_->{Email} // '' ) =~ /\@ucsf\.edu$/ },
-    'At least one profile has a @ucsf.edu Email address' );
+    'At least one profile has a @ucsf.edu Email address'
+);
 
 ok( any_profile {
         defined $_->{Address}{Latitude}
-        and abs( $_->{Address}{Latitude} - 37.7 ) < 1
+            and abs( $_->{Address}{Latitude} - 37.7 )
+            < 1
     },
     'At least one profile has SF-area latitude'
 );
 
 ok( any_profile {
         defined $_->{Address}{Longitude}
-        and abs( $_->{Address}{Longitude} - (-122.46) ) < 1
+            and abs( $_->{Address}{Longitude} - (-122.46) )
+            < 1
     },
     'At least one profile has SF-area longitude'
 );
@@ -120,10 +135,12 @@ ok( any_profile { ( $_->{Address}{Address2} // '' ) =~ /San Francisco/i },
 # --- Publications ---
 
 ok( any_profile { ( $_->{PublicationCount} // 0 ) >= 50 },
-    'At least one profile has 50+ publications' );
+    'At least one profile has 50+ publications'
+);
 
 ok( any_profile { scalar @{ $_->{Publications} // [] } >= 50 },
-    'At least one profile has 50+ publications in array' );
+    'At least one profile has 50+ publications in array'
+);
 
 ok( any_profile {
         ( eval { $_->{Publications}[0]{PublicationTitle} } // '' )
@@ -132,11 +149,17 @@ ok( any_profile {
     'At least one profile has a well-formatted PublicationTitle'
 );
 
-ok( any_profile { scalar( grep { $_->{Featured} } @{ $_->{Publications} // [] } ) >= 1 },
-    'At least one profile has featured publications' );
+ok( any_profile {
+        scalar( grep { $_->{Featured} } @{ $_->{Publications} // [] } ) >= 1
+    },
+    'At least one profile has featured publications'
+);
 
-ok( any_profile { scalar( grep { $_->{Claimed}  } @{ $_->{Publications} // [] } ) >= 1 },
-    'At least one profile has claimed publications' );
+ok( any_profile {
+        scalar( grep { $_->{Claimed} } @{ $_->{Publications} // [] } ) >= 1
+    },
+    'At least one profile has claimed publications'
+);
 
 ok( any_profile {
         ( eval { $_->{Publications}[0]{Title} } // '' ) =~ /\w{3}/
@@ -163,7 +186,8 @@ ok( any_profile {
 );
 
 ok( any_profile {
-        ( eval { $_->{Publications}[0]{PublicationSource}[0]{PublicationSourceURL} } // '' )
+        ( eval { $_->{Publications}[0]{PublicationSource}[0]{PublicationSourceURL} }
+                // '' )
             =~ m{^https?://}
     },
     'At least one profile has a PublicationSourceURL'
@@ -205,7 +229,8 @@ ok( any_profile {
 # --- Keywords ---
 
 ok( any_profile { scalar @{ $_->{Keywords} // [] } >= 5 },
-    'At least one profile has 5+ mesh keywords' );
+    'At least one profile has 5+ mesh keywords'
+);
 
 ok( any_profile { scalar @{ $_->{FreetextKeywords} // [] } >= 3 },
     'At least one profile has 3+ freetext keywords' );
@@ -230,8 +255,7 @@ ok( any_profile {
 );
 
 ok( any_profile {
-        any { length( $_->{location} // '' ) > 3 }
-            @{ $_->{Education_Training} // [] }
+        any { length( $_->{location} // '' ) > 3 } @{ $_->{Education_Training} // [] }
     },
     'At least one profile has a location in Education_Training'
 );
@@ -246,15 +270,24 @@ ok( any_profile {
 # --- Titles (positions) ---
 
 ok( any_profile { scalar @{ $_->{Titles} // [] } >= 1 },
-    'At least one profile has a Titles array' );
+    'At least one profile has a Titles array'
+);
 
-ok( any_profile { scalar( grep { /\w/ } @{ $_->{Titles} // [] } ) >= 1 },
-    'At least one profile has a non-empty string in Titles' );
+ok( any_profile {
+        scalar( grep {/\w/} @{ $_->{Titles} // [] } ) >= 1
+    },
+    'At least one profile has a non-empty string in Titles'
+);
 
 # --- Address ---
 
-ok( ( grep { defined $profile_for{$_} && ( $profile_for{$_}{ProfilesURL} // '' ) =~ m{profiles\.ucsf\.edu} }
-        keys %profile_for ) == scalar keys %profile_for,
+ok( (   grep {
+            defined $profile_for{$_}
+                && ( $profile_for{$_}{ProfilesURL} // '' )
+                =~ m{profiles\.ucsf\.edu}
+            }
+            keys %profile_for
+    ) == scalar keys %profile_for,
     'All fetched profiles have a ProfilesURL on profiles.ucsf.edu'
 );
 
@@ -262,38 +295,43 @@ ok( ( grep { defined $profile_for{$_} && ( $profile_for{$_}{ProfilesURL} // '' )
 
 my @all_trials = map { @{ $_->{ClinicalTrials} // [] } } @profiles;
 
-ok( any_profile { scalar @{ $_->{ClinicalTrials} // [] } >= 3 },
-    'At least one profile has 3+ clinical trials' );
+ok( any_profile { scalar @{ $_->{ClinicalTrials} // [] } >= 5 },
+    'At least one profile has 5+ clinical trials' );
 
-ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @all_trials ) >= 3,
-    'At least 3 trials across all profiles have valid NCT IDs' );
+ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @all_trials ) >= 5,
+    'At least 5 trials across all profiles have valid NCT IDs'
+);
 
-ok( (any { ( $_->{Title} // '' ) =~ /\w{5}/ } @all_trials),
+ok( ( any { ( $_->{Title} // '' ) =~ /\w{5}/ } @all_trials ),
     'At least one trial has a title' );
 
-ok( (any { ( $_->{URL} // '' ) =~ m{^https?://} } @all_trials),
+ok( ( any { ( $_->{URL} // '' ) =~ m{^https?://} } @all_trials ),
     'At least one trial has a URL' );
 
-ok( (any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_trials),
+ok( ( any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_trials ),
     'At least one trial has a YYYY-MM-DD StartDate' );
 
-ok( (any { defined $_->{EndDate} && $_->{EndDate} =~ /^\d{4}/ } @all_trials),
+ok( ( any { defined $_->{EndDate} && $_->{EndDate} =~ /^\d{4}/ } @all_trials ),
     'At least one trial has an EndDate' );
 
-ok( (any { ref( $_->{Conditions} ) eq 'ARRAY' && @{ $_->{Conditions} } >= 1 } @all_trials),
-    'At least one trial has a Conditions array' );
+ok( (
+        any { ref( $_->{Conditions} ) eq 'ARRAY' && @{ $_->{Conditions} } >= 1 }
+            @all_trials
+    ),
+    'At least one trial has a Conditions array'
+);
 
 # --- Videos ---
 
 my @all_videos = map { @{ $_->{Videos} // [] } } @profiles;
 
-ok( scalar @all_videos >= 1,
-    'At least one profile has videos' );
+ok( any_profile { scalar @{ $_->{Videos} // [] } >= 2 },
+    'At least one profile has 2+ videos' );
 
-ok( (any { ( $_->{url} // '' ) =~ /you\.?tu\.?be|youtube/i } @all_videos),
+ok( ( any { ( $_->{url} // '' ) =~ /you\.?tu\.?be|youtube/i } @all_videos ),
     'At least one video is from YouTube' );
 
-ok( (any { length( $_->{label} // '' ) > 3 } @all_videos),
+ok( ( any { length( $_->{label} // '' ) > 3 } @all_videos ),
     'At least one video has a label' );
 
 # --- AwardOrHonors ---
@@ -342,37 +380,37 @@ ok( any_profile {
 ok( any_profile { scalar @{ $_->{ResearchActivitiesAndFunding} // [] } >= 5 },
     'At least one profile has 5+ research activities/grants' );
 
-my @all_grants = map { @{ $_->{ResearchActivitiesAndFunding} // [] } } @profiles;
+my @all_grants
+    = map { @{ $_->{ResearchActivitiesAndFunding} // [] } } @profiles;
 
-ok( (any { length( $_->{Title} // '' ) > 5 } @all_grants),
+ok( ( any { length( $_->{Title} // '' ) > 5 } @all_grants ),
     'At least one grant has a Title' );
 
-ok( (any { length( $_->{Sponsor} // '' ) > 1 } @all_grants),
+ok( ( any { length( $_->{Sponsor} // '' ) > 1 } @all_grants ),
     'At least one grant has a Sponsor' );
 
-ok( (any { length( $_->{Role} // '' ) > 1 } @all_grants),
+ok( ( any { length( $_->{Role} // '' ) > 1 } @all_grants ),
     'At least one grant has a Role' );
 
-ok( (any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants),
+ok( ( any { ( $_->{StartDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants ),
     'At least one grant has a YYYY-MM-DD StartDate' );
 
-ok( (any { ( $_->{EndDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants),
+ok( ( any { ( $_->{EndDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants ),
     'At least one grant has a YYYY-MM-DD EndDate' );
 
-ok( (any { ( $_->{SponsorAwardID} // '' ) =~ /\w/ } @all_grants),
+ok( ( any { ( $_->{SponsorAwardID} // '' ) =~ /\w/ } @all_grants ),
     'At least one grant has a SponsorAwardID' );
 
 # --- NIHGrants_beta (deprecated upstream; prefer ResearchActivitiesAndFunding) ---
 
 my @all_nih = map { @{ $_->{NIHGrants_beta} // [] } } @profiles;
 
-ok( scalar @all_nih >= 1,
-    'At least one profile has NIHGrants_beta entries' );
+ok( scalar @all_nih >= 1, 'At least one profile has NIHGrants_beta entries' );
 
-ok( (any { ( $_->{NIHProjectNumber} // '' ) =~ /\w/ } @all_nih),
+ok( ( any { ( $_->{NIHProjectNumber} // '' ) =~ /\w/ } @all_nih ),
     'At least one NIH grant has a project number' );
 
-ok( (any { ( $_->{Title} // '' ) =~ /\w/ } @all_nih),
+ok( ( any { ( $_->{Title} // '' ) =~ /\w/ } @all_nih ),
     'At least one NIH grant has a title' );
 
 # --- WebLinks ---
@@ -380,9 +418,9 @@ ok( (any { ( $_->{Title} // '' ) =~ /\w/ } @all_nih),
 my @all_weblinks = map { @{ $_->{WebLinks_beta} // [] } } @profiles;
 
 ok( scalar @all_weblinks >= 1, 'At least one profile has web links' );
-ok( (any { ( $_->{URL}   // '' ) =~ m{^https?://} } @all_weblinks),
+ok( ( any { ( $_->{URL} // '' ) =~ m{^https?://} } @all_weblinks ),
     'At least one web link has a valid URL' );
-ok( (any { length( $_->{Label} // '' ) > 0 } @all_weblinks),
+ok( ( any { length( $_->{Label} // '' ) > 0 } @all_weblinks ),
     'At least one web link has a label' );
 
 # --- MediaLinks (in the news) ---
@@ -390,11 +428,11 @@ ok( (any { length( $_->{Label} // '' ) > 0 } @all_weblinks),
 my @all_media = map { @{ $_->{MediaLinks_beta} // [] } } @profiles;
 
 ok( scalar @all_media >= 5, 'At least 5 media links across all profiles' );
-ok( (any { length( $_->{link_name} // '' ) > 3 } @all_media),
+ok( ( any { length( $_->{link_name} // '' ) > 3 } @all_media ),
     'At least one media link has a name' );
-ok( (any { ( $_->{link_url} // '' ) =~ m{^https?://} } @all_media),
+ok( ( any { ( $_->{link_url} // '' ) =~ m{^https?://} } @all_media ),
     'At least one media link has a URL' );
-ok( (any { ( $_->{link_date} // '' ) =~ m{^\d{2}/\d{2}/\d{4}$} } @all_media),
+ok( ( any { ( $_->{link_date} // '' ) =~ m{^\d{2}/\d{2}/\d{4}$} } @all_media ),
     'At least one media link has a MM/DD/YYYY link_date' );
 
 # --- GlobalHealth ---
@@ -414,10 +452,11 @@ ok( any_profile { scalar @{ $_->{GlobalHealth_beta}{Countries} // [] } >= 1 },
 ok( any_profile { scalar @{ $_->{FacultyMentoring}{Types} // [] } >= 3 },
     'At least one profile has 3+ FacultyMentoring types' );
 ok( any_profile { length( $_->{FacultyMentoring}{Narrative} // '' ) > 20 },
-    'At least one profile has a FacultyMentoring narrative' );
+    'At least one profile has a FacultyMentoring narrative'
+);
 ok( any_profile {
         my @types = @{ $_->{FacultyMentoring}{Types} // [] };
-        @types >= 1 and ( grep { /\w/ } @types ) == scalar @types
+        @types >= 1 and ( grep {/\w/} @types ) == scalar @types
     },
     'At least one profile has non-empty FacultyMentoring type strings'
 );
@@ -425,14 +464,16 @@ ok( any_profile {
 # --- CollaborationInterests ---
 
 ok( any_profile { length( $_->{CollaborationInterests}{Summary} // '' ) > 5 },
-    'At least one profile has CollaborationInterests Summary' );
+    'At least one profile has CollaborationInterests Summary'
+);
 ok( any_profile {
         ref( $_->{CollaborationInterests}{Details} ) eq 'HASH'
-        and keys %{ $_->{CollaborationInterests}{Details} } >= 1
+            and keys %{ $_->{CollaborationInterests}{Details} } >= 1
     },
     'At least one profile has CollaborationInterests Detail entries'
 );
-ok( any_profile { length( $_->{CollaborationInterests}{Narrative} // '' ) > 20 },
+ok(
+    any_profile { length( $_->{CollaborationInterests}{Narrative} // '' ) > 20 },
     'At least one profile has CollaborationInterests Narrative' );
 ok( any_profile {
         ( $_->{CollaborationInterests}{Summary} // '' ) =~ /\w/
