@@ -646,7 +646,11 @@ sub canonical_url_to_json {
     state $url_cache ||= ProfilesEasyJSON::CHI->new(
         namespace => 'Profiles JSON API cache of raw Profiles API URLs' );
 
-    # load ORNG data
+    # load ORNG data — hasFeaturedPublications is the only remaining ORNG field.
+    # All other gadgets (hasGlobalHealth, hasTwitter, hasSlideShare, hasVideos,
+    # hasMentor, hasCollaborationInterests) have been removed; their data now
+    # comes entirely from pluginData / pluginSearchableData upstream.
+    # hasFeaturedPublications has not yet been migrated and intentionally remains.
     foreach my $field (
         'hasFeaturedPublications',
       )

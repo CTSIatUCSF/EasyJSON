@@ -41,7 +41,7 @@ for my $u (
 my @profiles = values %profiles_by_username;
 my @loaded   = grep { defined } values %profiles_by_username;
 
-plan tests => 196;
+plan tests => 204;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -345,6 +345,36 @@ ok(
     'At least one profile has a PublicationCategory on some publication'
 );
 
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 2;
+    my @pubs = @{ $p->{Publications} // [] };
+    # PMID 24165962: sole-author IOM sodium report summary, JAMA Intern Med 2014
+    ok( ( grep {
+              my ($src) = grep { ( $_->{PMID} // '' ) eq '24165962' }
+                @{ $_->{PublicationSource} // [] };
+              $src
+          } @pubs ),
+        'Kirsten: has sodium-intake IOM paper (PMID 24165962)' );
+    ok( ( grep { ( $_->{PublicationTitle} // '' ) =~ /sodium/i } @pubs ),
+        'Kirsten: has at least one sodium-related publication' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'adithya.cattamanchi'}
+      or skip 'adithya.cattamanchi: no JSON', 2;
+    my @pubs = @{ $p->{Publications} // [] };
+    ok( ( grep { ( $_->{PublicationTitle} // '' ) =~ /tuberculosis|TB/i } @pubs ),
+        'Adithya: has tuberculosis-related publications' );
+    # PMID 41539934: TB diagnostics paper
+    ok( ( grep {
+              my ($src) = grep { ( $_->{PMID} // '' ) eq '41539934' }
+                @{ $_->{PublicationSource} // [] };
+              $src
+          } @pubs ),
+        'Adithya: has TB diagnostics paper (PMID 41539934)' );
+}
+
 # --- Keywords ---
 
 ok(
@@ -641,6 +671,26 @@ ok( ( any { ( $_->{EndDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants ),
 
 ok( ( any { ( $_->{SponsorAwardID} // '' ) =~ /\w/ } @all_grants ),
     'At least one grant has a SponsorAwardID' );
+
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 2;
+    my @g = @{ $p->{ResearchActivitiesAndFunding} // [] };
+    ok( ( grep { ( $_->{Sponsor} // '' ) =~ /NIH/i } @g ),
+        'Kirsten: has NIH-sponsored grants' );
+    ok( ( grep { ( $_->{Role} // '' ) =~ /Principal Investigator/i } @g ),
+        'Kirsten: is Principal Investigator on at least one grant' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'adithya.cattamanchi'}
+      or skip 'adithya.cattamanchi: no JSON', 2;
+    my @g = @{ $p->{ResearchActivitiesAndFunding} // [] };
+    ok( ( grep { ( $_->{Title} // '' ) =~ /tuberculosis|TB/i } @g ),
+        'Adithya: has tuberculosis-related grants' );
+    ok( ( grep { ( $_->{Sponsor} // '' ) =~ /NIH/i } @g ),
+        'Adithya: has NIH-sponsored grants' );
+}
 
 # --- NIHGrants_beta (deprecated upstream; prefer ResearchActivitiesAndFunding) ---
 
