@@ -30,7 +30,7 @@ for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan
 
 my @profiles = values %profile_for;
 
-plan tests => 84;
+plan tests => 88;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -229,6 +229,9 @@ ok( any_profile {
 ok( any_profile { scalar @{ $_->{Titles} // [] } >= 1 },
     'At least one profile has a Titles array' );
 
+ok( any_profile { scalar( grep { /\w/ } @{ $_->{Titles} // [] } ) >= 1 },
+    'At least one profile has a non-empty string in Titles' );
+
 # --- Address ---
 
 ok( ( grep { defined $profile_for{$_} && ( $profile_for{$_}{ProfilesURL} // '' ) =~ m{profiles\.ucsf\.edu} }
@@ -330,6 +333,19 @@ ok( (any { ( $_->{EndDate} // '' ) =~ /^\d{4}-\d{2}-\d{2}$/ } @all_grants),
 
 ok( (any { ( $_->{SponsorAwardID} // '' ) =~ /\w/ } @all_grants),
     'At least one grant has a SponsorAwardID' );
+
+# --- NIHGrants_beta (deprecated upstream; prefer ResearchActivitiesAndFunding) ---
+
+my @all_nih = map { @{ $_->{NIHGrants_beta} // [] } } @profiles;
+
+ok( scalar @all_nih >= 1,
+    'At least one profile has NIHGrants_beta entries' );
+
+ok( (any { ( $_->{NIHProjectNumber} // '' ) =~ /\w/ } @all_nih),
+    'At least one NIH grant has a project number' );
+
+ok( (any { ( $_->{Title} // '' ) =~ /\w/ } @all_nih),
+    'At least one NIH grant has a title' );
 
 # --- WebLinks ---
 
