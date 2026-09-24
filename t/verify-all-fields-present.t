@@ -23,14 +23,15 @@ my $api = ProfilesEasyJSON::MegaUCSF->new;
 
 my %profile_for;
 for my $u ( 'vanessa.jacoby', 'kirsten.bibbins-domingo', 'claire.brindis', 'alan.ashworth',
-            'elizabeth.owens', 'vincent.turon-lagot', 'adithya.cattamanchi' ) {
+            'elizabeth.owens', 'vincent.turon-lagot', 'adithya.cattamanchi',
+            'nevan.krogan', 'leslie.benet' ) {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
     $profile_for{$u} = decode_json($json)->{Profiles}[0] if $json;
 }
 
 my @profiles = values %profile_for;
 
-plan tests => 89;
+plan tests => 94;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -174,6 +175,24 @@ ok( any_profile {
     'At least one profile has a PublicationID URL'
 );
 
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{Publication} } // '' ) =~ /\w{3}/
+    },
+    'At least one profile has a Publication (journal name) on first publication'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{PublicationMedlineTA} } // '' ) =~ /\w{2}/
+    },
+    'At least one profile has a PublicationMedlineTA (journal abbreviation)'
+);
+
+ok( any_profile {
+        ( eval { $_->{Publications}[0]{Year} } // '' ) =~ /^\d{4}$/
+    },
+    'At least one profile has a 4-digit Year on first publication'
+);
+
 # Publications are in descending year order
 ok( any_profile {
         my @years = map { $_->{Year} } @{ $_->{Publications} // [] };
@@ -307,6 +326,20 @@ ok( any_profile {
             and join( ',', @years ) eq join( ',', sort { $b <=> $a } @years );
     },
     'At least one profile has awards sorted descending by year'
+);
+
+ok( any_profile {
+        my $a = ( $_->{AwardOrHonors} // [] )->[0];
+        $a and length( $a->{Summary} // '' ) > 5
+    },
+    'At least one profile has an award with a Summary'
+);
+
+ok( any_profile {
+        grep { ( $_->{AwardEndDate} // '' ) =~ /^\d{4}$/ }
+            @{ $_->{AwardOrHonors} // [] }
+    },
+    'At least one profile has an award with a 4-digit AwardEndDate'
 );
 
 # --- ResearchActivitiesAndFunding / Grants ---
