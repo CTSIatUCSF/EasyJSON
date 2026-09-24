@@ -41,7 +41,7 @@ for my $u (
 my @profiles = values %profiles_by_username;
 my @loaded   = grep { defined } values %profiles_by_username;
 
-plan tests => 180;
+plan tests => 196;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -355,6 +355,22 @@ ok(
 ok( any_profile { scalar @{ $_->{FreetextKeywords} // [] } >= 3 },
     'At least one profile has 3+ freetext keywords' );
 
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 2;
+    ok( ( grep { /hypertension/i } @{ $p->{FreetextKeywords} // [] } ),
+        'Kirsten: FreetextKeywords includes hypertension' );
+    ok( ( grep { /cardiovascular/i } @{ $p->{FreetextKeywords} // [] } ),
+        'Kirsten: FreetextKeywords includes cardiovascular disease' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'adithya.cattamanchi'}
+      or skip 'adithya.cattamanchi: no JSON', 1;
+    ok( ( grep { /tuberculosis/i } @{ $p->{FreetextKeywords} // [] } ),
+        'Adithya: FreetextKeywords includes tuberculosis' );
+}
+
 # --- Education & Training ---
 
 ok( any_profile { scalar @{ $_->{Education_Training} // [] } >= 2 },
@@ -399,6 +415,26 @@ ok(
     },
     'At least one profile has a degree in Education_Training'
 );
+
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 3;
+    my @ed = @{ $p->{Education_Training} // [] };
+    ok( ( grep { ( $_->{degree} // '' ) eq 'MD' } @ed ),
+        'Kirsten: has MD in Education_Training' );
+    ok( ( grep { ( $_->{degree} // '' ) eq 'PhD' } @ed ),
+        'Kirsten: has PhD in Education_Training' );
+    ok( ( grep { ( $_->{organization} // '' ) =~ /Princeton/i } @ed ),
+        'Kirsten: has Princeton in Education_Training' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'claire.brindis'}
+      or skip 'claire.brindis: no JSON', 1;
+    ok( ( grep { ( $_->{degree} // '' ) =~ /Dr\.?PH|DrPH/i }
+          @{ $p->{Education_Training} // [] } ),
+        'Claire: has DrPH in Education_Training' );
+}
 
 # --- Titles (positions) ---
 
@@ -463,6 +499,23 @@ ok(
     ),
     'At least one trial has a Conditions array'
 );
+
+SKIP: {
+    my $p = $profiles_by_username{'vanessa.jacoby'}
+      or skip 'vanessa.jacoby: no JSON', 2;
+    my @ct = @{ $p->{ClinicalTrials} // [] };
+    cmp_ok( scalar @ct, '>=', 5, 'Vanessa Jacoby: has 5+ clinical trials' );
+    ok( ( grep { ( $_->{Title} // '' ) =~ /Uterine|Fibro|Myoma/i } @ct ),
+        'Vanessa Jacoby: has a uterine fibroid trial' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'steven.pantilat'}
+      or skip 'steven.pantilat: no JSON', 1;
+    ok( ( grep { ( $_->{Title} // '' ) =~ /Heart Failure/i }
+          @{ $p->{ClinicalTrials} // [] } ),
+        'Steven Pantilat: has a heart failure trial' );
+}
 
 # --- Videos ---
 
@@ -541,6 +594,26 @@ ok(
     'At least one profile has an award with a 4-digit AwardEndDate'
 );
 
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 3;
+    my @aw = @{ $p->{AwardOrHonors} // [] };
+    ok( ( grep { ( $_->{AwardConferredBy} // '' ) =~ /National Academy of Medicine/i } @aw ),
+        'Kirsten: elected to National Academy of Medicine' );
+    ok( ( grep { ( $_->{AwardConferredBy} // '' ) =~ /American Academy of Arts/i } @aw ),
+        'Kirsten: elected to American Academy of Arts and Sciences' );
+    ok( ( grep { ( $_->{AwardStartDate} // '' ) eq '2015' } @aw ),
+        'Kirsten: has an award from 2015 (NAM election year)' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'leslie.benet'}
+      or skip 'leslie.benet: no JSON', 1;
+    ok( ( grep { ( $_->{AwardLabel} // '' ) =~ /Remington/i }
+          @{ $p->{AwardOrHonors} // [] } ),
+        'Leslie Benet: has Remington Honor Medal' );
+}
+
 # --- ResearchActivitiesAndFunding / Grants ---
 
 ok( any_profile { scalar @{ $_->{ResearchActivitiesAndFunding} // [] } >= 5 },
@@ -588,6 +661,16 @@ ok(
     ),
     'At least one NIH grant has a 4-digit NIHFiscalYear'
 );
+
+SKIP: {
+    my $p = $profiles_by_username{'adithya.cattamanchi'}
+      or skip 'adithya.cattamanchi: no JSON', 2;
+    my @nih = @{ $p->{NIHGrants_beta} // [] };
+    ok( ( grep { ( $_->{NIHProjectNumber} // '' ) =~ /^R\d\d/ } @nih ),
+        'Adithya: has an R-series NIH grant number' );
+    ok( ( grep { ( $_->{Title} // '' ) =~ /tuberculosis|TB/i } @nih ),
+        'Adithya: has a tuberculosis-related NIH grant' );
+}
 
 # --- WebLinks ---
 
