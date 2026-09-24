@@ -23,7 +23,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 138;
+plan tests => 141;
 
 # looking up users by different identifiers
 
@@ -503,12 +503,18 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
 SKIP: {
-        skip "$test_name: got back no JSON", 1 unless $json;
+        skip "$test_name: got back no JSON", 4 unless $json;
         my $data = decode_json($json);
         is( eval { $data->{Profiles}->[0]->{Name} // '' },
             'Vanessa Jacoby, MD, MAS',
             "$test_name: name is as expected"
         );
+        my @trials = @{ $data->{Profiles}->[0]->{ClinicalTrials} // [] };
+        cmp_ok( scalar @trials, '>=', 3, "$test_name: has 3+ clinical trials" );
+        ok( ( grep { ( $_->{ID} // '' ) eq 'NCT06143631' } @trials ),
+            "$test_name: includes trial NCT06143631" );
+        ok( ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 3,
+            "$test_name: at least 3 trials have valid NCT IDs" );
     }
 }
 
