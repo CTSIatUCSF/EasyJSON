@@ -1874,13 +1874,9 @@ sub canonical_url_to_json {
                           )
                         {
 
-                            # This is ridiculous, but pluginData can be
-                            # *either* a JSON representation of a hash,
-                            # or an array of JSON representations of a
-                            # hash. If the latter, the results are
-                            # likely additive, so we need to scan every
-                            # single entry and concatenate them
-                            # together.
+                            # pluginData can be a scalar JSON string OR an
+                            # array of JSON strings. Scan all entries;
+                            # last non-empty value for each field wins.
 
                             my @plugin_data_maybe_json_strings;
                             if (
