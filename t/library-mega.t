@@ -22,7 +22,7 @@ my $anirvans_profile_node_url = 'https://researcherprofiles.org/profile/176004';
 my $patrick_philips_node_url  = 'https://researcherprofiles.org/profile/188475';
 my $michael_reyes_node_url    = 'https://researcherprofiles.org/profile/182724';
 
-plan tests => 155;
+plan tests => 156;
 
 # looking up users by different identifiers
 
@@ -547,7 +547,7 @@ SKIP: {
     ok( $json, "$test_name: got back JSON" );
 
   SKIP: {
-        skip "$test_name: got back no JSON", 4 unless $json;
+        skip "$test_name: got back no JSON", 5 unless $json;
         my $data = decode_json($json);
         is(
             eval { $data->{Profiles}->[0]->{Name} // '' },
@@ -562,6 +562,8 @@ SKIP: {
             ( grep { ( $_->{ID} // '' ) =~ /^NCT\d+$/ } @trials ) >= 5,
             "$test_name: at least 5 trials have valid NCT IDs"
         );
+        is_deeply( $data->{Profiles}->[0]->{SlideShare_beta},
+            [], "$test_name: SlideShare_beta is empty array" );
     }
 }
 

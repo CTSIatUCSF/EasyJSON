@@ -649,9 +649,6 @@ sub canonical_url_to_json {
     # load ORNG data
     foreach my $field (
         'hasFeaturedPublications', 'hasGlobalHealth',
-        'hasLinks',                'hasTwitter',
-        'hasSlideShare',           'hasMediaLinks',
-        'hasVideos',
       )
     {
 
@@ -1664,52 +1661,6 @@ sub canonical_url_to_json {
                             }
                         }
 
-                        # individually numbered entries data structure?
-                        my @numbered_style_links;
-                        if (   !@links
-                            and $orng_data{'hasLinks'}->{links_count}
-                            and $orng_data{'hasLinks'}->{links_count} =~
-                            m/^\d+$/ )
-                        {
-
-                            my $max_links_count =
-                              $orng_data{'hasLinks'}->{links_count};
-
-                            for ( my $i = 0 ; $i < $max_links_count ; $i++ ) {
-                                if ( $orng_data{hasLinks}->{"link_$i"}
-                                    and ref $orng_data{hasLinks}->{"link_$i"} )
-                                {
-                                    my $link =
-                                      $orng_data{hasLinks}->{"link_$i"};
-                                    push @links,
-                                      {
-                                        Label => $link->{name},
-                                        URL   => $link->{url}
-                                      };
-                                }
-                            }
-                        }
-
-                        # array style data structure?
-                        if (   !@links
-                            and $orng_data{'hasLinks'}
-                            and $orng_data{'hasLinks'}->{links}
-                            and ref $orng_data{'hasLinks'}->{links} eq 'ARRAY' )
-                        {
-
-                            foreach
-                              my $link ( @{ $orng_data{'hasLinks'}->{links} } )
-                            {
-                                if ( $link and $link->{link_url} ) {
-                                    push @links,
-                                      {
-                                        Label => $link->{link_name} || undef,
-                                        URL   => $link->{link_url}
-                                      };
-                                }
-                            }
-                        }
-
                         # only keep links that are a valid URI with a valid host
                         @links = grep {
                             eval {
@@ -1732,6 +1683,14 @@ sub canonical_url_to_json {
                     }
                 ],
 
+                # NOTE: Output key names here (link_name, link_url, link_date)
+                # differ from the old ORNG-sourced format (Label, URL, Date),
+                # which was the only source before June 2021. When upstream
+                # Profiles 3 mediaLinks support was added (2021-06-10,
+                # bbe3fa4), both paths coexisted with inconsistent key names
+                # until the ORNG path was removed in Sept 2024. Any consumer
+                # that was reading Label/URL/Date keys was already getting
+                # empty values for upstream-sourced items during that period.
                 MediaLinks_beta => [
                     eval {
 
@@ -1754,48 +1713,6 @@ sub canonical_url_to_json {
                             }
                         }
 
-                        # $orng_data{'hasMediaLinks'}->{links} is
-                        # sometimes accidentally double-encoded as
-                        # JSON. So user "wilson.liao" is correct but
-                        # user "anirvan.chatterjee" is wrong.
-
-                        my @raw_links;
-                        if ( eval { $orng_data{'hasMediaLinks'}->{links} }
-                            and ref $orng_data{'hasMediaLinks'}->{links} eq
-                            'ARRAY' )
-                        {
-                            @raw_links =
-                              @{ $orng_data{'hasMediaLinks'}->{links} };
-                        }
-                        elsif ( eval { $orng_data{'hasMediaLinks'}->{links}; } )
-                        {
-                            my $raw_json = $orng_data{'hasMediaLinks'}->{links};
-                            if ( utf8::is_utf8($raw_json) ) {
-                                $raw_json = Encode::encode_utf8($raw_json);
-                                my $decoded = eval { decode_json($raw_json) };
-                                if ( $decoded and ref $decoded eq 'ARRAY' ) {
-                                    @raw_links = @{$decoded};
-                                }
-                            }
-                        }
-                        @raw_links = grep { ref($_) eq 'HASH' } @raw_links;
-
-                        foreach my $link (@raw_links) {
-
-                            my $date;
-                            if ( $link->{link_date} =~
-                                m{^(\d+)/(\d+)/((?:19|20)\d\d)$} )
-                            {
-                                $date = "$3-$1-$2";
-                            }
-
-                            push @links,
-                              {
-                                Label => $link->{link_name},
-                                URL   => $link->{link_url},
-                                Date  => $date
-                              };
-                        }
                         return @links;
                     }
                 ],
@@ -1829,14 +1746,6 @@ sub canonical_url_to_json {
                             }
                         }
 
-                        if (    $orng_data{'hasTwitter'}
-                            and $orng_data{'hasTwitter'}->{twitter_username}
-                            and $orng_data{'hasTwitter'}->{twitter_username} =~
-                            m{^(?:https?://twitter.com/)?@?([A-Za-z0-9_]{2,})$}
-                          )
-                        {
-                            return [$1];
-                        }
                     }
                 ),
 
@@ -1893,35 +1802,6 @@ sub canonical_url_to_json {
                             }
                         }
 
-                        if (   !@raw_videos_array
-                            and $orng_data{'hasVideos'}->{videos}
-                            and !ref $orng_data{'hasVideos'}->{videos}
-                            and $orng_data{'hasVideos'}->{videos} =~ m/url/ )
-                        {
-                            eval {
-                                my $raw_video_json = Encode::encode_utf8(
-                                    $orng_data{'hasVideos'}->{videos} );
-                                my $decoded_videos =
-                                  decode_json($raw_video_json);
-                                if (    ref $decoded_videos
-                                    and ref $decoded_videos eq 'ARRAY' )
-                                {
-                                    $orng_data{'hasVideos'}->{videos} =
-                                      $decoded_videos;
-                                }
-                                @raw_videos_array =
-                                  @{ $orng_data{'hasVideos'}->{videos} };
-                            };
-                        }
-                        elsif ( !@raw_videos_array
-                            and ref $orng_data{'hasVideos'}->{videos}
-                            and ref $orng_data{'hasVideos'}->{videos} eq
-                            'ARRAY' )
-                        {
-                            @raw_videos_array =
-                              @{ $orng_data{'hasVideos'}->{videos} };
-                        }
-
                         if (@raw_videos_array) {
                             foreach my $entry (@raw_videos_array) {
                                 if (    $entry->{youTubeId}
@@ -1976,16 +1856,7 @@ sub canonical_url_to_json {
                             }
                         }
 
-                        if (    $orng_data{'hasSlideShare'}
-                            and $orng_data{'hasSlideShare'}->{username}
-                            and $orng_data{'hasSlideShare'}->{username} =~
-                            m/^\w{2,}$/ )
-                        {
-                            return [ $orng_data{'hasSlideShare'}->{username} ];
-                        }
-                        else {
-                            return [];
-                        }
+                        return [];
                     }
                 ),
 
@@ -2316,31 +2187,6 @@ sub canonical_url_to_json {
                             }
 
                         }
-                        elsif ( $orng_data{'hasMentor'}
-                            and ref $orng_data{'hasMentor'} eq 'HASH' )
-                        {
-
-                            my %mentorship_types = (
-                                'careerMentor'  => 'Career mentor',
-                                'coMentor'      => 'Co-mentor',
-                                'leadResearch'  => 'Research/scholarly mentors',
-                                'projectMentor' => 'Project mentor'
-                            );
-                            foreach my $type ( sort keys %mentorship_types ) {
-                                if (    $orng_data{'hasMentor'}->{$type}
-                                    and $orng_data{'hasMentor'}->{$type} eq
-                                    'T' )
-                                {
-                                    push @{ $return->{Types} },
-                                      $mentorship_types{$type};
-                                }
-                            }
-                            if ( $orng_data{'hasMentor'}->{narrative} ) {
-                                $return->{Narrative} =
-                                  $orng_data{'hasMentor'}->{narrative};
-                            }
-                        }
-
                         return $return;
                     }
                 ),
@@ -2396,34 +2242,6 @@ sub canonical_url_to_json {
                                 }
                             }
                         }
-                        elsif ( $orng_data{'hasCollaborationInterests'}
-                            and ref $orng_data{'hasCollaborationInterests'} eq
-                            'HASH' )
-                        {
-
-                            my $orig = $orng_data{'hasCollaborationInterests'};
-                            foreach my $key ( sort keys %{$orig} ) {
-                                next if !$orig->{$key};
-                                next if $orig->{$key} eq 'false';
-                                if ( $key eq 'UpdatedOn' ) {
-                                    next;
-                                }
-                                elsif ( $key eq 'Narrative' ) {
-                                    if ( length( $orig->{$key} ) >= 3 ) {
-                                        $interests->{Narrative} = $orig->{$key};
-                                    }
-                                }
-                                elsif ( $key =~ m/^[A-Z]/i ) {
-                                    $interests->{Details}->{$key} = JSON::true;
-                                    my $interest_readable = $key;
-                                    $interest_readable =~
-                                      s/([^[:upper:]])([[:upper:]])/$1 $2/g;
-                                    push @interest_strings,
-                                      lc $interest_readable;
-                                }
-                            }
-                        }
-
                         return {} unless @interest_strings;
                         $interests->{Summary} = join( ', ', @interest_strings );
                         return $interests;

@@ -21,7 +21,7 @@ use warnings;
 
 my $api = ProfilesEasyJSON::MegaUCSF->new;
 
-my %profile_for;
+my %profiles_by_username;
 for my $u (
     'vanessa.jacoby',      'kirsten.bibbins-domingo',
     'claire.brindis',      'alan.ashworth',
@@ -32,12 +32,13 @@ for my $u (
   )
 {
     my $json = $api->identifier_to_json( 'PrettyURL', $u );
-    $profile_for{$u} = decode_json($json)->{Profiles}[0] if $json;
+    $profiles_by_username{$u} = decode_json($json)->{Profiles}[0] if $json;
 }
 
-my @profiles = values %profile_for;
+my @profiles = values %profiles_by_username;
+my @loaded   = grep { defined } values %profiles_by_username;
 
-plan tests => 106;
+plan tests => 154;
 
 # ---------------------------------------------------------------------------
 # Helper: true if any profile satisfies the test
@@ -53,7 +54,7 @@ sub any_profile (&) {
 ###############################################################################
 
 SKIP: {
-    my $p = $profile_for{'vanessa.jacoby'}
+    my $p = $profiles_by_username{'vanessa.jacoby'}
       or skip 'vanessa.jacoby: no JSON', 7;
     is( $p->{Name},      'Vanessa Jacoby, MD, MAS', 'Vanessa: full name' );
     is( $p->{FirstName}, 'Vanessa',                 'Vanessa: first name' );
@@ -70,18 +71,32 @@ SKIP: {
 }
 
 SKIP: {
-    my $p = $profile_for{'kirsten.bibbins-domingo'}
-      or skip 'kirsten.bibbins-domingo: no JSON', 4;
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 11;
     like( $p->{Name},       qr/Kirsten Bibbins-Domingo/, 'Kirsten: full name' );
     like( $p->{Department}, qr/epidemiology/i, 'Kirsten: department' );
     like( $p->{School},     qr/medicine/i,     'Kirsten: school' );
     like( join( ' ', @{ $p->{Keywords} } ),
         qr/cardiovascular/i, 'Kirsten: mesh keywords include cardiovascular' );
+    like( $p->{ORCID} // '', qr/^\d{4}-\d{4}-\d{4}-\d{4}$/,
+        'Kirsten: ORCID is well-formed' );
+    like( $p->{PhotoURL} // '', qr/^https?:\/\//,
+        'Kirsten: PhotoURL is an http(s) URL' );
+    cmp_ok( scalar @{ $p->{FreetextKeywords} // [] },
+        '>=', 5, 'Kirsten: has 5+ freetext keywords' );
+    cmp_ok( scalar @{ $p->{Education_Training} // [] },
+        '>=', 4, 'Kirsten: has 4+ education entries' );
+    cmp_ok( scalar @{ $p->{AwardOrHonors} // [] },
+        '>=', 5, 'Kirsten: has 5+ awards' );
+    cmp_ok( scalar @{ $p->{NIHGrants_beta} // [] },
+        '>=', 5, 'Kirsten: has 5+ NIH grants' );
+    cmp_ok( scalar @{ $p->{GlobalHealth}{Locations} // [] },
+        '>=', 1, 'Kirsten: has GlobalHealth locations' );
 }
 
 SKIP: {
-    my $p = $profile_for{'claire.brindis'}
-      or skip 'claire.brindis: no JSON', 4;
+    my $p = $profiles_by_username{'claire.brindis'}
+      or skip 'claire.brindis: no JSON', 8;
     like( $p->{Name},       qr/Claire Brindis/, 'Claire: full name' );
     like( $p->{Department}, qr/health policy/i, 'Claire: department' );
     like( $p->{School},     qr/medicine/i,      'Claire: school' );
@@ -89,6 +104,46 @@ SKIP: {
         length( $p->{Narrative} // '' ) >= 100,
         'Claire: has a substantive narrative'
     );
+    like( $p->{ORCID} // '', qr/^\d{4}-\d{4}-\d{4}-\d{4}$/,
+        'Claire: ORCID is well-formed' );
+    cmp_ok( scalar @{ $p->{Titles} // [] },
+        '>=', 2, 'Claire: has 2+ Titles' );
+    cmp_ok( scalar @{ $p->{ResearchActivitiesAndFunding} // [] },
+        '>=', 10, 'Claire: has 10+ grants' );
+    cmp_ok( scalar @{ $p->{FreetextKeywords} // [] },
+        '>=', 10, 'Claire: has 10+ freetext keywords' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'adithya.cattamanchi'}
+      or skip 'adithya.cattamanchi: no JSON', 4;
+    cmp_ok( scalar @{ $p->{GlobalHealth}{Locations} // [] },
+        '>=', 5, 'Adithya: has 5+ GlobalHealth locations' );
+    cmp_ok( scalar @{ $p->{GlobalHealth_beta}{Countries} // [] },
+        '>=', 1, 'Adithya: has GlobalHealth_beta countries' );
+    cmp_ok( scalar @{ $p->{NIHGrants_beta} // [] },
+        '>=', 5, 'Adithya: has 5+ NIH grants' );
+    cmp_ok( scalar @{ $p->{ResearchActivitiesAndFunding} // [] },
+        '>=', 5, 'Adithya: has 5+ grants/activities' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'leslie.benet'}
+      or skip 'leslie.benet: no JSON', 3;
+    like( $p->{Email} // '', qr/\@ucsf\.edu$/,
+        'Leslie: has a @ucsf.edu email' );
+    cmp_ok( scalar @{ $p->{AwardOrHonors} // [] },
+        '>=', 20, 'Leslie: has 20+ awards' );
+    ok( ( grep { length( $_->{AwardLabel} // '' ) > 3 }
+              @{ $p->{AwardOrHonors} // [] } ),
+        'Leslie: at least one award has a label' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'elizabeth.owens'}
+      or skip 'elizabeth.owens: no JSON', 1;
+    like( $p->{Address}{Telephone} // '', qr/^415-/,
+        'Elizabeth: has a 415 phone number' );
 }
 
 ###############################################################################
@@ -110,6 +165,14 @@ ok(
         ( eval { $_->{Twitter_beta}[0] } // '' ) =~ /^\w{2,}$/
     },
     'At least one profile has a Twitter_beta handle'
+);
+
+# Twitter_beta is either undef (no handle) or an arrayref — never a plain
+# string or hash. This shape has been stable since the field was introduced.
+ok(
+    ( grep { defined $_->{Twitter_beta} && ref( $_->{Twitter_beta} ) ne 'ARRAY' }
+          @loaded ) == 0,
+    'Twitter_beta is always undef or an arrayref, never any other type'
 );
 
 ok( any_profile { ( $_->{PhotoURL} // '' ) =~ /PhotoHandler\.ashx/ },
@@ -353,12 +416,12 @@ ok(
 ok(
     (
         grep {
-            defined $profile_for{$_}
-              && ( $profile_for{$_}{ProfilesURL} // '' ) =~
+            defined $profiles_by_username{$_}
+              && ( $profiles_by_username{$_}{ProfilesURL} // '' ) =~
               m{profiles\.ucsf\.edu}
           }
-          keys %profile_for
-    ) == scalar keys %profile_for,
+          keys %profiles_by_username
+    ) == scalar keys %profiles_by_username,
     'All fetched profiles have a ProfilesURL on profiles.ucsf.edu'
 );
 
@@ -408,8 +471,25 @@ ok( any_profile { scalar @{ $_->{Videos} // [] } >= 2 },
 ok( ( any { ( $_->{url} // '' ) =~ /you\.?tu\.?be|youtube/i } @all_videos ),
     'At least one video is from YouTube' );
 
+ok( ( any { ( $_->{url} // '' ) =~ m{^https://} } @all_videos ),
+    'At least one video has an https URL' );
+
 ok( ( any { length( $_->{label} // '' ) > 3 } @all_videos ),
     'At least one video has a label' );
+
+ok( scalar @all_videos >= 2,
+    'At least 2 videos total across all profiles' );
+
+SKIP: {
+    my $p = $profiles_by_username{'kirsten.bibbins-domingo'}
+      or skip 'kirsten.bibbins-domingo: no JSON', 3;
+    my @vids = @{ $p->{Videos} // [] };
+    cmp_ok( scalar @vids, '>=', 2, 'Kirsten: has 2+ videos' );
+    ok( ( grep { ( $_->{url} // '' ) =~ /you\.?tu\.?be|youtube/i } @vids ),
+        'Kirsten: at least one video is from YouTube' );
+    ok( ( grep { length( $_->{label} // '' ) > 0 } @vids ),
+        'Kirsten: at least one video has a label' );
+}
 
 # --- AwardOrHonors ---
 
@@ -558,6 +638,28 @@ ok(
     'At least one profile has non-empty FacultyMentoring type strings'
 );
 
+SKIP: {
+    my $p = $profiles_by_username{'claire.brindis'}
+      or skip 'claire.brindis: no JSON', 4;
+    cmp_ok( scalar @{ $p->{FacultyMentoring}{Types} // [] },
+        '>=', 5, 'Claire: has 5+ FacultyMentoring types' );
+    ok( ( grep { /\w/ } @{ $p->{FacultyMentoring}{Types} // [] } ),
+        'Claire: FacultyMentoring types are non-empty strings' );
+    ok( length( $p->{FacultyMentoring}{Narrative} // '' ) > 20,
+        'Claire: has a FacultyMentoring narrative' );
+    is( ref( $p->{FacultyMentoring}{Types} ),
+        'ARRAY', 'Claire: FacultyMentoring Types is an arrayref' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'aaron.neinstein'}
+      or skip 'aaron.neinstein: no JSON', 2;
+    cmp_ok( scalar @{ $p->{FacultyMentoring}{Types} // [] },
+        '>=', 1, 'Aaron Neinstein: has FacultyMentoring types' );
+    is( ref( $p->{FacultyMentoring}{Types} ),
+        'ARRAY', 'Aaron Neinstein: FacultyMentoring Types is an arrayref' );
+}
+
 # --- CollaborationInterests ---
 
 ok(
@@ -572,8 +674,7 @@ ok(
     'At least one profile has CollaborationInterests Detail entries'
 );
 ok(
-    any_profile { length( $_->{CollaborationInterests}{Narrative} // '' ) > 20 }
-    ,
+    any_profile { length( $_->{CollaborationInterests}{Narrative} // '' ) > 20 },
     'At least one profile has CollaborationInterests Narrative'
 );
 ok(
@@ -583,10 +684,32 @@ ok(
     'At least one profile has a CollaborationInterests Summary with content'
 );
 
+SKIP: {
+    my $p = $profiles_by_username{'claire.brindis'}
+      or skip 'claire.brindis: no JSON', 4;
+    ok( length( $p->{CollaborationInterests}{Summary} // '' ) > 5,
+        'Claire: has CollaborationInterests Summary' );
+    ok( length( $p->{CollaborationInterests}{Narrative} // '' ) > 20,
+        'Claire: has CollaborationInterests Narrative' );
+    cmp_ok( scalar keys %{ $p->{CollaborationInterests}{Details} // {} },
+        '>=', 2, 'Claire: has 2+ CollaborationInterests Detail entries' );
+    is( ref( $p->{CollaborationInterests}{Details} ),
+        'HASH', 'Claire: CollaborationInterests Details is a hashref' );
+}
+
+SKIP: {
+    my $p = $profiles_by_username{'aaron.neinstein'}
+      or skip 'aaron.neinstein: no JSON', 2;
+    ok( length( $p->{CollaborationInterests}{Summary} // '' ) > 5,
+        'Aaron Neinstein: has CollaborationInterests Summary' );
+    cmp_ok( scalar keys %{ $p->{CollaborationInterests}{Details} // {} },
+        '>=', 1, 'Aaron Neinstein: has CollaborationInterests Detail entries' );
+}
+
 # --- Twitter_beta backfill from WebLinks ---
 
 SKIP: {
-    my $p = $profile_for{'renee.hsia'}
+    my $p = $profiles_by_username{'renee.hsia'}
       or skip 'renee.hsia: no JSON', 2;
     my @tw = @{ $p->{Twitter_beta} // [] };
     ok( @tw >= 1,
@@ -596,7 +719,7 @@ SKIP: {
 }
 
 SKIP: {
-    my $p = $profile_for{'steven.pantilat'}
+    my $p = $profiles_by_username{'steven.pantilat'}
       or skip 'steven.pantilat: no JSON', 2;
     my @tw = @{ $p->{Twitter_beta} // [] };
     ok( @tw >= 1,
@@ -606,7 +729,7 @@ SKIP: {
 }
 
 SKIP: {
-    my $p = $profile_for{'aaron.neinstein'}
+    my $p = $profiles_by_username{'aaron.neinstein'}
       or skip 'aaron.neinstein: no JSON', 3;
     my @tw = @{ $p->{Twitter_beta} // [] };
     ok(
@@ -621,3 +744,79 @@ SKIP: {
 'Aaron Neinstein: twitter.com and x.com duplicates collapsed to one entry'
     );
 }
+
+# ---------------------------------------------------------------------------
+# Structural type guarantees — these fields must be arrayrefs on every loaded
+# profile, even when empty. Ensures data-level compatibility is preserved when
+# ORNG fallback paths are removed.
+# ---------------------------------------------------------------------------
+
+ok(
+    ( grep { ref( $_->{SlideShare_beta} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'SlideShare_beta is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{WebLinks_beta} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'WebLinks_beta is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{MediaLinks_beta} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'MediaLinks_beta is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{Videos} ) eq 'ARRAY' } @loaded ) == scalar @loaded,
+    'Videos is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{Publications} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'Publications is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{ClinicalTrials} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'ClinicalTrials is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{AwardOrHonors} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'AwardOrHonors is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{Education_Training} ) eq 'ARRAY' } @loaded ) ==
+      scalar @loaded,
+    'Education_Training is an arrayref on every loaded profile'
+);
+
+ok(
+    (
+        grep { ref( $_->{FacultyMentoring}{Types} ) eq 'ARRAY' } @loaded
+    ) == scalar @loaded,
+    'FacultyMentoring Types is an arrayref on every loaded profile'
+);
+
+ok(
+    ( grep { ref( $_->{CollaborationInterests} ) eq 'HASH' } @loaded ) ==
+      scalar @loaded,
+    'CollaborationInterests is a hashref on every loaded profile'
+);
+
+ok(
+    (
+        grep {
+            !exists $_->{CollaborationInterests}{Details}
+              || ref( $_->{CollaborationInterests}{Details} ) eq 'HASH'
+        } @loaded
+    ) == scalar @loaded,
+    'CollaborationInterests Details, when present, is a hashref'
+);
